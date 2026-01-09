@@ -354,29 +354,41 @@ function App() {
   }
 
   // Handle logout - FIXED VERSION
+  // Replace the handleLogout function in your App.jsx with this version
+
   const handleLogout = async () => {
     console.log('🚪 Logout clicked')
     
     try {
-      // Sign out via both methods
+      // Method 1: Sign out via AuthContext
+      console.log('📤 Signing out via AuthContext...')
       await signOut()
+      
+      // Method 2: Sign out via Supabase directly
+      console.log('📤 Signing out via Supabase...')
       await supabase.auth.signOut()
       
-      // Clear storage
+      // Method 3: Clear ALL storage
+      console.log('🧹 Clearing all storage...')
       localStorage.clear()
+      sessionStorage.clear()
       
-      // Navigate
-      navigate('/login')
+      // Method 4: Delete specific Supabase keys
+      const keysToDelete = Object.keys(localStorage).filter(
+        key => key.includes('supabase') || key.includes('sb-')
+      )
+      keysToDelete.forEach(key => localStorage.removeItem(key))
       
-      // Force reload as backup
-      setTimeout(() => {
-        window.location.href = '/login'
-      }, 100)
+      console.log('✅ Logout complete, reloading page...')
+      
+      // CRITICAL: Force full page reload to reset everything
+      window.location.href = '/login'
       
     } catch (error) {
-      console.error('Logout error:', error)
+      console.error('❌ Logout error:', error)
       // Force logout anyway
       localStorage.clear()
+      sessionStorage.clear()
       window.location.href = '/login'
     }
   }
