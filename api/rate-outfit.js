@@ -24,7 +24,7 @@ export default async function handler(req, res) {
         'Authorization': `Bearer ${process.env.GROQ_API_KEY}` // Secret! Stays on server
       },
       body: JSON.stringify({
-        model: 'llama-3.2-90b-vision-preview', // Groq's vision model
+        model: 'llama-3.2-11b-vision-preview', // Groq's vision model (updated)
         messages: [
           {
             role: 'user',
