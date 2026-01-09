@@ -1,6 +1,10 @@
 import { useState } from 'react';
 import { useAuth } from './AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { loadStripe } from '@stripe/stripe-js';
+
+// Initialize Stripe
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
 
 function PricingPage() {
   const { userTier, user } = useAuth();
@@ -11,19 +15,39 @@ function PricingPage() {
   const handleUpgrade = async (plan) => {
     setLoading(true);
 
-    // TODO: Integrate Stripe Checkout
-    // For now, just simulate the flow
     try {
-      // This will be replaced with actual Stripe integration
-      const response = await fetch('/api/create-checkout-session', {
+        // Create checkout session
+        const response = await fetch('/api/create-checkout-session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId: user.id,
-          plan: plan,
-          billingCycle: billingCycle
+            userId: user.id,
+            plan: plan,
+            billingCycle: billingCycle
         })
-      });
+        });
+
+        if (!response.ok) {
+        throw new Error('Failed to create checkout session');
+        }
+
+        const { sessionId } = await response.json();
+        
+        // Redirect to Stripe Checkout
+        const stripe = await stripePromise;
+        const { error } = await stripe.redirectToCheckout({ sessionId });
+        
+        if (error) {
+        console.error('Stripe redirect error:', error);
+        alert('Payment failed: ' + error.message);
+        }
+    } catch (error) {
+        console.error('Checkout error:', error);
+        alert('Something went wrong. Please try again.');
+    } finally {
+        setLoading(false);
+    }
+    };
 
       const { sessionId } = await response.json();
       
