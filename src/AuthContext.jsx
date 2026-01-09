@@ -1,21 +1,8 @@
-// 📚 WHAT IS THIS FILE?
-// This is our "Auth Context" - a special React feature that lets us
-// share the current user's information across ALL pages without passing props.
-//
-// Think of it like a bulletin board that every room (component) in your 
-// house (app) can see. When someone logs in, we post it on the board,
-// and every room knows who's logged in!
-
 import { createContext, useContext, useState, useEffect } from 'react'
 import { supabase } from './supabaseClient'
 
-// 🎯 CREATE THE CONTEXT
-// This is our "bulletin board"
 const AuthContext = createContext({})
 
-// 🎁 CUSTOM HOOK (makes it easier to use)
-// Instead of typing useContext(AuthContext) every time,
-// we can just type useAuth()
 export const useAuth = () => {
   const context = useContext(AuthContext)
   if (!context) {
@@ -24,26 +11,77 @@ export const useAuth = () => {
   return context
 }
 
-// 🏗️ THE PROVIDER COMPONENT
-// This wraps our entire app and provides auth data to everyone
 export function AuthProvider({ children }) {
-  // 👤 STATE: Who's logged in?
-  // null = nobody, object = user data
   const [user, setUser] = useState(null)
-  
-  // ⏳ STATE: Are we checking if someone's logged in?
   const [loading, setLoading] = useState(true)
-  
-  // 💳 STATE: Is this user a premium subscriber?
   const [isPremium, setIsPremium] = useState(false)
-  
-  // 🔢 STATE: How many ratings has user done today?
   const [dailyRatingCount, setDailyRatingCount] = useState(0)
 
-  // 🔍 FUNCTION: Check subscription status
+  useEffect(() => {
+    console.log('🚀 AuthProvider starting...')
+    
+    // CRITICAL: Set timeout to force loading to false after 3 seconds
+    const timeoutId = setTimeout(() => {
+      console.log('⏰ Timeout reached, forcing loading to false')
+      setLoading(false)
+    }, 3000)
+
+    checkUser().then(() => {
+      clearTimeout(timeoutId)
+    })
+
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log('🔔 Auth change:', event)
+        const currentUser = session?.user ?? null
+        setUser(currentUser)
+        
+        if (currentUser) {
+          await checkSubscription(currentUser.id)
+          await checkDailyRatings(currentUser.id)
+        } else {
+          setIsPremium(false)
+          setDailyRatingCount(0)
+        }
+        
+        setLoading(false)
+      }
+    )
+
+    return () => {
+      clearTimeout(timeoutId)
+      authListener?.subscription?.unsubscribe()
+    }
+  }, [])
+
+  const checkUser = async () => {
+    try {
+      console.log('🔍 Checking user...')
+      const { data: { user }, error } = await supabase.auth.getUser()
+      
+      if (error) {
+        console.error('❌ Error getting user:', error)
+        setLoading(false)
+        return
+      }
+      
+      console.log('👤 User:', user?.email || 'None')
+      setUser(user)
+      
+      if (user) {
+        await checkSubscription(user.id)
+        await checkDailyRatings(user.id)
+      }
+    } catch (error) {
+      console.error('❌ checkUser error:', error)
+    } finally {
+      console.log('✅ Setting loading to false')
+      setLoading(false)
+    }
+  }
+
   const checkSubscription = async (userId) => {
     try {
-      // Ask the database: "What's this user's subscription?"
       const { data, error } = await supabase
         .from('subscriptions')
         .select('status, plan')
@@ -51,7 +89,6 @@ export function AuthProvider({ children }) {
         .single()
 
       if (error) {
-        // If no subscription exists, create a free one
         if (error.code === 'PGRST116') {
           await supabase.from('subscriptions').insert({
             user_id: userId,
@@ -63,7 +100,6 @@ export function AuthProvider({ children }) {
         return
       }
 
-      // Update our state
       setIsPremium(data.status === 'premium')
     } catch (error) {
       console.error('Error checking subscription:', error)
@@ -71,14 +107,11 @@ export function AuthProvider({ children }) {
     }
   }
 
-  // 🔢 FUNCTION: Check how many ratings today
   const checkDailyRatings = async (userId) => {
     try {
-      // Get today's date at midnight
       const today = new Date()
       today.setHours(0, 0, 0, 0)
 
-      // Count ratings since midnight
       const { data, error } = await supabase
         .from('outfit_history')
         .select('id', { count: 'exact' })
@@ -94,65 +127,8 @@ export function AuthProvider({ children }) {
     }
   }
 
-  // 🎬 EFFECT: Run when app loads
-  useEffect(() => {
-    // Check if someone's already logged in (from a previous session)
-    checkUser()
-
-    // Listen for auth changes (login, logout, etc.)
-    const { data: authListener } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('🔔 Auth state changed:', event)
-        // Update user when auth state changes
-        const currentUser = session?.user ?? null
-        setUser(currentUser)
-        
-        if (currentUser) {
-          // If logged in, check their subscription and daily count
-          await checkSubscription(currentUser.id)
-          await checkDailyRatings(currentUser.id)
-        } else {
-          // If logged out, reset everything
-          setIsPremium(false)
-          setDailyRatingCount(0)
-        }
-        
-        setLoading(false)
-      }
-    )
-
-    // Cleanup: stop listening when component unmounts
-    return () => {
-      authListener?.subscription?.unsubscribe()
-    }
-  }, [])
-
-  // 🔍 FUNCTION: Check current user
-  const checkUser = async () => {
-    try {
-      console.log('🔍 Checking for existing user session...')
-      const { data: { user } } = await supabase.auth.getUser()
-      console.log('👤 User found:', user?.email || 'None')
-      
-      setUser(user)
-      
-      if (user) {
-        await checkSubscription(user.id)
-        await checkDailyRatings(user.id)
-      }
-    } catch (error) {
-      console.error('Error checking user:', error)
-    } finally {
-      // CRITICAL: Always set loading to false, even on error
-      console.log('✅ Auth check complete, setting loading to false')
-      setLoading(false)
-    }
-  }
-
-  // 📧 FUNCTION: Sign up new user
   const signUp = async (email, password) => {
     try {
-      // Tell Supabase to create a new account
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -160,7 +136,6 @@ export function AuthProvider({ children }) {
 
       if (error) throw error
 
-      // Success! Create their free subscription
       if (data.user) {
         await supabase.from('subscriptions').insert({
           user_id: data.user.id,
@@ -175,7 +150,6 @@ export function AuthProvider({ children }) {
     }
   }
 
-  // 🔐 FUNCTION: Sign in existing user
   const signIn = async (email, password) => {
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -190,13 +164,11 @@ export function AuthProvider({ children }) {
     }
   }
 
-  // 🚪 FUNCTION: Sign out
   const signOut = async () => {
     try {
       const { error } = await supabase.auth.signOut()
       if (error) throw error
       
-      // Reset all state
       setUser(null)
       setIsPremium(false)
       setDailyRatingCount(0)
@@ -207,55 +179,27 @@ export function AuthProvider({ children }) {
     }
   }
 
-  // ✅ FUNCTION: Can user rate an outfit?
   const canRate = () => {
-    // Premium users can always rate
     if (isPremium) return true
-    
-    // Free users get 3 per day
     return dailyRatingCount < 3
   }
 
-  // 🎁 THE VALUE WE'RE SHARING
-  // Everything inside this object will be available
-  // to ANY component that uses useAuth()
   const value = {
-    user,              // Current user object
-    isPremium,         // true/false
-    dailyRatingCount,  // Number
-    loading,           // true/false
-    signUp,            // Function
-    signIn,            // Function
-    signOut,           // Function
-    canRate,           // Function
-    checkDailyRatings, // Function (refresh count)
+    user,
+    isPremium,
+    dailyRatingCount,
+    loading,
+    signUp,
+    signIn,
+    signOut,
+    canRate,
+    checkDailyRatings,
   }
 
-  // 🎨 RETURN THE PROVIDER
-  // CRITICAL FIX: Always render children, let App.jsx handle the loading screen
-  // This prevents the infinite "Loading..." bug
+  // ALWAYS render children
   return (
     <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   )
 }
-
-// 📖 HOW TO USE THIS:
-//
-// 1. Wrap your app in main.jsx:
-//    <AuthProvider>
-//      <App />
-//    </AuthProvider>
-//
-// 2. Use in any component:
-//    import { useAuth } from './AuthContext'
-//    
-//    function MyComponent() {
-//      const { user, signOut, isPremium, loading } = useAuth()
-//      
-//      if (loading) return <div>Loading...</div>
-//      if (!user) return <Login />
-//      
-//      return <div>Hello {user.email}!</div>
-//    }
