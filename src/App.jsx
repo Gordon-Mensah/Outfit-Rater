@@ -443,7 +443,12 @@ function App() {
                       <li>✅ Detailed breakdowns</li>
                     </ul>
                     <p className="price">Only $4.99/month</p>
-                    <button className="btn-upgrade">Upgrade Now</button>
+                    <button 
+                      className="btn-upgrade"
+                      onClick={() => alert('💎 Premium coming soon! We\'re setting up payments. Check back soon!')}
+                    >
+                      Upgrade Now
+                    </button>
                   </div>
                 )}
               </div>
