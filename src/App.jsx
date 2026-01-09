@@ -1,502 +1,801 @@
-import { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
-import { supabase } from './supabaseClient';
-import { AuthProvider, useAuth } from './AuthContext';
-import Login from './Login';
-import SignUp from './SignUp';
-import ForgotPassword from './ForgotPassword';
-import ProfileSettings from './ProfileSettings';
-import PricingPage from './PricingPage';
-import imageCompression from 'browser-image-compression';
-import './App.css';
+// Main App Component
+// Handles routing, outfit rating, saving, and comparison features
 
-function MainApp() {
-  const { user, userEmail, userTier, logout } = useAuth();
-  const navigate = useNavigate();
+import { useState } from 'react'
+import { Routes, Route, Navigate, useNavigate } from 'react-router-dom'
+import { useAuth } from './AuthContext'
+import { supabase } from './supabaseClient'
+import imageCompression from 'browser-image-compression'
+import Login from './Login'
+import SignUp from './SignUp'
+
+function App() {
+  // Auth data - NOW INCLUDING LOADING STATE
+  const { user, signOut, isPremium, canRate, dailyRatingCount, checkDailyRatings, loading } = useAuth()
+  const navigate = useNavigate()
+
+  // Main app state
+  const [image, setImage] = useState(null)
+  const [imagePreview, setImagePreview] = useState(null)
+  const [occasion, setOccasion] = useState('none')
+  const [isLoading, setIsLoading] = useState(false)
+  const [result, setResult] = useState(null)
+  const [error, setError] = useState(null)
   
-  const [image, setImage] = useState(null);
-  const [images, setImages] = useState([]);
-  const [occasion, setOccasion] = useState('casual');
-  const [mode, setMode] = useState('helpful');
-  const [rating, setRating] = useState(null);
-  const [feedback, setFeedback] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [ratingsToday, setRatingsToday] = useState(0);
-  const [showHistory, setShowHistory] = useState(false);
-  const [history, setHistory] = useState([]);
-  const [showSaved, setShowSaved] = useState(false);
-  const [savedOutfits, setSavedOutfits] = useState([]);
-  const [comparisonMode, setComparisonMode] = useState(false);
-  const [comparisonResults, setComparisonResults] = useState(null);
-  const [darkMode, setDarkMode] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterOccasion, setFilterOccasion] = useState('all');
+  // Premium features
+  const [feedbackMode, setFeedbackMode] = useState('helpful')
+  const [showHistory, setShowHistory] = useState(false)
+  const [outfitHistory, setOutfitHistory] = useState([])
+  
+  // NEW: Saved outfits feature
+  const [showSavedOutfits, setShowSavedOutfits] = useState(false)
+  const [savedOutfits, setSavedOutfits] = useState([])
+  const [savedCount, setSavedCount] = useState(0)
+  
+  // NEW: Comparison feature
+  const [comparisonMode, setComparisonMode] = useState(false)
+  const [comparisonImages, setComparisonImages] = useState([])
+  const [comparisonPreviews, setComparisonPreviews] = useState([])
+  const [comparisonResult, setComparisonResult] = useState(null)
 
-  useEffect(() => {
-    // Load dark mode preference
-    const savedDarkMode = localStorage.getItem('darkMode') === 'true';
-    setDarkMode(savedDarkMode);
-    if (savedDarkMode) {
-      document.body.classList.add('dark-mode');
-    }
-  }, []);
+  // Load outfit history
+  const loadHistory = async () => {
+    if (!user) return
 
-  useEffect(() => {
-    if (user) {
-      fetchRatingsToday();
-      fetchHistory();
-      fetchSavedOutfits();
-    }
-  }, [user]);
-
-  const toggleDarkMode = () => {
-    const newMode = !darkMode;
-    setDarkMode(newMode);
-    localStorage.setItem('darkMode', newMode);
-    if (newMode) {
-      document.body.classList.add('dark-mode');
-    } else {
-      document.body.classList.remove('dark-mode');
-    }
-  };
-
-  const fetchRatingsToday = async () => {
-    const today = new Date().toISOString().split('T')[0];
-    const { data, error } = await supabase
-      .from('outfit_history')
-      .select('*')
-      .eq('user_id', user.id)
-      .gte('created_at', today);
-    
-    if (!error) setRatingsToday(data.length);
-  };
-
-  const fetchHistory = async () => {
-    const { data, error } = await supabase
-      .from('outfit_history')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
-      .limit(20);
-    
-    if (!error) setHistory(data);
-  };
-
-  const fetchSavedOutfits = async () => {
-    const { data, error } = await supabase
-      .from('saved_outfits')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false });
-    
-    if (!error) setSavedOutfits(data);
-  };
-
-  const compressImage = async (file) => {
-    const options = {
-      maxSizeMB: 1,
-      maxWidthOrHeight: 1024,
-      useWebWorker: true
-    };
     try {
-      return await imageCompression(file, options);
-    } catch (error) {
-      console.error('Compression error:', error);
-      return file;
+      const { data, error } = await supabase
+        .from('outfit_history')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(10)
+
+      if (error) throw error
+      setOutfitHistory(data || [])
+      setShowHistory(true)
+    } catch (err) {
+      console.error('Error loading history:', err)
     }
-  };
+  }
 
-  const handleImageUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+  // NEW: Load saved outfits
+  const loadSavedOutfits = async () => {
+    if (!user) return
 
-    const compressed = await compressImage(file);
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      if (comparisonMode) {
-        if (images.length < 5) {
-          setImages([...images, reader.result]);
-        } else {
-          alert('Maximum 5 outfits for comparison');
-        }
-      } else {
-        setImage(reader.result);
+    try {
+      const { data, error } = await supabase
+        .from('saved_outfits')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+
+      if (error) throw error
+      setSavedOutfits(data || [])
+      setSavedCount(data?.length || 0)
+      setShowSavedOutfits(true)
+    } catch (err) {
+      console.error('Error loading saved outfits:', err)
+    }
+  }
+
+  // NEW: Save current outfit
+  const saveOutfit = async () => {
+    if (!user || !result) return
+
+    // Check limits
+    if (!isPremium && savedCount >= 10) {
+      setError('You can only save 10 outfits on the free plan. Upgrade to Premium for unlimited saves.')
+      return
+    }
+
+    try {
+      const { error } = await supabase
+        .from('saved_outfits')
+        .insert({
+          user_id: user.id,
+          image_data: imagePreview,
+          rating: result.rating,
+          feedback: result.feedback,
+          occasion: occasion,
+          name: `Outfit ${savedCount + 1}`,
+          created_at: new Date().toISOString()
+        })
+
+      if (error) throw error
+
+      alert('Outfit saved successfully!')
+      setSavedCount(savedCount + 1)
+    } catch (err) {
+      console.error('Error saving outfit:', err)
+      setError('Failed to save outfit. Please try again.')
+    }
+  }
+
+  // NEW: Delete saved outfit
+  const deleteSavedOutfit = async (outfitId) => {
+    try {
+      const { error } = await supabase
+        .from('saved_outfits')
+        .delete()
+        .eq('id', outfitId)
+        .eq('user_id', user.id)
+
+      if (error) throw error
+
+      // Refresh list
+      loadSavedOutfits()
+    } catch (err) {
+      console.error('Error deleting outfit:', err)
+    }
+  }
+
+  // Handle single image selection
+  const handleImageChange = async (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+
+    try {
+      console.log('Compressing image...')
+      const options = {
+        maxSizeMB: 1,
+        maxWidthOrHeight: 1920,
+        useWebWorker: true
       }
-    };
-    reader.readAsDataURL(compressed);
-  };
-
-  const removeImage = (index) => {
-    setImages(images.filter((_, i) => i !== index));
-  };
-
-  const handleSubmit = async () => {
-    if (userTier === 'free' && ratingsToday >= 3) {
-      alert('Daily limit reached! Upgrade to Premium for unlimited ratings.');
-      return;
+      
+      const compressedFile = await imageCompression(file, options)
+      console.log('Compressed! Original:', file.size, 'New:', compressedFile.size)
+      
+      setImage(compressedFile)
+      
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setImagePreview(reader.result)
+      }
+      reader.readAsDataURL(compressedFile)
+      
+      setResult(null)
+      setError(null)
+    } catch (err) {
+      console.error('Error compressing image:', err)
+      setError('Failed to process image. Please try another one.')
     }
+  }
 
-    if (comparisonMode && images.length < 2) {
-      alert('Please upload at least 2 outfits to compare');
-      return;
+  // NEW: Handle multiple images for comparison
+  const handleComparisonImages = async (e) => {
+    const files = Array.from(e.target.files)
+    if (files.length < 2) {
+      setError('Please select at least 2 images to compare')
+      return
     }
-
-    if (!comparisonMode && !image) {
-      alert('Please upload an outfit image');
-      return;
+    if (files.length > 5) {
+      setError('You can compare up to 5 outfits at once')
+      return
     }
-
-    setLoading(true);
-    setRating(null);
-    setFeedback('');
-    setComparisonResults(null);
 
     try {
-      if (comparisonMode) {
-        const response = await fetch('/api/compare-outfits', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            images,
-            occasion,
-            userId: user.id
-          })
-        });
+      const compressedFiles = []
+      const previews = []
 
-        const data = await response.json();
-        setComparisonResults(data);
-      } else {
+      for (const file of files) {
+        const options = {
+          maxSizeMB: 1,
+          maxWidthOrHeight: 1920,
+          useWebWorker: true
+        }
+        
+        const compressedFile = await imageCompression(file, options)
+        compressedFiles.push(compressedFile)
+
+        const reader = new FileReader()
+        const preview = await new Promise((resolve) => {
+          reader.onloadend = () => resolve(reader.result)
+          reader.readAsDataURL(compressedFile)
+        })
+        previews.push(preview)
+      }
+
+      setComparisonImages(compressedFiles)
+      setComparisonPreviews(previews)
+      setComparisonResult(null)
+      setError(null)
+    } catch (err) {
+      console.error('Error processing images:', err)
+      setError('Failed to process images. Please try again.')
+    }
+  }
+
+  // Handle camera capture
+  const handleCameraCapture = async (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+    
+    e.target.files = { 0: file, length: 1 }
+    handleImageChange(e)
+  }
+
+  // Rate single outfit
+  const rateOutfit = async () => {
+    if (!canRate()) {
+      setError('You have used your 3 free ratings today. Upgrade to Premium for unlimited ratings.')
+      return
+    }
+
+    if (!image) {
+      setError('Please upload an image first')
+      return
+    }
+
+    setIsLoading(true)
+    setError(null)
+    setResult(null)
+
+    try {
+      const reader = new FileReader()
+      reader.readAsDataURL(image)
+      
+      reader.onloadend = async () => {
+        const base64Image = reader.result
+
         const response = await fetch('/api/rate-outfit', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            image,
+            image: base64Image,
             occasion,
-            mode: userTier === 'premium' ? mode : 'helpful',
+            mode: feedbackMode,
             userId: user.id
           })
-        });
+        })
 
-        const data = await response.json();
-        setRating(data.rating);
-        setFeedback(data.feedback);
+        const data = await response.json()
 
-        await supabase.from('outfit_history').insert({
-          user_id: user.id,
-          rating: data.rating,
-          feedback: data.feedback,
-          occasion
-        });
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to rate outfit')
+        }
+
+        // Save to history
+        if (user) {
+          await supabase.from('outfit_history').insert({
+            user_id: user.id,
+            rating: data.rating,
+            feedback: data.feedback,
+            occasion: occasion,
+            created_at: new Date().toISOString()
+          })
+
+          await checkDailyRatings(user.id)
+        }
+
+        setResult(data)
+      }
+    } catch (err) {
+      console.error('Error rating outfit:', err)
+      setError(err.message || 'Something went wrong. Please try again.')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // NEW: Compare multiple outfits
+  const compareOutfits = async () => {
+    if (!canRate()) {
+      setError('You have used your 3 free ratings today. Upgrade to Premium for unlimited ratings.')
+      return
+    }
+
+    if (comparisonImages.length < 2) {
+      setError('Please upload at least 2 images to compare')
+      return
+    }
+
+    setIsLoading(true)
+    setError(null)
+    setComparisonResult(null)
+
+    try {
+      const base64Images = await Promise.all(
+        comparisonImages.map(img => {
+          return new Promise((resolve) => {
+            const reader = new FileReader()
+            reader.onloadend = () => resolve(reader.result)
+            reader.readAsDataURL(img)
+          })
+        })
+      )
+
+      const response = await fetch('/api/compare-outfits', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          images: base64Images,
+          occasion,
+          userId: user.id
+        })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to compare outfits')
       }
 
-      fetchRatingsToday();
-      fetchHistory();
-    } catch (error) {
-      console.error('Error:', error);
-      alert('Failed to rate outfit. Please try again.');
+      setComparisonResult(data)
+      await checkDailyRatings(user.id)
+    } catch (err) {
+      console.error('Error comparing outfits:', err)
+      setError(err.message || 'Something went wrong. Please try again.')
     } finally {
-      setLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
 
-  const saveOutfit = async () => {
-    if (!rating || !image) return;
+  // Reset everything
+  const reset = () => {
+    setImage(null)
+    setImagePreview(null)
+    setOccasion('none')
+    setResult(null)
+    setError(null)
+    setComparisonMode(false)
+    setComparisonImages([])
+    setComparisonPreviews([])
+    setComparisonResult(null)
+  }
 
-    const maxSaves = userTier === 'premium' ? 999 : 10;
-    if (savedOutfits.length >= maxSaves) {
-      alert(`Maximum ${maxSaves} saved outfits reached. ${userTier === 'free' ? 'Upgrade to Premium for unlimited saves!' : ''}`);
-      return;
-    }
+  // Handle logout
+  const handleLogout = async () => {
+    await signOut()
+    navigate('/login')
+  }
 
-    const { error } = await supabase.from('saved_outfits').insert({
-      user_id: user.id,
-      name: `Outfit ${savedOutfits.length + 1}`,
-      image_data: image,
-      rating,
-      feedback,
-      occasion
-    });
-
-    if (!error) {
-      alert('Outfit saved successfully!');
-      fetchSavedOutfits();
-    }
-  };
-
-  const deleteOutfit = async (id) => {
-    if (!confirm('Delete this outfit?')) return;
-    
-    const { error } = await supabase
-      .from('saved_outfits')
-      .delete()
-      .eq('id', id);
-
-    if (!error) fetchSavedOutfits();
-  };
-
+  // Get rating color
   const getRatingColor = (rating) => {
-    if (rating >= 8) return '#a855f7';
-    if (rating >= 6) return '#10b981';
-    if (rating >= 4) return '#f59e0b';
-    return '#ef4444';
-  };
+    if (rating >= 9) return '#8b5cf6'
+    if (rating >= 7) return '#10b981'
+    if (rating >= 4) return '#f59e0b'
+    return '#ef4444'
+  }
 
-  // Filter saved outfits
-  const filteredOutfits = savedOutfits.filter(outfit => {
-    const matchesSearch = outfit.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         outfit.feedback.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesOccasion = filterOccasion === 'all' || outfit.occasion === filterOccasion;
-    return matchesSearch && matchesOccasion;
-  });
+  // Share result
+  const shareResult = () => {
+    const text = `I got a ${result.rating}/10 on my outfit!`
+    const url = window.location.href
 
+    if (navigator.share) {
+      navigator.share({ title: 'My Outfit Rating', text, url })
+    } else {
+      navigator.clipboard.writeText(`${text} ${url}`)
+      alert('Rating copied to clipboard!')
+    }
+  }
+
+  // 🔧 CRITICAL FIX: Show loading screen while auth is checking
+  if (loading) {
+    return (
+      <div className="loading-screen">
+        <div className="spinner"></div>
+        <p>Loading...</p>
+      </div>
+    )
+  }
+
+  // ROUTING
   return (
-    <div className="app-container">
-      <header className="app-header">
-        <div className="header-left">
-          <h1>AI Outfit Rater</h1>
-          <span className={`tier-badge ${userTier}`}>{userTier.toUpperCase()}</span>
-        </div>
-        <div className="header-right">
-          <button className="icon-btn" onClick={toggleDarkMode} title="Toggle Dark Mode">
-            {darkMode ? '☀️' : '🌙'}
-          </button>
-          <button className="icon-btn" onClick={() => navigate('/settings')} title="Settings">
-            ⚙️
-          </button>
-          <button className="icon-btn" onClick={() => navigate('/pricing')} title="Upgrade">
-            💎
-          </button>
-          <span className="user-email">{userEmail}</span>
-          <button onClick={logout} className="logout-btn">Logout</button>
-        </div>
-      </header>
-
-      {userTier === 'free' && (
-        <div className="daily-limit">
-          Ratings today: {ratingsToday}/3 | <button onClick={() => navigate('/pricing')} className="upgrade-link">Upgrade for unlimited</button>
-        </div>
-      )}
-
-      <div className="main-content">
-        <div className="mode-selector">
-          <button 
-            className={!comparisonMode ? 'active' : ''} 
-            onClick={() => { setComparisonMode(false); setImages([]); setComparisonResults(null); }}
-          >
-            Single Outfit
-          </button>
-          <button 
-            className={comparisonMode ? 'active' : ''} 
-            onClick={() => { setComparisonMode(true); setImage(null); setRating(null); }}
-          >
-            Compare Outfits
-          </button>
-        </div>
-
-        <div className="controls">
-          <select value={occasion} onChange={(e) => setOccasion(e.target.value)}>
-            <option value="casual">Casual</option>
-            <option value="work">Work</option>
-            <option value="date">Date</option>
-            <option value="interview">Interview</option>
-            <option value="formal">Formal Event</option>
-            <option value="workout">Workout</option>
-          </select>
-
-          {userTier === 'premium' && !comparisonMode && (
-            <select value={mode} onChange={(e) => setMode(e.target.value)}>
-              <option value="helpful">Helpful</option>
-              <option value="honest">Honest</option>
-              <option value="roast">Roast Mode</option>
-            </select>
-          )}
-
-          <input 
-            type="file" 
-            accept="image/*" 
-            onChange={handleImageUpload}
-            id="fileInput"
-            style={{ display: 'none' }}
-          />
-          <label htmlFor="fileInput" className="upload-btn">
-            Upload Image
-          </label>
-
-          <button onClick={() => setShowHistory(!showHistory)} className="secondary-btn">
-            History ({history.length})
-          </button>
-
-          <button onClick={() => setShowSaved(!showSaved)} className="secondary-btn">
-            Saved ({savedOutfits.length})
-          </button>
-        </div>
-
-        {comparisonMode ? (
-          <div className="comparison-container">
-            <div className="image-grid">
-              {images.map((img, idx) => (
-                <div key={idx} className="image-preview-small">
-                  <img src={img} alt={`Outfit ${idx + 1}`} />
-                  <button onClick={() => removeImage(idx)} className="remove-btn">×</button>
+    <Routes>
+      {/* LOGIN PAGE */}
+      <Route 
+        path="/login" 
+        element={user ? <Navigate to="/" /> : <Login />} 
+      />
+      
+      {/* SIGNUP PAGE */}
+      <Route 
+        path="/signup" 
+        element={user ? <Navigate to="/" /> : <SignUp />} 
+      />
+      
+      {/* MAIN APP */}
+      <Route 
+        path="/" 
+        element={
+          !user ? <Navigate to="/login" /> : (
+            <div className="app">
+              {/* HEADER */}
+              <div className="header">
+                <h1>AI Outfit Rater</h1>
+                <div className="header-right">
+                  <span className="user-email">{user.email}</span>
+                  
+                  {isPremium ? (
+                    <span className="premium-badge">Premium</span>
+                  ) : (
+                    <span className="free-tier">
+                      Free: {dailyRatingCount}/3 ratings today
+                    </span>
+                  )}
+                  
+                  <button onClick={handleLogout} className="btn-logout">
+                    Logout
+                  </button>
                 </div>
-              ))}
-            </div>
-            {images.length < 5 && (
-              <p className="hint">Upload {images.length < 2 ? '2-5' : `${5 - images.length} more`} outfits</p>
-            )}
-          </div>
-        ) : (
-          image && (
-            <div className="image-preview">
-              <img src={image} alt="Outfit" />
+              </div>
+
+              <div className="container">
+                {/* MODE TOGGLE */}
+                <div className="mode-toggle">
+                  <button
+                    className={!comparisonMode ? 'active' : ''}
+                    onClick={() => { setComparisonMode(false); reset(); }}
+                  >
+                    Single Outfit
+                  </button>
+                  <button
+                    className={comparisonMode ? 'active' : ''}
+                    onClick={() => { setComparisonMode(true); reset(); }}
+                  >
+                    Compare Outfits
+                  </button>
+                </div>
+
+                {/* FEEDBACK MODE SELECTOR (Premium) */}
+                {isPremium && !comparisonMode && (
+                  <div className="mode-selector">
+                    <label>Feedback Style:</label>
+                    <div className="mode-buttons">
+                      <button
+                        className={feedbackMode === 'helpful' ? 'active' : ''}
+                        onClick={() => setFeedbackMode('helpful')}
+                      >
+                        Helpful
+                      </button>
+                      <button
+                        className={feedbackMode === 'honest' ? 'active' : ''}
+                        onClick={() => setFeedbackMode('honest')}
+                      >
+                        Honest
+                      </button>
+                      <button
+                        className={feedbackMode === 'roast' ? 'active' : ''}
+                        onClick={() => setFeedbackMode('roast')}
+                      >
+                        Roast Mode
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* ACTION BUTTONS */}
+                <div className="action-buttons">
+                  <button onClick={loadHistory} className="btn-secondary">
+                    View History
+                  </button>
+                  <button onClick={loadSavedOutfits} className="btn-secondary">
+                    Saved Outfits ({savedCount}{!isPremium ? '/10' : ''})
+                  </button>
+                </div>
+
+                {/* SAVED OUTFITS MODAL */}
+                {showSavedOutfits && (
+                  <div className="modal-overlay" onClick={() => setShowSavedOutfits(false)}>
+                    <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                      <div className="modal-header">
+                        <h2>Saved Outfits</h2>
+                        <button onClick={() => setShowSavedOutfits(false)} className="btn-close">×</button>
+                      </div>
+                      <div className="saved-outfits-grid">
+                        {savedOutfits.length === 0 ? (
+                          <p className="empty-message">No saved outfits yet. Save your favorite looks!</p>
+                        ) : (
+                          savedOutfits.map((outfit) => (
+                            <div key={outfit.id} className="saved-outfit-card">
+                              <img src={outfit.image_data} alt={outfit.name} />
+                              <div className="saved-outfit-info">
+                                <h3>{outfit.name}</h3>
+                                <p className="rating" style={{ color: getRatingColor(outfit.rating) }}>
+                                  {outfit.rating}/10
+                                </p>
+                                <p className="occasion">{outfit.occasion}</p>
+                                <p className="date">{new Date(outfit.created_at).toLocaleDateString()}</p>
+                                <button
+                                  onClick={() => deleteSavedOutfit(outfit.id)}
+                                  className="btn-delete"
+                                >
+                                  Delete
+                                </button>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* HISTORY MODAL */}
+                {showHistory && (
+                  <div className="modal-overlay" onClick={() => setShowHistory(false)}>
+                    <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                      <div className="modal-header">
+                        <h2>Rating History</h2>
+                        <button onClick={() => setShowHistory(false)} className="btn-close">×</button>
+                      </div>
+                      <div className="history-list">
+                        {outfitHistory.length === 0 ? (
+                          <p className="empty-message">No ratings yet. Rate your first outfit!</p>
+                        ) : (
+                          outfitHistory.map((item) => (
+                            <div key={item.id} className="history-item">
+                              <div className="history-rating">
+                                <span style={{ color: getRatingColor(item.rating) }}>
+                                  {item.rating}/10
+                                </span>
+                              </div>
+                              <div className="history-details">
+                                <p className="history-occasion">{item.occasion}</p>
+                                <p className="history-date">
+                                  {new Date(item.created_at).toLocaleDateString()}
+                                </p>
+                                <p className="history-feedback">{item.feedback.substring(0, 100)}...</p>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* SINGLE OUTFIT MODE */}
+                {!comparisonMode && !result && (
+                  <>
+                    <div className="upload-zone">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageChange}
+                        id="file-upload"
+                        style={{ display: 'none' }}
+                      />
+                      <label htmlFor="file-upload" className="upload-label">
+                        {imagePreview ? (
+                          <img src={imagePreview} alt="Preview" className="image-preview" />
+                        ) : (
+                          <>
+                            <div className="upload-icon">+</div>
+                            <p>Click to upload outfit photo</p>
+                          </>
+                        )}
+                      </label>
+
+                      <input
+                        type="file"
+                        accept="image/*"
+                        capture="environment"
+                        onChange={handleCameraCapture}
+                        id="camera-capture"
+                        style={{ display: 'none' }}
+                      />
+                      <label htmlFor="camera-capture" className="btn-camera">
+                        Take Photo
+                      </label>
+                    </div>
+
+                    <div className="occasion-selector">
+                      <label htmlFor="occasion">Occasion:</label>
+                      <select
+                        id="occasion"
+                        value={occasion}
+                        onChange={(e) => setOccasion(e.target.value)}
+                      >
+                        <option value="none">No specific occasion</option>
+                        <option value="casual">Casual hangout</option>
+                        <option value="date">First date</option>
+                        <option value="interview">Job interview</option>
+                        <option value="wedding">Wedding</option>
+                        <option value="gym">Gym/Workout</option>
+                        <option value="night">Night out</option>
+                        <option value="work">Work/Office</option>
+                        <option value="beach">Beach/Vacation</option>
+                      </select>
+                    </div>
+
+                    {error && <div className="error">{error}</div>}
+
+                    <button
+                      onClick={rateOutfit}
+                      disabled={!image || isLoading}
+                      className="btn-rate"
+                    >
+                      {isLoading ? (
+                        <>
+                          <span className="spinner"></span>
+                          Rating your outfit...
+                        </>
+                      ) : (
+                        'Rate My Outfit'
+                      )}
+                    </button>
+                  </>
+                )}
+
+                {/* COMPARISON MODE */}
+                {comparisonMode && !comparisonResult && (
+                  <>
+                    <div className="comparison-upload">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        onChange={handleComparisonImages}
+                        id="comparison-upload"
+                        style={{ display: 'none' }}
+                      />
+                      <label htmlFor="comparison-upload" className="upload-label">
+                        <div className="upload-icon">+</div>
+                        <p>Upload 2-5 outfits to compare</p>
+                        <small>Select multiple images at once</small>
+                      </label>
+                    </div>
+
+                    {comparisonPreviews.length > 0 && (
+                      <div className="comparison-preview-grid">
+                        {comparisonPreviews.map((preview, index) => (
+                          <div key={index} className="comparison-preview-item">
+                            <img src={preview} alt={`Outfit ${index + 1}`} />
+                            <p>Outfit {index + 1}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    <div className="occasion-selector">
+                      <label htmlFor="occasion">Occasion:</label>
+                      <select
+                        id="occasion"
+                        value={occasion}
+                        onChange={(e) => setOccasion(e.target.value)}
+                      >
+                        <option value="none">No specific occasion</option>
+                        <option value="casual">Casual hangout</option>
+                        <option value="date">First date</option>
+                        <option value="interview">Job interview</option>
+                        <option value="wedding">Wedding</option>
+                        <option value="gym">Gym/Workout</option>
+                        <option value="night">Night out</option>
+                        <option value="work">Work/Office</option>
+                        <option value="beach">Beach/Vacation</option>
+                      </select>
+                    </div>
+
+                    {error && <div className="error">{error}</div>}
+
+                    <button
+                      onClick={compareOutfits}
+                      disabled={comparisonImages.length < 2 || isLoading}
+                      className="btn-rate"
+                    >
+                      {isLoading ? (
+                        <>
+                          <span className="spinner"></span>
+                          Comparing outfits...
+                        </>
+                      ) : (
+                        'Compare Outfits'
+                      )}
+                    </button>
+                  </>
+                )}
+
+                {/* SINGLE OUTFIT RESULT */}
+                {result && !comparisonMode && (
+                  <div className="result">
+                    <div className="result-header">
+                      <h2>Your Outfit Rating</h2>
+                      <div 
+                        className="rating-score"
+                        style={{ color: getRatingColor(result.rating) }}
+                      >
+                        {result.rating}/10
+                      </div>
+                    </div>
+
+                    {imagePreview && (
+                      <img src={imagePreview} alt="Rated outfit" className="result-image" />
+                    )}
+
+                    <div className="feedback">
+                      <p>{result.feedback}</p>
+                    </div>
+
+                    <div className="result-actions">
+                      <button onClick={saveOutfit} className="btn-save">
+                        Save Outfit
+                      </button>
+                      <button onClick={shareResult} className="btn-share">
+                        Share Result
+                      </button>
+                      <button onClick={reset} className="btn-reset">
+                        Rate Another
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* COMPARISON RESULT */}
+                {comparisonResult && comparisonMode && (
+                  <div className="result">
+                    <div className="result-header">
+                      <h2>Comparison Results</h2>
+                    </div>
+
+                    <div className="comparison-results">
+                      <div className="best-outfit">
+                        <h3>Best Choice</h3>
+                        <img src={comparisonPreviews[comparisonResult.bestIndex]} alt="Best outfit" />
+                        <p className="rating" style={{ color: getRatingColor(comparisonResult.ratings[comparisonResult.bestIndex]) }}>
+                          {comparisonResult.ratings[comparisonResult.bestIndex]}/10
+                        </p>
+                      </div>
+
+                      <div className="comparison-feedback">
+                        <h3>Analysis</h3>
+                        <p>{comparisonResult.analysis}</p>
+                        
+                        {comparisonResult.mixSuggestion && (
+                          <div className="mix-suggestion">
+                            <h4>Mix & Match Suggestion</h4>
+                            <p>{comparisonResult.mixSuggestion}</p>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="all-ratings">
+                        <h3>All Outfits</h3>
+                        {comparisonResult.ratings.map((rating, index) => (
+                          <div key={index} className="rating-item">
+                            <img src={comparisonPreviews[index]} alt={`Outfit ${index + 1}`} />
+                            <span style={{ color: getRatingColor(rating) }}>{rating}/10</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="result-actions">
+                      <button onClick={reset} className="btn-reset">
+                        Compare More
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* UPGRADE PROMPT */}
+                {!isPremium && (
+                  <div className="upgrade-prompt">
+                    <h3>Upgrade to Premium</h3>
+                    <ul>
+                      <li>Unlimited ratings</li>
+                      <li>Unlimited saved outfits</li>
+                      <li>Advanced comparison features</li>
+                      <li>Roast mode</li>
+                      <li>Priority support</li>
+                    </ul>
+                    <p className="price">Only $4.99/month</p>
+                    <button 
+                      className="btn-upgrade"
+                      onClick={() => alert('Premium coming soon! We are setting up payments. Check back soon!')}
+                    >
+                      Upgrade Now
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           )
-        )}
-
-        <button 
-          onClick={handleSubmit} 
-          disabled={loading || (comparisonMode ? images.length < 2 : !image)}
-          className="rate-btn"
-        >
-          {loading ? 'Analyzing...' : comparisonMode ? 'Compare Outfits' : 'Rate My Outfit'}
-        </button>
-
-        {comparisonResults && (
-          <div className="results">
-            <h2>Comparison Results</h2>
-            <div className="best-choice" style={{ borderColor: getRatingColor(comparisonResults.ratings[comparisonResults.bestIndex]) }}>
-              <h3>Best Choice: Outfit {comparisonResults.bestIndex + 1}</h3>
-              <p>{comparisonResults.analysis}</p>
-            </div>
-            <div className="ratings-grid">
-              {comparisonResults.ratings.map((r, idx) => (
-                <div key={idx} className="mini-rating" style={{ borderColor: getRatingColor(r) }}>
-                  <strong>Outfit {idx + 1}</strong>
-                  <div className="rating-number" style={{ color: getRatingColor(r) }}>{r}/10</div>
-                </div>
-              ))}
-            </div>
-            {comparisonResults.mixSuggestion && (
-              <div className="mix-suggestion">
-                <h4>Mix & Match Suggestion</h4>
-                <p>{comparisonResults.mixSuggestion}</p>
-              </div>
-            )}
-          </div>
-        )}
-
-        {rating && (
-          <div className="results">
-            <div className="rating-display" style={{ borderColor: getRatingColor(rating) }}>
-              <div className="rating-number" style={{ color: getRatingColor(rating) }}>{rating}/10</div>
-              <p className="feedback">{feedback}</p>
-            </div>
-            <button onClick={saveOutfit} className="save-btn">Save This Outfit</button>
-          </div>
-        )}
-
-        {showHistory && (
-          <div className="modal">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h2>Rating History</h2>
-                <button onClick={() => setShowHistory(false)} className="close-btn">×</button>
-              </div>
-              <div className="history-list">
-                {history.map((item) => (
-                  <div key={item.id} className="history-item" style={{ borderLeftColor: getRatingColor(item.rating) }}>
-                    <div className="history-rating">{item.rating}/10</div>
-                    <div className="history-details">
-                      <p className="history-occasion">{item.occasion}</p>
-                      <p className="history-feedback">{item.feedback.substring(0, 100)}...</p>
-                      <p className="history-date">{new Date(item.created_at).toLocaleDateString()}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {showSaved && (
-          <div className="modal">
-            <div className="modal-content wide">
-              <div className="modal-header">
-                <h2>Saved Outfits ({savedOutfits.length}/{userTier === 'premium' ? '∞' : '10'})</h2>
-                <button onClick={() => setShowSaved(false)} className="close-btn">×</button>
-              </div>
-              
-              <div className="saved-filters">
-                <input 
-                  type="text" 
-                  placeholder="Search outfits..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="search-input"
-                />
-                <select 
-                  value={filterOccasion} 
-                  onChange={(e) => setFilterOccasion(e.target.value)}
-                  className="filter-select"
-                >
-                  <option value="all">All Occasions</option>
-                  <option value="casual">Casual</option>
-                  <option value="work">Work</option>
-                  <option value="date">Date</option>
-                  <option value="interview">Interview</option>
-                  <option value="formal">Formal Event</option>
-                  <option value="workout">Workout</option>
-                </select>
-              </div>
-
-              <div className="saved-grid">
-                {filteredOutfits.map((outfit) => (
-                  <div key={outfit.id} className="saved-item">
-                    <img src={outfit.image_data} alt={outfit.name} />
-                    <div className="saved-info">
-                      <h4>{outfit.name}</h4>
-                      <div className="saved-rating" style={{ color: getRatingColor(outfit.rating) }}>
-                        {outfit.rating}/10
-                      </div>
-                      <p className="saved-occasion">{outfit.occasion}</p>
-                      <p className="saved-date">{new Date(outfit.created_at).toLocaleDateString()}</p>
-                      <button onClick={() => deleteOutfit(outfit.id)} className="delete-btn">Delete</button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
+        } 
+      />
+    </Routes>
+  )
 }
 
-function App() {
-  return (
-    <AuthProvider>
-      <Router>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<SignUp />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="/settings" element={<ProtectedRoute><ProfileSettings /></ProtectedRoute>} />
-          <Route path="/pricing" element={<ProtectedRoute><PricingPage /></ProtectedRoute>} />
-          <Route path="/" element={<ProtectedRoute><MainApp /></ProtectedRoute>} />
-        </Routes>
-      </Router>
-    </AuthProvider>
-  );
-}
-
-function ProtectedRoute({ children }) {
-  const { user, loading } = useAuth();
-  
-  if (loading) return <div className="loading">Loading...</div>;
-  if (!user) return <Navigate to="/login" />;
-  
-  return children;
-}
-
-export default App;
+export default App

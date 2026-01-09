@@ -67,6 +67,7 @@ export function AuthProvider({ children }) {
       setIsPremium(data.status === 'premium')
     } catch (error) {
       console.error('Error checking subscription:', error)
+      setIsPremium(false)
     }
   }
 
@@ -86,9 +87,10 @@ export function AuthProvider({ children }) {
 
       if (error) throw error
       
-      setDailyRatingCount(data.length)
+      setDailyRatingCount(data?.length || 0)
     } catch (error) {
       console.error('Error checking daily ratings:', error)
+      setDailyRatingCount(0)
     }
   }
 
@@ -100,6 +102,7 @@ export function AuthProvider({ children }) {
     // Listen for auth changes (login, logout, etc.)
     const { data: authListener } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('🔔 Auth state changed:', event)
         // Update user when auth state changes
         const currentUser = session?.user ?? null
         setUser(currentUser)
@@ -127,7 +130,10 @@ export function AuthProvider({ children }) {
   // 🔍 FUNCTION: Check current user
   const checkUser = async () => {
     try {
+      console.log('🔍 Checking for existing user session...')
       const { data: { user } } = await supabase.auth.getUser()
+      console.log('👤 User found:', user?.email || 'None')
+      
       setUser(user)
       
       if (user) {
@@ -137,6 +143,8 @@ export function AuthProvider({ children }) {
     } catch (error) {
       console.error('Error checking user:', error)
     } finally {
+      // CRITICAL: Always set loading to false, even on error
+      console.log('✅ Auth check complete, setting loading to false')
       setLoading(false)
     }
   }
@@ -224,18 +232,11 @@ export function AuthProvider({ children }) {
   }
 
   // 🎨 RETURN THE PROVIDER
-  // This wraps our app and makes 'value' available everywhere
+  // CRITICAL FIX: Always render children, let App.jsx handle the loading screen
+  // This prevents the infinite "Loading..." bug
   return (
     <AuthContext.Provider value={value}>
-      {/* Show loading screen while checking auth */}
-      {loading ? (
-        <div className="loading-screen">
-          <div className="spinner"></div>
-          <p>Loading...</p>
-        </div>
-      ) : (
-        children
-      )}
+      {children}
     </AuthContext.Provider>
   )
 }
@@ -251,8 +252,9 @@ export function AuthProvider({ children }) {
 //    import { useAuth } from './AuthContext'
 //    
 //    function MyComponent() {
-//      const { user, signOut, isPremium } = useAuth()
+//      const { user, signOut, isPremium, loading } = useAuth()
 //      
+//      if (loading) return <div>Loading...</div>
 //      if (!user) return <Login />
 //      
 //      return <div>Hello {user.email}!</div>
