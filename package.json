@@ -1,0 +1,27 @@
+{
+  "name": "ai-outfit-rater",
+  "version": "1.0.0",
+  "description": "��#\u0000 \u0000O\u0000u\u0000t\u0000f\u0000i\u0000t\u0000-\u0000R\u0000a\u0000t\u0000e\u0000r\u0000\r\u0000 \u0000",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Gordon-Mensah/Outfit-Rater.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Gordon-Mensah/Outfit-Rater/issues"
+  },
+  "homepage": "https://github.com/Gordon-Mensah/Outfit-Rater#readme",
+  "dependencies": {
+    "@vitejs/plugin-react": "^5.1.2",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
+    "vite": "^7.3.1"
+  }
+}
