@@ -1,4 +1,4 @@
-// This is your secure backend that talks to Claude
+// Backend API using Groq (MUCH FASTER!)
 // Your API key stays secret here!
 
 export default async function handler(req, res) {
@@ -16,18 +16,30 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'No image provided' });
     }
 
-    // Call Claude API
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    // Call Groq API with vision model
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': process.env.CLAUDE_API_KEY, // Secret! Stays on server
-        'anthropic-version': '2023-06-01'
+        'Authorization': `Bearer ${process.env.GROQ_API_KEY}` // Secret! Stays on server
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
-        system: `You are a friendly but honest fashion expert. Rate outfits 1-10 and give specific, helpful feedback.
+        model: 'llama-3.2-90b-vision-preview', // Groq's vision model
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'image_url',
+                image_url: {
+                  url: `data:image/jpeg;base64,${image}`
+                }
+              },
+              {
+                type: 'text',
+                text: `You are a friendly but honest fashion expert. Rate this outfit 1-10 and give specific, helpful feedback.
+
+${context ? `Context: This outfit is for ${context}` : ''}
 
 Rating scale:
 1-3: Needs major changes
@@ -49,40 +61,25 @@ Format your response like this:
 Rating: [number]/10
 [Brief overall impression]
 What works: [positive things]
-What to improve: [specific suggestions]`,
-        messages: [
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'image',
-                source: {
-                  type: 'base64',
-                  media_type: 'image/jpeg',
-                  data: image
-                }
-              },
-              {
-                type: 'text',
-                text: context 
-                  ? `Rate this outfit for: ${context}` 
-                  : 'Rate this outfit and give me specific feedback'
+What to improve: [specific suggestions]`
               }
             ]
           }
-        ]
+        ],
+        temperature: 0.7,
+        max_tokens: 1000
       })
     });
 
     const data = await response.json();
 
-    // Check for errors from Claude
+    // Check for errors from Groq
     if (data.error) {
       return res.status(500).json({ error: data.error.message });
     }
 
     // Get the text response
-    const text = data.content[0].text;
+    const text = data.choices[0].message.content;
 
     // Parse out the rating number
     const ratingMatch = text.match(/Rating:\s*(\d+)/i) || text.match(/(\d+)\/10/);
