@@ -13,6 +13,7 @@
   "dependencies": {
     "@stripe/stripe-js": "^2.4.0",
     "@supabase/supabase-js": "^2.39.0",
+    "@vitejs/plugin-react": "^4.2.1",
     "browser-image-compression": "^2.0.2",
     "cors": "^2.8.5",
     "dotenv": "^16.6.1",
@@ -22,7 +23,6 @@
     "react-dom": "^18.2.0",
     "react-router-dom": "^7.12.0",
     "stripe": "^14.25.0",
-    "@vitejs/plugin-react": "^4.2.1",
     "vite": "^5.4.11"
   },
   "devDependencies": {
