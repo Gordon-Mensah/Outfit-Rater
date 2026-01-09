@@ -6,8 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview --host 0.0.0.0 --port $PORT",
-    "postinstall": "chmod +x node_modules/.bin/*"
+    "preview": "vite preview --host 0.0.0.0 --port $PORT"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.90.1",
@@ -18,6 +17,6 @@
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.2.1",
-    "vite": "^5.0.8"
+    "vite": "^5.4.11"
   }
 }
