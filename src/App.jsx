@@ -355,42 +355,19 @@ function App() {
 
   // Handle logout - FIXED VERSION
   // Replace the handleLogout function in your App.jsx with this version
-
   const handleLogout = async () => {
     console.log('🚪 Logout clicked')
     
-    try {
-      // Method 1: Sign out via AuthContext
-      console.log('📤 Signing out via AuthContext...')
-      await signOut()
-      
-      // Method 2: Sign out via Supabase directly
-      console.log('📤 Signing out via Supabase...')
-      await supabase.auth.signOut()
-      
-      // Method 3: Clear ALL storage
-      console.log('🧹 Clearing all storage...')
-      localStorage.clear()
-      sessionStorage.clear()
-      
-      // Method 4: Delete specific Supabase keys
-      const keysToDelete = Object.keys(localStorage).filter(
-        key => key.includes('supabase') || key.includes('sb-')
-      )
-      keysToDelete.forEach(key => localStorage.removeItem(key))
-      
-      console.log('✅ Logout complete, reloading page...')
-      
-      // CRITICAL: Force full page reload to reset everything
-      window.location.href = '/login'
-      
-    } catch (error) {
-      console.error('❌ Logout error:', error)
-      // Force logout anyway
-      localStorage.clear()
-      sessionStorage.clear()
-      window.location.href = '/login'
-    }
+    // Clear everything FIRST
+    localStorage.clear()
+    sessionStorage.clear()
+    
+    // Sign out (don't wait for it)
+    supabase.auth.signOut().catch(() => {})
+    
+    // Immediately reload the entire page
+    // This bypasses ALL React state and AuthContext
+    window.location.reload()
   }
 
   // Get rating color
