@@ -10,15 +10,15 @@ import Login from './Login'
 import SignUp from './SignUp'
 
 function App() {
-  // Auth data - NOW INCLUDING LOADING STATE
-  const { user, signOut, isPremium, canRate, dailyRatingCount, checkDailyRatings, loading } = useAuth()
+  // Auth data
+  const { user, signOut, isPremium, canRate, dailyRatingCount, checkDailyRatings } = useAuth()
   const navigate = useNavigate()
 
   // Main app state
   const [image, setImage] = useState(null)
   const [imagePreview, setImagePreview] = useState(null)
   const [occasion, setOccasion] = useState('none')
-  const [isLoading, setIsLoading] = useState(false)
+  const [loading, setLoading] = useState(false)
   const [result, setResult] = useState(null)
   const [error, setError] = useState(null)
   
@@ -226,7 +226,7 @@ function App() {
       return
     }
 
-    setIsLoading(true)
+    setLoading(true)
     setError(null)
     setResult(null)
 
@@ -273,7 +273,7 @@ function App() {
       console.error('Error rating outfit:', err)
       setError(err.message || 'Something went wrong. Please try again.')
     } finally {
-      setIsLoading(false)
+      setLoading(false)
     }
   }
 
@@ -289,7 +289,7 @@ function App() {
       return
     }
 
-    setIsLoading(true)
+    setLoading(true)
     setError(null)
     setComparisonResult(null)
 
@@ -326,7 +326,7 @@ function App() {
       console.error('Error comparing outfits:', err)
       setError(err.message || 'Something went wrong. Please try again.')
     } finally {
-      setIsLoading(false)
+      setLoading(false)
     }
   }
 
@@ -368,16 +368,6 @@ function App() {
       navigator.clipboard.writeText(`${text} ${url}`)
       alert('Rating copied to clipboard!')
     }
-  }
-
-  // 🔧 CRITICAL FIX: Show loading screen while auth is checking
-  if (loading) {
-    return (
-      <div className="loading-screen">
-        <div className="spinner"></div>
-        <p>Loading...</p>
-      </div>
-    )
   }
 
   // ROUTING
@@ -604,10 +594,10 @@ function App() {
 
                     <button
                       onClick={rateOutfit}
-                      disabled={!image || isLoading}
+                      disabled={!image || loading}
                       className="btn-rate"
                     >
-                      {isLoading ? (
+                      {loading ? (
                         <>
                           <span className="spinner"></span>
                           Rating your outfit...
@@ -672,10 +662,10 @@ function App() {
 
                     <button
                       onClick={compareOutfits}
-                      disabled={comparisonImages.length < 2 || isLoading}
+                      disabled={comparisonImages.length < 2 || loading}
                       className="btn-rate"
                     >
-                      {isLoading ? (
+                      {loading ? (
                         <>
                           <span className="spinner"></span>
                           Comparing outfits...
