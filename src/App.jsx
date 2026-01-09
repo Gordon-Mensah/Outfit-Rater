@@ -294,6 +294,35 @@ function App() {
     navigate('/login')
   }
 
+  const handleLogout = async () => {
+    console.log('🚪 Logout button clicked')
+    
+    try {
+      // Sign out via AuthContext
+      await signOut()
+      
+      // Also directly call Supabase signOut
+      await supabase.auth.signOut()
+      
+      // Clear localStorage
+      localStorage.clear()
+      
+      // Navigate and force reload
+      navigate('/login')
+      
+      // Force page reload as backup
+      setTimeout(() => {
+        window.location.href = '/login'
+      }, 100)
+      
+    } catch (error) {
+      console.error('Logout error:', error)
+      // Force logout anyway
+      localStorage.clear()
+      window.location.href = '/login'
+    }
+  }
+
   const getRatingColor = (rating) => {
     if (rating >= 9) return '#8b5cf6'
     if (rating >= 7) return '#10b981'
