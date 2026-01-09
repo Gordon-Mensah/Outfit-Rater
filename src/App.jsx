@@ -226,51 +226,47 @@ function App() {
     setError(null)
     setResult(null)
 
-    const reader = new FileReader()
-    reader.readAsDataURL(image)
+    try {
+      const base64Image = await readFileAsBase64(image)
 
-    reader.onloadend = async () => {
-      try {
-        const base64Image = reader.result
+      const response = await fetch(`${API_BASE_URL}/api/rate-outfit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          image: base64Image,
+          occasion,
+          mode: feedbackMode,
+          userId: user.id
+        })
+      })
 
-        const response = await fetch(`${API_BASE_URL}/api/rate-outfit`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            image: base64Image,
-            occasion,
-            mode: feedbackMode,
-            userId: user.id
-          })
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to rate outfit')
+      }
+
+      if (user) {
+        await supabase.from('outfit_history').insert({
+          user_id: user.id,
+          rating: data.rating,
+          feedback: data.feedback,
+          occasion: occasion,
+          created_at: new Date().toISOString()
         })
 
-        const data = await response.json()
-
-        if (!response.ok) {
-          throw new Error(data.error || 'Failed to rate outfit')
-        }
-
-        if (user) {
-          await supabase.from('outfit_history').insert({
-            user_id: user.id,
-            rating: data.rating,
-            feedback: data.feedback,
-            occasion: occasion,
-            created_at: new Date().toISOString()
-          })
-
-          await checkDailyRatings(user.id)
-        }
-
-        setResult(data)
-      } catch (err) {
-        console.error('Error rating outfit:', err)
-        setError(err.message || 'Something went wrong. Please try again.')
-      } finally {
-        setLoading(false)
+        await checkDailyRatings(user.id)
       }
+
+      setResult(data)
+    } catch (err) {
+      console.error('Error rating outfit:', err)
+      setError(err.message || 'Something went wrong. Please try again.')
+    } finally {
+      setLoading(false)
     }
   }
+
 
 
   const compareOutfits = async () => {
