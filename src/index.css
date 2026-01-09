@@ -1519,3 +1519,397 @@ html {
     transform: translateX(0);
   }
 }
+/* Additional CSS for New Features - Add to your existing index.css */
+
+/* ===========================================
+   MODE TOGGLE
+   =========================================== */
+
+.mode-toggle {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 30px;
+  background: #f8f9fa;
+  padding: 5px;
+  border-radius: 12px;
+}
+
+.mode-toggle button {
+  flex: 1;
+  padding: 12px 24px;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.mode-toggle button.active {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+/* ===========================================
+   ACTION BUTTONS
+   =========================================== */
+
+.action-buttons {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 30px;
+}
+
+.btn-secondary {
+  flex: 1;
+  padding: 12px 20px;
+  background: white;
+  border: 2px solid #e0e0e0;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-secondary:hover {
+  border-color: #667eea;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* ===========================================
+   MODAL OVERLAY
+   =========================================== */
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 20px;
+  max-width: 900px;
+  width: 100%;
+  max-height: 85vh;
+  overflow-y: auto;
+  padding: 30px;
+  position: relative;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid #f0f0f0;
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: 1.75rem;
+  color: #1a1a1a;
+}
+
+.btn-close {
+  background: none;
+  border: none;
+  font-size: 2rem;
+  cursor: pointer;
+  color: #999;
+  transition: color 0.2s;
+  padding: 0;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-close:hover {
+  color: #333;
+}
+
+/* ===========================================
+   SAVED OUTFITS GRID
+   =========================================== */
+
+.saved-outfits-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 20px;
+}
+
+.saved-outfit-card {
+  background: white;
+  border: 2px solid #e0e0e0;
+  border-radius: 15px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.saved-outfit-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+  border-color: #667eea;
+}
+
+.saved-outfit-card img {
+  width: 100%;
+  height: 250px;
+  object-fit: cover;
+}
+
+.saved-outfit-info {
+  padding: 15px;
+}
+
+.saved-outfit-info h3 {
+  margin: 0 0 10px 0;
+  font-size: 1.1rem;
+  color: #1a1a1a;
+}
+
+.saved-outfit-info .rating {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 5px 0;
+}
+
+.saved-outfit-info .occasion {
+  color: #666;
+  font-size: 0.9rem;
+  margin: 5px 0;
+  text-transform: capitalize;
+}
+
+.saved-outfit-info .date {
+  color: #999;
+  font-size: 0.85rem;
+  margin: 5px 0 15px 0;
+}
+
+.btn-delete {
+  width: 100%;
+  padding: 10px;
+  background: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-delete:hover {
+  background: #dc2626;
+  transform: translateY(-2px);
+}
+
+/* ===========================================
+   COMPARISON MODE
+   =========================================== */
+
+.comparison-upload {
+  margin-bottom: 30px;
+}
+
+.comparison-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 15px;
+  margin: 30px 0;
+}
+
+.comparison-preview-item {
+  text-align: center;
+}
+
+.comparison-preview-item img {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+  border-radius: 12px;
+  border: 3px solid #e0e0e0;
+}
+
+.comparison-preview-item p {
+  margin-top: 10px;
+  font-weight: 600;
+  color: #666;
+}
+
+/* ===========================================
+   COMPARISON RESULTS
+   =========================================== */
+
+.comparison-results {
+  display: grid;
+  gap: 30px;
+  margin: 30px 0;
+}
+
+.best-outfit {
+  text-align: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 30px;
+  border-radius: 20px;
+  color: white;
+}
+
+.best-outfit h3 {
+  margin: 0 0 20px 0;
+  font-size: 1.5rem;
+}
+
+.best-outfit img {
+  width: 100%;
+  max-width: 400px;
+  height: 400px;
+  object-fit: cover;
+  border-radius: 15px;
+  margin: 0 auto;
+  border: 5px solid white;
+}
+
+.best-outfit .rating {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-top: 20px;
+  color: white;
+}
+
+.comparison-feedback {
+  background: #f8f9fa;
+  padding: 25px;
+  border-radius: 15px;
+}
+
+.comparison-feedback h3 {
+  margin: 0 0 15px 0;
+  font-size: 1.3rem;
+  color: #1a1a1a;
+}
+
+.comparison-feedback p {
+  line-height: 1.8;
+  color: #444;
+}
+
+.mix-suggestion {
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  margin-top: 20px;
+  border-left: 4px solid #667eea;
+}
+
+.mix-suggestion h4 {
+  margin: 0 0 10px 0;
+  color: #667eea;
+  font-size: 1.1rem;
+}
+
+.all-ratings {
+  background: white;
+  padding: 25px;
+  border-radius: 15px;
+  border: 2px solid #e0e0e0;
+}
+
+.all-ratings h3 {
+  margin: 0 0 20px 0;
+  font-size: 1.3rem;
+  color: #1a1a1a;
+}
+
+.rating-item {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 12px;
+  margin-bottom: 10px;
+}
+
+.rating-item img {
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.rating-item span {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+/* ===========================================
+   SAVE BUTTON
+   =========================================== */
+
+.btn-save {
+  padding: 14px 24px;
+  background: #10b981;
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-save:hover {
+  background: #059669;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+}
+
+/* ===========================================
+   EMPTY STATES
+   =========================================== */
+
+.empty-message {
+  text-align: center;
+  padding: 60px 20px;
+  color: #999;
+  font-size: 1.1rem;
+}
+
+/* ===========================================
+   RESPONSIVE DESIGN
+   =========================================== */
+
+@media (max-width: 768px) {
+  .saved-outfits-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .comparison-preview-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .action-buttons {
+    flex-direction: column;
+  }
+
+  .modal-content {
+    padding: 20px;
+  }
+
+  .best-outfit img {
+    height: 300px;
+  }
+}
