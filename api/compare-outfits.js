@@ -1,123 +1,93 @@
-// API Endpoint: Compare Multiple Outfits
-// File: api/compare-outfits.js
+// api/compare-outfits.js
+// Handles comparing multiple outfits
 
-import Groq from 'groq-sdk'
+import Groq from 'groq-sdk';
 
 const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY
-})
+});
 
 export default async function handler(req, res) {
-  // CORS headers
-  res.setHeader('Access-Control-Allow-Credentials', true)
-  res.setHeader('Access-Control-Allow-Origin', '*')
-  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT')
-  res.setHeader(
-    'Access-Control-Allow-Headers',
-    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
-  )
+  // Allow requests from anywhere (CORS)
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
+  // Handle preflight requests
   if (req.method === 'OPTIONS') {
-    res.status(200).end()
-    return
+    return res.status(200).end();
   }
 
+  // Only accept POST requests
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' })
+    return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
-    const { images, occasion, userId } = req.body
+    // Get data from request
+    const { images, occasion, userId } = req.body;
 
+    // Validate data
     if (!images || !Array.isArray(images) || images.length < 2) {
-      return res.status(400).json({ error: 'At least 2 images required for comparison' })
+      return res.status(400).json({ error: 'Need at least 2 images to compare' });
     }
 
-    if (images.length > 5) {
-      return res.status(400).json({ error: 'Maximum 5 images can be compared at once' })
-    }
+    console.log(`🔄 Comparing ${images.length} outfits for user ${userId} - ${occasion}`);
 
-    // Prepare messages for Groq vision model
+    // Build message content with all images
     const content = [
       {
         type: 'text',
-        text: `You are a professional fashion stylist. Compare these ${images.length} outfits and provide:
-1. Rate each outfit from 1-10
-2. Identify which outfit is the best choice${occasion !== 'none' ? ` for ${occasion}` : ''}
-3. Provide detailed analysis explaining your choice
-4. IMPORTANT: Suggest a mix-and-match combination using items from different outfits (e.g., "Wear the white top from outfit 1 with the black pants from outfit 3")
-
-Be specific about which outfit number you're referring to.
-Format your response as JSON:
-{
-  "ratings": [rating1, rating2, ...],
-  "bestIndex": 0,
-  "analysis": "detailed comparison",
-  "mixSuggestion": "specific mix and match suggestion"
-}`
-      }
-    ]
-
-    // Add all images
-    images.forEach((image, index) => {
-      content.push({
+        text: `Compare these ${images.length} outfits for a ${occasion} occasion. For each outfit, give a rating from 1-10. Then identify which outfit is best overall and explain why. Finally, suggest creative ways to mix and match elements from different outfits.`
+      },
+      ...images.map(img => ({
         type: 'image_url',
-        image_url: { url: image }
-      })
-    })
+        image_url: { url: img }
+      }))
+    ];
 
-    // Call Groq API
+    // Call Groq AI API
     const completion = await groq.chat.completions.create({
-      model: 'llama-3.2-90b-vision-preview',
       messages: [
         {
           role: 'user',
           content: content
         }
       ],
+      model: 'llama-3.2-90b-vision-preview',
       temperature: 0.7,
-      max_tokens: 1500
-    })
+      max_tokens: 800
+    });
 
-    const responseText = completion.choices[0]?.message?.content
-
-    if (!responseText) {
-      throw new Error('No response from AI')
+    const response = completion.choices[0]?.message?.content || '';
+    
+    // Extract ratings for each outfit (look for X/10 patterns)
+    const ratingMatches = response.match(/\d+\/10/g) || [];
+    const ratings = ratingMatches.map(match => parseInt(match)).slice(0, images.length);
+    
+    // Fill in missing ratings with 7 (in case AI didn't rate all outfits)
+    while (ratings.length < images.length) {
+      ratings.push(7);
     }
 
-    // Try to parse JSON response
-    let result
-    try {
-      // Extract JSON from response (in case there's extra text)
-      const jsonMatch = responseText.match(/\{[\s\S]*\}/)
-      if (jsonMatch) {
-        result = JSON.parse(jsonMatch[0])
-      } else {
-        // If no JSON, create structured response from text
-        result = {
-          ratings: Array(images.length).fill(7), // Default ratings
-          bestIndex: 0,
-          analysis: responseText,
-          mixSuggestion: "Try mixing items from different outfits for unique combinations!"
-        }
-      }
-    } catch (parseError) {
-      // Fallback if JSON parsing fails
-      result = {
-        ratings: Array(images.length).fill(7),
-        bestIndex: 0,
-        analysis: responseText,
-        mixSuggestion: "Experiment with combining tops and bottoms from different outfits!"
-      }
-    }
+    // Find the best outfit (highest rating)
+    const bestIndex = ratings.indexOf(Math.max(...ratings));
 
-    return res.status(200).json(result)
+    console.log(`✅ Comparison complete. Best: Outfit ${bestIndex + 1} (${ratings[bestIndex]}/10)`);
+
+    // Send response back to frontend
+    return res.status(200).json({
+      ratings,
+      bestIndex,
+      analysis: response,
+      mixSuggestion: response.includes('mix') ? response : 'Try combining elements from your top-rated outfits!'
+    });
 
   } catch (error) {
-    console.error('Comparison API error:', error)
+    console.error('❌ Groq API Error:', error);
     return res.status(500).json({ 
       error: 'Failed to compare outfits',
       details: error.message 
-    })
+    });
   }
 }

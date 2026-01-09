@@ -1,5 +1,5 @@
 // Main App Component
-// Handles routing, outfit rating, saving, and comparison features
+// Updated to work with Render backend
 
 import { useState } from 'react'
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom'
@@ -9,12 +9,13 @@ import imageCompression from 'browser-image-compression'
 import Login from './Login'
 import SignUp from './SignUp'
 
+// API Base URL - automatically uses same domain in production
+const API_BASE_URL = import.meta.env.PROD ? '' : 'http://localhost:3000'
+
 function App() {
-  // Auth data - ADDED loading state check
   const { user, signOut, isPremium, canRate, dailyRatingCount, checkDailyRatings, loading: authLoading } = useAuth()
   const navigate = useNavigate()
 
-  // Main app state
   const [image, setImage] = useState(null)
   const [imagePreview, setImagePreview] = useState(null)
   const [occasion, setOccasion] = useState('none')
@@ -22,23 +23,19 @@ function App() {
   const [result, setResult] = useState(null)
   const [error, setError] = useState(null)
   
-  // Premium features
   const [feedbackMode, setFeedbackMode] = useState('helpful')
   const [showHistory, setShowHistory] = useState(false)
   const [outfitHistory, setOutfitHistory] = useState([])
   
-  // Saved outfits feature
   const [showSavedOutfits, setShowSavedOutfits] = useState(false)
   const [savedOutfits, setSavedOutfits] = useState([])
   const [savedCount, setSavedCount] = useState(0)
   
-  // Comparison feature
   const [comparisonMode, setComparisonMode] = useState(false)
   const [comparisonImages, setComparisonImages] = useState([])
   const [comparisonPreviews, setComparisonPreviews] = useState([])
   const [comparisonResult, setComparisonResult] = useState(null)
 
-  // CRITICAL: Show loading screen while auth is checking
   if (authLoading) {
     return (
       <div className="loading-screen">
@@ -48,7 +45,6 @@ function App() {
     )
   }
 
-  // Load outfit history
   const loadHistory = async () => {
     if (!user) return
 
@@ -68,7 +64,6 @@ function App() {
     }
   }
 
-  // Load saved outfits
   const loadSavedOutfits = async () => {
     if (!user) return
 
@@ -88,11 +83,9 @@ function App() {
     }
   }
 
-  // Save current outfit
   const saveOutfit = async () => {
     if (!user || !result) return
 
-    // Check limits
     if (!isPremium && savedCount >= 10) {
       setError('You can only save 10 outfits on the free plan. Upgrade to Premium for unlimited saves.')
       return
@@ -121,7 +114,6 @@ function App() {
     }
   }
 
-  // Delete saved outfit
   const deleteSavedOutfit = async (outfitId) => {
     try {
       const { error } = await supabase
@@ -131,15 +123,12 @@ function App() {
         .eq('user_id', user.id)
 
       if (error) throw error
-
-      // Refresh list
       loadSavedOutfits()
     } catch (err) {
       console.error('Error deleting outfit:', err)
     }
   }
 
-  // Handle single image selection
   const handleImageChange = async (e) => {
     const file = e.target.files[0]
     if (!file) return
@@ -171,7 +160,6 @@ function App() {
     }
   }
 
-  // Handle multiple images for comparison
   const handleComparisonImages = async (e) => {
     const files = Array.from(e.target.files)
     if (files.length < 2) {
@@ -215,7 +203,6 @@ function App() {
     }
   }
 
-  // Handle camera capture
   const handleCameraCapture = async (e) => {
     const file = e.target.files[0]
     if (!file) return
@@ -224,7 +211,6 @@ function App() {
     handleImageChange(e)
   }
 
-  // Rate single outfit
   const rateOutfit = async () => {
     if (!canRate()) {
       setError('You have used your 3 free ratings today. Upgrade to Premium for unlimited ratings.')
@@ -247,7 +233,7 @@ function App() {
       reader.onloadend = async () => {
         const base64Image = reader.result
 
-        const response = await fetch('/api/rate-outfit', {
+        const response = await fetch(`${API_BASE_URL}/api/rate-outfit`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -264,7 +250,6 @@ function App() {
           throw new Error(data.error || 'Failed to rate outfit')
         }
 
-        // Save to history
         if (user) {
           await supabase.from('outfit_history').insert({
             user_id: user.id,
@@ -287,7 +272,6 @@ function App() {
     }
   }
 
-  // Compare multiple outfits
   const compareOutfits = async () => {
     if (!canRate()) {
       setError('You have used your 3 free ratings today. Upgrade to Premium for unlimited ratings.')
@@ -314,7 +298,7 @@ function App() {
         })
       )
 
-      const response = await fetch('/api/compare-outfits', {
+      const response = await fetch(`${API_BASE_URL}/api/compare-outfits`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -340,7 +324,6 @@ function App() {
     }
   }
 
-  // Reset everything
   const reset = () => {
     setImage(null)
     setImagePreview(null)
@@ -353,24 +336,14 @@ function App() {
     setComparisonResult(null)
   }
 
-  // Handle logout - FIXED VERSION
-  // Replace the handleLogout function in your App.jsx with this version
   const handleLogout = async () => {
     console.log('🚪 Logout clicked')
-    
-    // Clear everything FIRST
     localStorage.clear()
     sessionStorage.clear()
-    
-    // Sign out (don't wait for it)
     supabase.auth.signOut().catch(() => {})
-    
-    // Immediately reload the entire page
-    // This bypasses ALL React state and AuthContext
     window.location.reload()
   }
 
-  // Get rating color
   const getRatingColor = (rating) => {
     if (rating >= 9) return '#8b5cf6'
     if (rating >= 7) return '#10b981'
@@ -378,7 +351,6 @@ function App() {
     return '#ef4444'
   }
 
-  // Share result
   const shareResult = () => {
     const text = `I got a ${result.rating}/10 on my outfit!`
     const url = window.location.href
@@ -391,28 +363,23 @@ function App() {
     }
   }
 
-  // ROUTING
   return (
     <Routes>
-      {/* LOGIN PAGE */}
       <Route 
         path="/login" 
         element={user ? <Navigate to="/" /> : <Login />} 
       />
       
-      {/* SIGNUP PAGE */}
       <Route 
         path="/signup" 
         element={user ? <Navigate to="/" /> : <SignUp />} 
       />
       
-      {/* MAIN APP */}
       <Route 
         path="/" 
         element={
           !user ? <Navigate to="/login" /> : (
             <div className="app">
-              {/* HEADER */}
               <div className="header">
                 <h1>AI Outfit Rater</h1>
                 <div className="header-right">
@@ -433,7 +400,6 @@ function App() {
               </div>
 
               <div className="container">
-                {/* MODE TOGGLE */}
                 <div className="mode-toggle">
                   <button
                     className={!comparisonMode ? 'active' : ''}
@@ -449,7 +415,6 @@ function App() {
                   </button>
                 </div>
 
-                {/* FEEDBACK MODE SELECTOR (Premium) */}
                 {isPremium && !comparisonMode && (
                   <div className="mode-selector">
                     <label>Feedback Style:</label>
@@ -476,7 +441,6 @@ function App() {
                   </div>
                 )}
 
-                {/* ACTION BUTTONS */}
                 <div className="action-buttons">
                   <button onClick={loadHistory} className="btn-secondary">
                     View History
@@ -486,7 +450,6 @@ function App() {
                   </button>
                 </div>
 
-                {/* SAVED OUTFITS MODAL */}
                 {showSavedOutfits && (
                   <div className="modal-overlay" onClick={() => setShowSavedOutfits(false)}>
                     <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -523,7 +486,6 @@ function App() {
                   </div>
                 )}
 
-                {/* HISTORY MODAL */}
                 {showHistory && (
                   <div className="modal-overlay" onClick={() => setShowHistory(false)}>
                     <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -557,7 +519,6 @@ function App() {
                   </div>
                 )}
 
-                {/* SINGLE OUTFIT MODE */}
                 {!comparisonMode && !result && (
                   <>
                     <div className="upload-zone">
@@ -630,7 +591,6 @@ function App() {
                   </>
                 )}
 
-                {/* COMPARISON MODE */}
                 {comparisonMode && !comparisonResult && (
                   <>
                     <div className="comparison-upload">
@@ -698,7 +658,6 @@ function App() {
                   </>
                 )}
 
-                {/* SINGLE OUTFIT RESULT */}
                 {result && !comparisonMode && (
                   <div className="result">
                     <div className="result-header">
@@ -733,7 +692,6 @@ function App() {
                   </div>
                 )}
 
-                {/* COMPARISON RESULT */}
                 {comparisonResult && comparisonMode && (
                   <div className="result">
                     <div className="result-header">
@@ -780,7 +738,6 @@ function App() {
                   </div>
                 )}
 
-                {/* UPGRADE PROMPT */}
                 {!isPremium && (
                   <div className="upgrade-prompt">
                     <h3>Upgrade to Premium</h3>
