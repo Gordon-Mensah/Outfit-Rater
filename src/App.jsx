@@ -226,11 +226,11 @@ function App() {
     setError(null)
     setResult(null)
 
-    try {
-      const reader = new FileReader()
-      reader.readAsDataURL(image)
-      
-      reader.onloadend = async () => {
+    const reader = new FileReader()
+    reader.readAsDataURL(image)
+
+    reader.onloadend = async () => {
+      try {
         const base64Image = reader.result
 
         const response = await fetch(`${API_BASE_URL}/api/rate-outfit`, {
@@ -263,14 +263,15 @@ function App() {
         }
 
         setResult(data)
+      } catch (err) {
+        console.error('Error rating outfit:', err)
+        setError(err.message || 'Something went wrong. Please try again.')
+      } finally {
+        setLoading(false)
       }
-    } catch (err) {
-      console.error('Error rating outfit:', err)
-      setError(err.message || 'Something went wrong. Please try again.')
-    } finally {
-      setLoading(false)
     }
   }
+
 
   const compareOutfits = async () => {
     if (!canRate()) {
