@@ -1,5 +1,5 @@
 // Main App Component
-// Fixed: Compare mode now works for all users (within daily limits)
+// Updated: Added PricingPage route
 
 import { useState } from 'react'
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom'
@@ -10,6 +10,7 @@ import Login from './Login'
 import SignUp from './SignUp'
 import RateResult from './RateResult'
 import CompareResult from './CompareResult'
+import PricingPage from './PricingPage'
 
 // API Base URL - automatically uses same domain in production
 const API_BASE_URL = import.meta.env.PROD ? '' : 'http://localhost:3000'
@@ -194,7 +195,7 @@ function App() {
 
   const rateOutfit = async () => {
     if (!canRate()) {
-      setError('You have used your 3 free ratings today. Upgrade to Premium for unlimited ratings.')
+      setError('You have used your 1000 free ratings today. Upgrade to Premium for unlimited ratings.')
       return
     }
 
@@ -265,7 +266,7 @@ function App() {
     console.log('🎫 Can rate:', canRate())
     
     if (!canRate()) {
-      setError('You have used your 3 free ratings today. Upgrade to Premium for unlimited ratings.')
+      setError('You have used your 1000 free ratings today. Upgrade to Premium for unlimited ratings.')
       return
     }
 
@@ -369,6 +370,12 @@ function App() {
         element={user ? <Navigate to="/" /> : <SignUp />} 
       />
       
+      {/* PRICING PAGE - NEW! */}
+      <Route 
+        path="/pricing" 
+        element={user ? <PricingPage /> : <Navigate to="/login" />} 
+      />
+      
       {/* RATE RESULT PAGE */}
       <Route 
         path="/result" 
@@ -396,7 +403,7 @@ function App() {
                     <span className="premium-badge">Premium</span>
                   ) : (
                     <span className="free-tier">
-                      Free: {dailyRatingCount}/3 ratings today
+                      Free: {dailyRatingCount}/1000 ratings today
                     </span>
                   )}
                   
@@ -430,52 +437,6 @@ function App() {
                     Compare Outfits
                   </button>
                 </div>
-
-                // ADD THIS DEBUG CODE TO YOUR APP.JSX RIGHT AFTER THE MODE TOGGLE
-                // This will help us see what's actually being rendered
-
-                {/* DEBUG INFO - ADD THIS TEMPORARILY */}
-                <div style={{ 
-                  background: 'yellow', 
-                  padding: '20px', 
-                  margin: '20px 0',
-                  border: '2px solid red',
-                  borderRadius: '10px'
-                }}>
-                  <h3>🐛 DEBUG INFO:</h3>
-                  <p><strong>comparisonMode:</strong> {comparisonMode ? 'TRUE' : 'FALSE'}</p>
-                  <p><strong>State check:</strong> {JSON.stringify({ comparisonMode, loading })}</p>
-                  <p><strong>Should show comparison upload:</strong> {comparisonMode ? 'YES ✅' : 'NO ❌'}</p>
-                  <p><strong>Should show single upload:</strong> {!comparisonMode ? 'YES ✅' : 'NO ❌'}</p>
-                </div>
-
-                // THEN CHECK YOUR COMPARISON MODE SECTION
-                // Make sure it looks EXACTLY like this:
-
-                {!comparisonMode && (
-                  <>
-                    {/* SINGLE MODE CONTENT */}
-                    <div className="upload-zone">
-                      <p>SINGLE MODE - This should show when comparisonMode is FALSE</p>
-                      {/* ... rest of single mode ... */}
-                    </div>
-                  </>
-                )}
-
-                {comparisonMode && (
-                  <>
-                    {/* COMPARISON MODE CONTENT */}
-                    <div className="comparison-instructions">
-                      <h4>How to Compare Outfits:</h4>
-                      <p>THIS SHOULD SHOW WHEN comparisonMode is TRUE</p>
-                    </div>
-                    
-                    <div className="comparison-upload">
-                      <p>COMPARISON UPLOAD AREA</p>
-                      {/* ... rest of comparison mode ... */}
-                    </div>
-                  </>
-                )}
 
                 {/* FEEDBACK MODE SELECTOR (Premium only) */}
                 {isPremium && !comparisonMode && (
@@ -754,7 +715,7 @@ function App() {
                     <p className="price">Only $4.99/month</p>
                     <button 
                       className="btn-upgrade"
-                      onClick={() => alert('Premium coming soon! We are setting up payments. Check back soon!')}
+                      onClick={() => navigate('/pricing')}
                     >
                       Upgrade Now
                     </button>
