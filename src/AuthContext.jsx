@@ -13,8 +13,6 @@ export const useAuth = () => {
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
-  const [userEmail, setUserEmail] = useState('')
-  const [userTier, setUserTier] = useState('free')
   const [loading, setLoading] = useState(true)
   const [isPremium, setIsPremium] = useState(false)
   const [dailyRatingCount, setDailyRatingCount] = useState(0)
@@ -37,14 +35,12 @@ export function AuthProvider({ children }) {
         console.log('🔔 Auth change:', event)
         const currentUser = session?.user ?? null
         setUser(currentUser)
-        setUserEmail(currentUser?.email || '')
         
         if (currentUser) {
           await checkSubscription(currentUser.id)
           await checkDailyRatings(currentUser.id)
         } else {
           setIsPremium(false)
-          setUserTier('free')
           setDailyRatingCount(0)
         }
         
@@ -71,7 +67,6 @@ export function AuthProvider({ children }) {
       
       console.log('👤 User:', user?.email || 'None')
       setUser(user)
-      setUserEmail(user?.email || '')
       
       if (user) {
         await checkSubscription(user.id)
@@ -95,25 +90,20 @@ export function AuthProvider({ children }) {
 
       if (error) {
         if (error.code === 'PGRST116') {
-          // Create subscription record if it doesn't exist
           await supabase.from('subscriptions').insert({
             user_id: userId,
             status: 'free',
             plan: 'free'
           })
           setIsPremium(false)
-          setUserTier('free')
         }
         return
       }
 
-      const premium = data.status === 'premium'
-      setIsPremium(premium)
-      setUserTier(premium ? 'premium' : 'free')
+      setIsPremium(data.status === 'premium')
     } catch (error) {
       console.error('Error checking subscription:', error)
       setIsPremium(false)
-      setUserTier('free')
     }
   }
 
@@ -180,9 +170,7 @@ export function AuthProvider({ children }) {
       if (error) throw error
       
       setUser(null)
-      setUserEmail('')
       setIsPremium(false)
-      setUserTier('free')
       setDailyRatingCount(0)
       
       return { error: null }
@@ -198,8 +186,6 @@ export function AuthProvider({ children }) {
 
   const value = {
     user,
-    userEmail,
-    userTier,
     isPremium,
     dailyRatingCount,
     loading,

@@ -1,5 +1,5 @@
 // Main App Component
-// Updated: Added PricingPage route
+// Fixed: Compare mode now works for all users (within daily limits)
 
 import { useState } from 'react'
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom'
@@ -10,7 +10,6 @@ import Login from './Login'
 import SignUp from './SignUp'
 import RateResult from './RateResult'
 import CompareResult from './CompareResult'
-import PricingPage from './PricingPage'
 
 // API Base URL - automatically uses same domain in production
 const API_BASE_URL = import.meta.env.PROD ? '' : 'http://localhost:3000'
@@ -195,7 +194,7 @@ function App() {
 
   const rateOutfit = async () => {
     if (!canRate()) {
-      setError('You have used your 1000 free ratings today. Upgrade to Premium for unlimited ratings.')
+      setError('You have used your 3 free ratings today. Upgrade to Premium for unlimited ratings.')
       return
     }
 
@@ -266,7 +265,7 @@ function App() {
     console.log('🎫 Can rate:', canRate())
     
     if (!canRate()) {
-      setError('You have used your 1000 free ratings today. Upgrade to Premium for unlimited ratings.')
+      setError('You have used your 3 free ratings today. Upgrade to Premium for unlimited ratings.')
       return
     }
 
@@ -368,12 +367,6 @@ function App() {
       <Route 
         path="/signup" 
         element={user ? <Navigate to="/" /> : <SignUp />} 
-      />
-      
-      {/* PRICING PAGE - NEW! */}
-      <Route 
-        path="/pricing" 
-        element={user ? <PricingPage /> : <Navigate to="/login" />} 
       />
       
       {/* RATE RESULT PAGE */}
@@ -715,7 +708,7 @@ function App() {
                     <p className="price">Only $4.99/month</p>
                     <button 
                       className="btn-upgrade"
-                      onClick={() => navigate('/pricing')}
+                      onClick={() => alert('Premium coming soon! We are setting up payments. Check back soon!')}
                     >
                       Upgrade Now
                     </button>
