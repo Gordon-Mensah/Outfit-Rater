@@ -130,45 +130,50 @@ function App() {
 
   const handleComparisonImages = async (e) => {
     const files = Array.from(e.target.files)
-    console.log("🔥 Files selected:", files)
-
+    
+    console.log('📸 Files selected:', files.length)
+    
     if (files.length < 2) {
-      setError("Please select at least 2 images")
+      setError('Please select at least 2 images to compare')
+      return
+    }
+    if (files.length > 5) {
+      setError('You can compare up to 5 outfits at once')
       return
     }
 
-    const compressedFiles = []
-    const previews = []
+    try {
+      console.log('🔄 Compressing images...')
+      const compressedFiles = []
+      const previews = []
 
-    for (const file of files) {
-      try {
-        const compressed = await imageCompression(file, {
+      for (const file of files) {
+        const options = {
           maxSizeMB: 1,
           maxWidthOrHeight: 1920,
           useWebWorker: true
-        })
+        }
+        
+        const compressedFile = await imageCompression(file, options)
+        compressedFiles.push(compressedFile)
 
-        compressedFiles.push(compressed)
-
+        const reader = new FileReader()
         const preview = await new Promise((resolve) => {
-          const reader = new FileReader()
           reader.onloadend = () => resolve(reader.result)
-          reader.readAsDataURL(compressed)
+          reader.readAsDataURL(compressedFile)
         })
-
         previews.push(preview)
-      } catch (err) {
-        console.error("❌ Compression failed:", err)
       }
+
+      console.log('✅ Images processed:', compressedFiles.length)
+      setComparisonImages(compressedFiles)
+      setComparisonPreviews(previews)
+      setError(null)
+    } catch (err) {
+      console.error('Error processing images:', err)
+      setError('Failed to process images. Please try again.')
     }
-
-    console.log("📦 Final compressed files:", compressedFiles)
-    console.log("🖼️ Final previews:", previews)
-
-    setComparisonImages(compressedFiles)
-    setComparisonPreviews(previews)
   }
-
 
   const handleCameraCapture = async (e) => {
     const file = e.target.files[0]
