@@ -615,7 +615,18 @@ function App() {
                 {/* COMPARISON MODE */}
                 {comparisonMode && (
                   <>
-                    <div className="comparison-upload">
+                    {/* Instructions for comparison mode */}
+                    <div className="comparison-instructions">
+                      <h4>How to Compare Outfits:</h4>
+                      <ul>
+                        <li>Click the upload area below</li>
+                        <li>Select 2-5 outfit photos at once (hold Ctrl/Cmd to select multiple)</li>
+                        <li>Wait for all images to upload</li>
+                        <li>Click "Compare Outfits" button</li>
+                      </ul>
+                    </div>
+
+                    <div className="comparison-upload comparison-mode">
                       <input
                         type="file"
                         accept="image/*"
@@ -627,14 +638,18 @@ function App() {
                       <label htmlFor="comparison-upload" className="upload-label">
                         <div className="upload-icon">+</div>
                         <p>Upload 2-5 outfits to compare</p>
-                        <small>Select multiple images at once</small>
+                        <small>💡 Hold Ctrl/Cmd to select multiple files</small>
                       </label>
                     </div>
 
                     {comparisonPreviews.length > 0 && (
                       <div className="comparison-preview-grid">
                         {comparisonPreviews.map((preview, index) => (
-                          <div key={index} className="comparison-preview-item">
+                          <div 
+                            key={index} 
+                            className="comparison-preview-item"
+                            data-index={index + 1}
+                          >
                             <img src={preview} alt={`Outfit ${index + 1}`} />
                             <p>Outfit {index + 1}</p>
                           </div>
@@ -666,7 +681,7 @@ function App() {
                     <button
                       onClick={compareOutfits}
                       disabled={comparisonImages.length < 2 || loading}
-                      className="btn-rate"
+                      className="btn-rate comparison-mode"
                     >
                       {loading ? (
                         <>
