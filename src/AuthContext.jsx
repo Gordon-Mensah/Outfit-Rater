@@ -181,7 +181,7 @@ export function AuthProvider({ children }) {
 
   const canRate = () => {
     if (isPremium) return true
-    return dailyRatingCount < 3
+    return dailyRatingCount < 200
   }
 
   const value = {

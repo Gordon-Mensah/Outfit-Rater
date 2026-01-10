@@ -395,7 +395,7 @@ function App() {
                     <span className="premium-badge">Premium</span>
                   ) : (
                     <span className="free-tier">
-                      Free: {dailyRatingCount}/3 ratings today
+                      Free: {dailyRatingCount}/200 ratings today
                     </span>
                   )}
                   
