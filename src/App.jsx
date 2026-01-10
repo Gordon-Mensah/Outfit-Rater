@@ -1,5 +1,5 @@
 // Main App Component
-// Updated with dedicated result pages
+// Fixed: Compare mode now works for all users (within daily limits)
 
 import { useState } from 'react'
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom'
@@ -130,6 +130,9 @@ function App() {
 
   const handleComparisonImages = async (e) => {
     const files = Array.from(e.target.files)
+    
+    console.log('📸 Files selected:', files.length)
+    
     if (files.length < 2) {
       setError('Please select at least 2 images to compare')
       return
@@ -140,6 +143,7 @@ function App() {
     }
 
     try {
+      console.log('🔄 Compressing images...')
       const compressedFiles = []
       const previews = []
 
@@ -161,6 +165,7 @@ function App() {
         previews.push(preview)
       }
 
+      console.log('✅ Images processed:', compressedFiles.length)
       setComparisonImages(compressedFiles)
       setComparisonPreviews(previews)
       setError(null)
@@ -204,6 +209,7 @@ function App() {
     try {
       const base64Image = await readFileAsBase64(image)
 
+      console.log('🤖 Calling rate-outfit API...')
       const response = await fetch(`${API_BASE_URL}/api/rate-outfit`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -220,6 +226,8 @@ function App() {
       if (!response.ok) {
         throw new Error(data.error || 'Failed to rate outfit')
       }
+
+      console.log('✅ Rating received:', data.rating)
 
       // Save to history
       if (user) {
@@ -252,6 +260,10 @@ function App() {
   }
 
   const compareOutfits = async () => {
+    console.log('🔍 Compare button clicked')
+    console.log('📊 Images:', comparisonImages.length)
+    console.log('🎫 Can rate:', canRate())
+    
     if (!canRate()) {
       setError('You have used your 3 free ratings today. Upgrade to Premium for unlimited ratings.')
       return
@@ -266,6 +278,7 @@ function App() {
     setError(null)
 
     try {
+      console.log('📸 Converting images to base64...')
       const base64Images = await Promise.all(
         comparisonImages.map(img => {
           return new Promise((resolve) => {
@@ -276,6 +289,7 @@ function App() {
         })
       )
 
+      console.log('🚀 Calling compare-outfits API...')
       const response = await fetch(`${API_BASE_URL}/api/compare-outfits`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -289,8 +303,11 @@ function App() {
       const data = await response.json()
 
       if (!response.ok) {
+        console.error('❌ API error:', data)
         throw new Error(data.error || 'Failed to compare outfits')
       }
+
+      console.log('✅ Comparison received:', data)
 
       await checkDailyRatings(user.id)
 
@@ -306,7 +323,7 @@ function App() {
         }
       })
     } catch (err) {
-      console.error('Error comparing outfits:', err)
+      console.error('❌ Error comparing outfits:', err)
       setError(err.message || 'Something went wrong. Please try again.')
     } finally {
       setLoading(false)
@@ -390,23 +407,31 @@ function App() {
               </div>
 
               <div className="container">
-                {/* MODE TOGGLE */}
+                {/* MODE TOGGLE - WORKS FOR EVERYONE */}
                 <div className="mode-toggle">
                   <button
                     className={!comparisonMode ? 'active' : ''}
-                    onClick={() => { setComparisonMode(false); reset(); }}
+                    onClick={() => { 
+                      console.log('Switching to single mode')
+                      setComparisonMode(false)
+                      reset()
+                    }}
                   >
                     Single Outfit
                   </button>
                   <button
                     className={comparisonMode ? 'active' : ''}
-                    onClick={() => { setComparisonMode(true); reset(); }}
+                    onClick={() => { 
+                      console.log('Switching to compare mode')
+                      setComparisonMode(true)
+                      reset()
+                    }}
                   >
                     Compare Outfits
                   </button>
                 </div>
 
-                {/* FEEDBACK MODE SELECTOR (Premium) */}
+                {/* FEEDBACK MODE SELECTOR (Premium only) */}
                 {isPremium && !comparisonMode && (
                   <div className="mode-selector">
                     <label>Feedback Style:</label>
@@ -590,7 +615,18 @@ function App() {
                 {/* COMPARISON MODE */}
                 {comparisonMode && (
                   <>
-                    <div className="comparison-upload">
+                    {/* Instructions for comparison mode */}
+                    <div className="comparison-instructions">
+                      <h4>How to Compare Outfits:</h4>
+                      <ul>
+                        <li>Click the upload area below</li>
+                        <li>Select 2-5 outfit photos at once (hold Ctrl/Cmd to select multiple)</li>
+                        <li>Wait for all images to upload</li>
+                        <li>Click "Compare Outfits" button</li>
+                      </ul>
+                    </div>
+
+                    <div className="comparison-upload comparison-mode">
                       <input
                         type="file"
                         accept="image/*"
@@ -602,14 +638,18 @@ function App() {
                       <label htmlFor="comparison-upload" className="upload-label">
                         <div className="upload-icon">+</div>
                         <p>Upload 2-5 outfits to compare</p>
-                        <small>Select multiple images at once</small>
+                        <small>💡 Hold Ctrl/Cmd to select multiple files</small>
                       </label>
                     </div>
 
                     {comparisonPreviews.length > 0 && (
                       <div className="comparison-preview-grid">
                         {comparisonPreviews.map((preview, index) => (
-                          <div key={index} className="comparison-preview-item">
+                          <div 
+                            key={index} 
+                            className="comparison-preview-item"
+                            data-index={index + 1}
+                          >
                             <img src={preview} alt={`Outfit ${index + 1}`} />
                             <p>Outfit {index + 1}</p>
                           </div>
@@ -641,7 +681,7 @@ function App() {
                     <button
                       onClick={compareOutfits}
                       disabled={comparisonImages.length < 2 || loading}
-                      className="btn-rate"
+                      className="btn-rate comparison-mode"
                     >
                       {loading ? (
                         <>
@@ -662,8 +702,7 @@ function App() {
                     <ul>
                       <li>Unlimited ratings</li>
                       <li>Unlimited saved outfits</li>
-                      <li>Advanced comparison features</li>
-                      <li>Roast mode</li>
+                      <li>All feedback modes (Helpful, Honest, Roast)</li>
                       <li>Priority support</li>
                     </ul>
                     <p className="price">Only $4.99/month</p>
