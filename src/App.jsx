@@ -1,5 +1,5 @@
 // Main App Component
-// Updated to work with Render backend
+// Updated with dedicated result pages
 
 import { useState } from 'react'
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom'
@@ -8,6 +8,8 @@ import { supabase } from './supabaseClient'
 import imageCompression from 'browser-image-compression'
 import Login from './Login'
 import SignUp from './SignUp'
+import RateResult from './RateResult'
+import CompareResult from './CompareResult'
 
 // API Base URL - automatically uses same domain in production
 const API_BASE_URL = import.meta.env.PROD ? '' : 'http://localhost:3000'
@@ -20,7 +22,6 @@ function App() {
   const [imagePreview, setImagePreview] = useState(null)
   const [occasion, setOccasion] = useState('none')
   const [loading, setLoading] = useState(false)
-  const [result, setResult] = useState(null)
   const [error, setError] = useState(null)
   
   const [feedbackMode, setFeedbackMode] = useState('helpful')
@@ -34,7 +35,6 @@ function App() {
   const [comparisonMode, setComparisonMode] = useState(false)
   const [comparisonImages, setComparisonImages] = useState([])
   const [comparisonPreviews, setComparisonPreviews] = useState([])
-  const [comparisonResult, setComparisonResult] = useState(null)
 
   if (authLoading) {
     return (
@@ -83,37 +83,6 @@ function App() {
     }
   }
 
-  const saveOutfit = async () => {
-    if (!user || !result) return
-
-    if (!isPremium && savedCount >= 10) {
-      setError('You can only save 10 outfits on the free plan. Upgrade to Premium for unlimited saves.')
-      return
-    }
-
-    try {
-      const { error } = await supabase
-        .from('saved_outfits')
-        .insert({
-          user_id: user.id,
-          image_data: imagePreview,
-          rating: result.rating,
-          feedback: result.feedback,
-          occasion: occasion,
-          name: `Outfit ${savedCount + 1}`,
-          created_at: new Date().toISOString()
-        })
-
-      if (error) throw error
-
-      alert('Outfit saved successfully!')
-      setSavedCount(savedCount + 1)
-    } catch (err) {
-      console.error('Error saving outfit:', err)
-      setError('Failed to save outfit. Please try again.')
-    }
-  }
-
   const deleteSavedOutfit = async (outfitId) => {
     try {
       const { error } = await supabase
@@ -152,7 +121,6 @@ function App() {
       }
       reader.readAsDataURL(compressedFile)
       
-      setResult(null)
       setError(null)
     } catch (err) {
       console.error('Error compressing image:', err)
@@ -195,7 +163,6 @@ function App() {
 
       setComparisonImages(compressedFiles)
       setComparisonPreviews(previews)
-      setComparisonResult(null)
       setError(null)
     } catch (err) {
       console.error('Error processing images:', err)
@@ -210,6 +177,7 @@ function App() {
     e.target.files = { 0: file, length: 1 }
     handleImageChange(e)
   }
+
   const readFileAsBase64 = (file) => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader()
@@ -218,7 +186,6 @@ function App() {
       reader.readAsDataURL(file)
     })
   }
-
 
   const rateOutfit = async () => {
     if (!canRate()) {
@@ -233,7 +200,6 @@ function App() {
 
     setLoading(true)
     setError(null)
-    setResult(null)
 
     try {
       const base64Image = await readFileAsBase64(image)
@@ -255,6 +221,7 @@ function App() {
         throw new Error(data.error || 'Failed to rate outfit')
       }
 
+      // Save to history
       if (user) {
         await supabase.from('outfit_history').insert({
           user_id: user.id,
@@ -267,7 +234,15 @@ function App() {
         await checkDailyRatings(user.id)
       }
 
-      setResult(data)
+      // Navigate to result page
+      navigate('/result', {
+        state: {
+          rating: data.rating,
+          feedback: data.feedback,
+          imagePreview: imagePreview,
+          occasion: occasion
+        }
+      })
     } catch (err) {
       console.error('Error rating outfit:', err)
       setError(err.message || 'Something went wrong. Please try again.')
@@ -275,8 +250,6 @@ function App() {
       setLoading(false)
     }
   }
-
-
 
   const compareOutfits = async () => {
     if (!canRate()) {
@@ -291,7 +264,6 @@ function App() {
 
     setLoading(true)
     setError(null)
-    setComparisonResult(null)
 
     try {
       const base64Images = await Promise.all(
@@ -320,8 +292,19 @@ function App() {
         throw new Error(data.error || 'Failed to compare outfits')
       }
 
-      setComparisonResult(data)
       await checkDailyRatings(user.id)
+
+      // Navigate to compare result page
+      navigate('/compare-result', {
+        state: {
+          ratings: data.ratings,
+          bestIndex: data.bestIndex,
+          analysis: data.analysis,
+          mixSuggestion: data.mixSuggestion,
+          images: comparisonPreviews,
+          occasion: occasion
+        }
+      })
     } catch (err) {
       console.error('Error comparing outfits:', err)
       setError(err.message || 'Something went wrong. Please try again.')
@@ -334,12 +317,10 @@ function App() {
     setImage(null)
     setImagePreview(null)
     setOccasion('none')
-    setResult(null)
     setError(null)
     setComparisonMode(false)
     setComparisonImages([])
     setComparisonPreviews([])
-    setComparisonResult(null)
   }
 
   const handleLogout = async () => {
@@ -357,30 +338,33 @@ function App() {
     return '#ef4444'
   }
 
-  const shareResult = () => {
-    const text = `I got a ${result.rating}/10 on my outfit!`
-    const url = window.location.href
-
-    if (navigator.share) {
-      navigator.share({ title: 'My Outfit Rating', text, url })
-    } else {
-      navigator.clipboard.writeText(`${text} ${url}`)
-      alert('Rating copied to clipboard!')
-    }
-  }
-
   return (
     <Routes>
+      {/* LOGIN PAGE */}
       <Route 
         path="/login" 
         element={user ? <Navigate to="/" /> : <Login />} 
       />
       
+      {/* SIGNUP PAGE */}
       <Route 
         path="/signup" 
         element={user ? <Navigate to="/" /> : <SignUp />} 
       />
       
+      {/* RATE RESULT PAGE */}
+      <Route 
+        path="/result" 
+        element={user ? <RateResult /> : <Navigate to="/login" />} 
+      />
+      
+      {/* COMPARE RESULT PAGE */}
+      <Route 
+        path="/compare-result" 
+        element={user ? <CompareResult /> : <Navigate to="/login" />} 
+      />
+      
+      {/* MAIN APP */}
       <Route 
         path="/" 
         element={
@@ -395,7 +379,7 @@ function App() {
                     <span className="premium-badge">Premium</span>
                   ) : (
                     <span className="free-tier">
-                      Free: {dailyRatingCount}/200 ratings today
+                      Free: {dailyRatingCount}/3 ratings today
                     </span>
                   )}
                   
@@ -406,6 +390,7 @@ function App() {
               </div>
 
               <div className="container">
+                {/* MODE TOGGLE */}
                 <div className="mode-toggle">
                   <button
                     className={!comparisonMode ? 'active' : ''}
@@ -421,6 +406,7 @@ function App() {
                   </button>
                 </div>
 
+                {/* FEEDBACK MODE SELECTOR (Premium) */}
                 {isPremium && !comparisonMode && (
                   <div className="mode-selector">
                     <label>Feedback Style:</label>
@@ -447,6 +433,7 @@ function App() {
                   </div>
                 )}
 
+                {/* ACTION BUTTONS */}
                 <div className="action-buttons">
                   <button onClick={loadHistory} className="btn-secondary">
                     View History
@@ -456,6 +443,7 @@ function App() {
                   </button>
                 </div>
 
+                {/* SAVED OUTFITS MODAL */}
                 {showSavedOutfits && (
                   <div className="modal-overlay" onClick={() => setShowSavedOutfits(false)}>
                     <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -492,6 +480,7 @@ function App() {
                   </div>
                 )}
 
+                {/* HISTORY MODAL */}
                 {showHistory && (
                   <div className="modal-overlay" onClick={() => setShowHistory(false)}>
                     <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -525,7 +514,8 @@ function App() {
                   </div>
                 )}
 
-                {!comparisonMode && !result && (
+                {/* SINGLE OUTFIT MODE */}
+                {!comparisonMode && (
                   <>
                     <div className="upload-zone">
                       <input
@@ -597,7 +587,8 @@ function App() {
                   </>
                 )}
 
-                {comparisonMode && !comparisonResult && (
+                {/* COMPARISON MODE */}
+                {comparisonMode && (
                   <>
                     <div className="comparison-upload">
                       <input
@@ -664,86 +655,7 @@ function App() {
                   </>
                 )}
 
-                {result && !comparisonMode && (
-                  <div className="result">
-                    <div className="result-header">
-                      <h2>Your Outfit Rating</h2>
-                      <div 
-                        className="rating-score"
-                        style={{ color: getRatingColor(result.rating) }}
-                      >
-                        {result.rating}/10
-                      </div>
-                    </div>
-
-                    {imagePreview && (
-                      <img src={imagePreview} alt="Rated outfit" className="result-image" />
-                    )}
-
-                    <div className="feedback">
-                      <p>{result.feedback}</p>
-                    </div>
-
-                    <div className="result-actions">
-                      <button onClick={saveOutfit} className="btn-save">
-                        Save Outfit
-                      </button>
-                      <button onClick={shareResult} className="btn-share">
-                        Share Result
-                      </button>
-                      <button onClick={reset} className="btn-reset">
-                        Rate Another
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {comparisonResult && comparisonMode && (
-                  <div className="result">
-                    <div className="result-header">
-                      <h2>Comparison Results</h2>
-                    </div>
-
-                    <div className="comparison-results">
-                      <div className="best-outfit">
-                        <h3>Best Choice</h3>
-                        <img src={comparisonPreviews[comparisonResult.bestIndex]} alt="Best outfit" />
-                        <p className="rating" style={{ color: getRatingColor(comparisonResult.ratings[comparisonResult.bestIndex]) }}>
-                          {comparisonResult.ratings[comparisonResult.bestIndex]}/10
-                        </p>
-                      </div>
-
-                      <div className="comparison-feedback">
-                        <h3>Analysis</h3>
-                        <p>{comparisonResult.analysis}</p>
-                        
-                        {comparisonResult.mixSuggestion && (
-                          <div className="mix-suggestion">
-                            <h4>Mix & Match Suggestion</h4>
-                            <p>{comparisonResult.mixSuggestion}</p>
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="all-ratings">
-                        <h3>All Outfits</h3>
-                        {comparisonResult.ratings.map((rating, index) => (
-                          <div key={index} className="rating-item">
-                            <img src={comparisonPreviews[index]} alt={`Outfit ${index + 1}`} />
-                            <span style={{ color: getRatingColor(rating) }}>{rating}/10</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="result-actions">
-                      <button onClick={reset} className="btn-reset">
-                        Compare More
-                      </button>
-                    </div>
-                  </div>
-                )}
-
+                {/* UPGRADE PROMPT */}
                 {!isPremium && (
                   <div className="upgrade-prompt">
                     <h3>Upgrade to Premium</h3>
