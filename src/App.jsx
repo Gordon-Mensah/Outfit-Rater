@@ -431,6 +431,52 @@ function App() {
                   </button>
                 </div>
 
+                // ADD THIS DEBUG CODE TO YOUR APP.JSX RIGHT AFTER THE MODE TOGGLE
+                // This will help us see what's actually being rendered
+
+                {/* DEBUG INFO - ADD THIS TEMPORARILY */}
+                <div style={{ 
+                  background: 'yellow', 
+                  padding: '20px', 
+                  margin: '20px 0',
+                  border: '2px solid red',
+                  borderRadius: '10px'
+                }}>
+                  <h3>🐛 DEBUG INFO:</h3>
+                  <p><strong>comparisonMode:</strong> {comparisonMode ? 'TRUE' : 'FALSE'}</p>
+                  <p><strong>State check:</strong> {JSON.stringify({ comparisonMode, loading })}</p>
+                  <p><strong>Should show comparison upload:</strong> {comparisonMode ? 'YES ✅' : 'NO ❌'}</p>
+                  <p><strong>Should show single upload:</strong> {!comparisonMode ? 'YES ✅' : 'NO ❌'}</p>
+                </div>
+
+                // THEN CHECK YOUR COMPARISON MODE SECTION
+                // Make sure it looks EXACTLY like this:
+
+                {!comparisonMode && (
+                  <>
+                    {/* SINGLE MODE CONTENT */}
+                    <div className="upload-zone">
+                      <p>SINGLE MODE - This should show when comparisonMode is FALSE</p>
+                      {/* ... rest of single mode ... */}
+                    </div>
+                  </>
+                )}
+
+                {comparisonMode && (
+                  <>
+                    {/* COMPARISON MODE CONTENT */}
+                    <div className="comparison-instructions">
+                      <h4>How to Compare Outfits:</h4>
+                      <p>THIS SHOULD SHOW WHEN comparisonMode is TRUE</p>
+                    </div>
+                    
+                    <div className="comparison-upload">
+                      <p>COMPARISON UPLOAD AREA</p>
+                      {/* ... rest of comparison mode ... */}
+                    </div>
+                  </>
+                )}
+
                 {/* FEEDBACK MODE SELECTOR (Premium only) */}
                 {isPremium && !comparisonMode && (
                   <div className="mode-selector">
