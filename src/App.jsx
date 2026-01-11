@@ -9,7 +9,7 @@ import SignUp from './SignUp'
 import RateResult from './RateResult'
 import CompareResult from './CompareResult'
 import ProfileSettings from './ProfileSettings'
-import HamburgerMenu from './HamburgerMenu'
+import HamburgerMenu from './Hamburgermenu'
 import LastRatingWarning from './LastRatingWarning'
 
 const API_BASE_URL = import.meta.env.PROD ? '' : 'http://localhost:3000'
