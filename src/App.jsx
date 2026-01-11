@@ -1,6 +1,4 @@
-// Main App Component
-// Fixed: Compare mode now works for all users (within daily limits)
-
+// SIMPLIFIED APP.JSX WITH WORKING COMPARE MODE
 import { useState } from 'react'
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 import { useAuth } from './AuthContext'
@@ -11,30 +9,33 @@ import SignUp from './SignUp'
 import RateResult from './RateResult'
 import CompareResult from './CompareResult'
 
-// API Base URL - automatically uses same domain in production
 const API_BASE_URL = import.meta.env.PROD ? '' : 'http://localhost:3000'
 
 function App() {
   const { user, signOut, isPremium, canRate, dailyRatingCount, checkDailyRatings, loading: authLoading } = useAuth()
   const navigate = useNavigate()
 
+  // SINGLE MODE STATES
   const [image, setImage] = useState(null)
   const [imagePreview, setImagePreview] = useState(null)
+  
+  // COMPARISON MODE STATES
+  const [comparisonImages, setComparisonImages] = useState([])
+  const [comparisonPreviews, setComparisonPreviews] = useState([])
+  
+  // SHARED STATES
+  const [comparisonMode, setComparisonMode] = useState(false)
   const [occasion, setOccasion] = useState('none')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
-  
   const [feedbackMode, setFeedbackMode] = useState('helpful')
+  
+  // MODAL STATES
   const [showHistory, setShowHistory] = useState(false)
   const [outfitHistory, setOutfitHistory] = useState([])
-  
   const [showSavedOutfits, setShowSavedOutfits] = useState(false)
   const [savedOutfits, setSavedOutfits] = useState([])
   const [savedCount, setSavedCount] = useState(0)
-  
-  const [comparisonMode, setComparisonMode] = useState(false)
-  const [comparisonImages, setComparisonImages] = useState([])
-  const [comparisonPreviews, setComparisonPreviews] = useState([])
 
   if (authLoading) {
     return (
@@ -47,7 +48,6 @@ function App() {
 
   const loadHistory = async () => {
     if (!user) return
-
     try {
       const { data, error } = await supabase
         .from('outfit_history')
@@ -55,7 +55,6 @@ function App() {
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(10)
-
       if (error) throw error
       setOutfitHistory(data || [])
       setShowHistory(true)
@@ -66,14 +65,12 @@ function App() {
 
   const loadSavedOutfits = async () => {
     if (!user) return
-
     try {
       const { data, error } = await supabase
         .from('saved_outfits')
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
-
       if (error) throw error
       setSavedOutfits(data || [])
       setSavedCount(data?.length || 0)
@@ -90,7 +87,6 @@ function App() {
         .delete()
         .eq('id', outfitId)
         .eq('user_id', user.id)
-
       if (error) throw error
       loadSavedOutfits()
     } catch (err) {
@@ -101,62 +97,40 @@ function App() {
   const handleImageChange = async (e) => {
     const file = e.target.files[0]
     if (!file) return
-
     try {
-      console.log('Compressing image...')
-      const options = {
-        maxSizeMB: 1,
-        maxWidthOrHeight: 1920,
-        useWebWorker: true
-      }
-      
+      const options = { maxSizeMB: 1, maxWidthOrHeight: 1920, useWebWorker: true }
       const compressedFile = await imageCompression(file, options)
-      console.log('Compressed! Original:', file.size, 'New:', compressedFile.size)
-      
       setImage(compressedFile)
-      
       const reader = new FileReader()
-      reader.onloadend = () => {
-        setImagePreview(reader.result)
-      }
+      reader.onloadend = () => setImagePreview(reader.result)
       reader.readAsDataURL(compressedFile)
-      
       setError(null)
     } catch (err) {
       console.error('Error compressing image:', err)
-      setError('Failed to process image. Please try another one.')
+      setError('Failed to process image.')
     }
   }
 
   const handleComparisonImages = async (e) => {
     const files = Array.from(e.target.files)
-    
     console.log('📸 Files selected:', files.length)
     
     if (files.length < 2) {
-      setError('Please select at least 2 images to compare')
+      setError('Please select at least 2 images')
       return
     }
     if (files.length > 5) {
-      setError('You can compare up to 5 outfits at once')
+      setError('Maximum 5 images')
       return
     }
 
     try {
-      console.log('🔄 Compressing images...')
       const compressedFiles = []
       const previews = []
-
       for (const file of files) {
-        const options = {
-          maxSizeMB: 1,
-          maxWidthOrHeight: 1920,
-          useWebWorker: true
-        }
-        
+        const options = { maxSizeMB: 1, maxWidthOrHeight: 1920, useWebWorker: true }
         const compressedFile = await imageCompression(file, options)
         compressedFiles.push(compressedFile)
-
         const reader = new FileReader()
         const preview = await new Promise((resolve) => {
           reader.onloadend = () => resolve(reader.result)
@@ -164,23 +138,14 @@ function App() {
         })
         previews.push(preview)
       }
-
       console.log('✅ Images processed:', compressedFiles.length)
       setComparisonImages(compressedFiles)
       setComparisonPreviews(previews)
       setError(null)
     } catch (err) {
       console.error('Error processing images:', err)
-      setError('Failed to process images. Please try again.')
+      setError('Failed to process images.')
     }
-  }
-
-  const handleCameraCapture = async (e) => {
-    const file = e.target.files[0]
-    if (!file) return
-    
-    e.target.files = { 0: file, length: 1 }
-    handleImageChange(e)
   }
 
   const readFileAsBase64 = (file) => {
@@ -194,66 +159,40 @@ function App() {
 
   const rateOutfit = async () => {
     if (!canRate()) {
-      setError('You have used your 3 free ratings today. Upgrade to Premium for unlimited ratings.')
+      setError('You have used your 3 free ratings today.')
       return
     }
-
     if (!image) {
       setError('Please upload an image first')
       return
     }
-
     setLoading(true)
     setError(null)
-
     try {
       const base64Image = await readFileAsBase64(image)
-
-      console.log('🤖 Calling rate-outfit API...')
       const response = await fetch(`${API_BASE_URL}/api/rate-outfit`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          image: base64Image,
-          occasion,
-          mode: feedbackMode,
-          userId: user.id
-        })
+        body: JSON.stringify({ image: base64Image, occasion, mode: feedbackMode, userId: user.id })
       })
-
       const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to rate outfit')
-      }
-
-      console.log('✅ Rating received:', data.rating)
-
-      // Save to history
-      if (user) {
-        await supabase.from('outfit_history').insert({
-          user_id: user.id,
-          rating: data.rating,
-          feedback: data.feedback,
-          occasion: occasion,
-          created_at: new Date().toISOString()
-        })
-
-        await checkDailyRatings(user.id)
-      }
-
-      // Navigate to result page
+      if (!response.ok) throw new Error(data.error || 'Failed to rate outfit')
+      
+      await supabase.from('outfit_history').insert({
+        user_id: user.id,
+        rating: data.rating,
+        feedback: data.feedback,
+        occasion: occasion,
+        created_at: new Date().toISOString()
+      })
+      await checkDailyRatings(user.id)
+      
       navigate('/result', {
-        state: {
-          rating: data.rating,
-          feedback: data.feedback,
-          imagePreview: imagePreview,
-          occasion: occasion
-        }
+        state: { rating: data.rating, feedback: data.feedback, imagePreview: imagePreview, occasion: occasion }
       })
     } catch (err) {
       console.error('Error rating outfit:', err)
-      setError(err.message || 'Something went wrong. Please try again.')
+      setError(err.message || 'Something went wrong.')
     } finally {
       setLoading(false)
     }
@@ -261,24 +200,17 @@ function App() {
 
   const compareOutfits = async () => {
     console.log('🔍 Compare button clicked')
-    console.log('📊 Images:', comparisonImages.length)
-    console.log('🎫 Can rate:', canRate())
-    
     if (!canRate()) {
-      setError('You have used your 3 free ratings today. Upgrade to Premium for unlimited ratings.')
+      setError('You have used your 3 free ratings today.')
       return
     }
-
     if (comparisonImages.length < 2) {
-      setError('Please upload at least 2 images to compare')
+      setError('Please upload at least 2 images')
       return
     }
-
     setLoading(true)
     setError(null)
-
     try {
-      console.log('📸 Converting images to base64...')
       const base64Images = await Promise.all(
         comparisonImages.map(img => {
           return new Promise((resolve) => {
@@ -288,30 +220,17 @@ function App() {
           })
         })
       )
-
-      console.log('🚀 Calling compare-outfits API...')
+      console.log('🚀 Calling API...')
       const response = await fetch(`${API_BASE_URL}/api/compare-outfits`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          images: base64Images,
-          occasion,
-          userId: user.id
-        })
+        body: JSON.stringify({ images: base64Images, occasion, userId: user.id })
       })
-
       const data = await response.json()
-
-      if (!response.ok) {
-        console.error('❌ API error:', data)
-        throw new Error(data.error || 'Failed to compare outfits')
-      }
-
-      console.log('✅ Comparison received:', data)
-
+      if (!response.ok) throw new Error(data.error || 'Failed to compare')
+      
       await checkDailyRatings(user.id)
-
-      // Navigate to compare result page
+      
       navigate('/compare-result', {
         state: {
           ratings: data.ratings,
@@ -323,25 +242,14 @@ function App() {
         }
       })
     } catch (err) {
-      console.error('❌ Error comparing outfits:', err)
-      setError(err.message || 'Something went wrong. Please try again.')
+      console.error('Error comparing:', err)
+      setError(err.message || 'Something went wrong.')
     } finally {
       setLoading(false)
     }
   }
 
-  const reset = () => {
-    setImage(null)
-    setImagePreview(null)
-    setOccasion('none')
-    setError(null)
-    setComparisonMode(false)
-    setComparisonImages([])
-    setComparisonPreviews([])
-  }
-
   const handleLogout = async () => {
-    console.log('🚪 Logout clicked')
     localStorage.clear()
     sessionStorage.clear()
     supabase.auth.signOut().catch(() => {})
@@ -357,370 +265,279 @@ function App() {
 
   return (
     <Routes>
-      {/* LOGIN PAGE */}
-      <Route 
-        path="/login" 
-        element={user ? <Navigate to="/" /> : <Login />} 
-      />
+      <Route path="/login" element={user ? <Navigate to="/" /> : <Login />} />
+      <Route path="/signup" element={user ? <Navigate to="/" /> : <SignUp />} />
+      <Route path="/result" element={user ? <RateResult /> : <Navigate to="/login" />} />
+      <Route path="/compare-result" element={user ? <CompareResult /> : <Navigate to="/login" />} />
       
-      {/* SIGNUP PAGE */}
-      <Route 
-        path="/signup" 
-        element={user ? <Navigate to="/" /> : <SignUp />} 
-      />
-      
-      {/* RATE RESULT PAGE */}
-      <Route 
-        path="/result" 
-        element={user ? <RateResult /> : <Navigate to="/login" />} 
-      />
-      
-      {/* COMPARE RESULT PAGE */}
-      <Route 
-        path="/compare-result" 
-        element={user ? <CompareResult /> : <Navigate to="/login" />} 
-      />
-      
-      {/* MAIN APP */}
-      <Route 
-        path="/" 
-        element={
-          !user ? <Navigate to="/login" /> : (
-            <div className="app">
-              <div className="header">
-                <h1>AI Outfit Rater</h1>
-                <div className="header-right">
-                  <span className="user-email">{user.email}</span>
-                  
-                  {isPremium ? (
-                    <span className="premium-badge">Premium</span>
-                  ) : (
-                    <span className="free-tier">
-                      Free: {dailyRatingCount}/100 ratings today
-                    </span>
-                  )}
-                  
-                  <button onClick={handleLogout} className="btn-logout">
-                    Logout
-                  </button>
-                </div>
-              </div>
-
-              <div className="container">
-                {/* MODE TOGGLE - WORKS FOR EVERYONE */}
-                <div className="mode-toggle">
-                  <button
-                    className={!comparisonMode ? 'active' : ''}
-                    onClick={() => { 
-                      console.log('Switching to single mode')
-                      setComparisonMode(false)
-                      reset()
-                    }}
-                  >
-                    Single Outfit
-                  </button>
-                  <button
-                    className={comparisonMode ? 'active' : ''}
-                    onClick={() => { 
-                      console.log('Switching to compare mode')
-                      setComparisonMode(true)
-                      reset()
-                    }}
-                  >
-                    Compare Outfits
-                  </button>
-                </div>
-
-                {/* FEEDBACK MODE SELECTOR (Premium only) */}
-                {isPremium && !comparisonMode && (
-                  <div className="mode-selector">
-                    <label>Feedback Style:</label>
-                    <div className="mode-buttons">
-                      <button
-                        className={feedbackMode === 'helpful' ? 'active' : ''}
-                        onClick={() => setFeedbackMode('helpful')}
-                      >
-                        Helpful
-                      </button>
-                      <button
-                        className={feedbackMode === 'honest' ? 'active' : ''}
-                        onClick={() => setFeedbackMode('honest')}
-                      >
-                        Honest
-                      </button>
-                      <button
-                        className={feedbackMode === 'roast' ? 'active' : ''}
-                        onClick={() => setFeedbackMode('roast')}
-                      >
-                        Roast Mode
-                      </button>
-                    </div>
-                  </div>
+      <Route path="/" element={
+        !user ? <Navigate to="/login" /> : (
+          <div className="app">
+            <div className="header">
+              <h1>AI Outfit Rater</h1>
+              <div className="header-right">
+                <span className="user-email">{user.email}</span>
+                {isPremium ? (
+                  <span className="premium-badge">Premium</span>
+                ) : (
+                  <span className="free-tier">Free: {dailyRatingCount}/3 ratings today</span>
                 )}
-
-                {/* ACTION BUTTONS */}
-                <div className="action-buttons">
-                  <button onClick={loadHistory} className="btn-secondary">
-                    View History
-                  </button>
-                  <button onClick={loadSavedOutfits} className="btn-secondary">
-                    Saved Outfits ({savedCount}{!isPremium ? '/10' : ''})
-                  </button>
-                </div>
-
-                {/* SAVED OUTFITS MODAL */}
-                {showSavedOutfits && (
-                  <div className="modal-overlay" onClick={() => setShowSavedOutfits(false)}>
-                    <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-                      <div className="modal-header">
-                        <h2>Saved Outfits</h2>
-                        <button onClick={() => setShowSavedOutfits(false)} className="btn-close">×</button>
-                      </div>
-                      <div className="saved-outfits-grid">
-                        {savedOutfits.length === 0 ? (
-                          <p className="empty-message">No saved outfits yet. Save your favorite looks!</p>
-                        ) : (
-                          savedOutfits.map((outfit) => (
-                            <div key={outfit.id} className="saved-outfit-card">
-                              <img src={outfit.image_data} alt={outfit.name} />
-                              <div className="saved-outfit-info">
-                                <h3>{outfit.name}</h3>
-                                <p className="rating" style={{ color: getRatingColor(outfit.rating) }}>
-                                  {outfit.rating}/10
-                                </p>
-                                <p className="occasion">{outfit.occasion}</p>
-                                <p className="date">{new Date(outfit.created_at).toLocaleDateString()}</p>
-                                <button
-                                  onClick={() => deleteSavedOutfit(outfit.id)}
-                                  className="btn-delete"
-                                >
-                                  Delete
-                                </button>
-                              </div>
-                            </div>
-                          ))
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* HISTORY MODAL */}
-                {showHistory && (
-                  <div className="modal-overlay" onClick={() => setShowHistory(false)}>
-                    <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-                      <div className="modal-header">
-                        <h2>Rating History</h2>
-                        <button onClick={() => setShowHistory(false)} className="btn-close">×</button>
-                      </div>
-                      <div className="history-list">
-                        {outfitHistory.length === 0 ? (
-                          <p className="empty-message">No ratings yet. Rate your first outfit!</p>
-                        ) : (
-                          outfitHistory.map((item) => (
-                            <div key={item.id} className="history-item">
-                              <div className="history-rating">
-                                <span style={{ color: getRatingColor(item.rating) }}>
-                                  {item.rating}/10
-                                </span>
-                              </div>
-                              <div className="history-details">
-                                <p className="history-occasion">{item.occasion}</p>
-                                <p className="history-date">
-                                  {new Date(item.created_at).toLocaleDateString()}
-                                </p>
-                                <p className="history-feedback">{item.feedback.substring(0, 100)}...</p>
-                              </div>
-                            </div>
-                          ))
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* SINGLE OUTFIT MODE */}
-                {!comparisonMode && (
-                  <>
-                    <div className="upload-zone">
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleImageChange}
-                        id="file-upload"
-                        style={{ display: 'none' }}
-                      />
-                      <label htmlFor="file-upload" className="upload-label">
-                        {imagePreview ? (
-                          <img src={imagePreview} alt="Preview" className="image-preview" />
-                        ) : (
-                          <>
-                            <div className="upload-icon">+</div>
-                            <p>Click to upload outfit photo</p>
-                          </>
-                        )}
-                      </label>
-
-                      <input
-                        type="file"
-                        accept="image/*"
-                        capture="environment"
-                        onChange={handleCameraCapture}
-                        id="camera-capture"
-                        style={{ display: 'none' }}
-                      />
-                      <label htmlFor="camera-capture" className="btn-camera">
-                        Take Photo
-                      </label>
-                    </div>
-
-                    <div className="occasion-selector">
-                      <label htmlFor="occasion">Occasion:</label>
-                      <select
-                        id="occasion"
-                        value={occasion}
-                        onChange={(e) => setOccasion(e.target.value)}
-                      >
-                        <option value="none">No specific occasion</option>
-                        <option value="casual">Casual hangout</option>
-                        <option value="date">First date</option>
-                        <option value="interview">Job interview</option>
-                        <option value="wedding">Wedding</option>
-                        <option value="gym">Gym/Workout</option>
-                        <option value="night">Night out</option>
-                        <option value="work">Work/Office</option>
-                        <option value="beach">Beach/Vacation</option>
-                      </select>
-                    </div>
-
-                    {error && <div className="error">{error}</div>}
-
-                    <button
-                      onClick={rateOutfit}
-                      disabled={!image || loading}
-                      className="btn-rate"
-                    >
-                      {loading ? (
-                        <>
-                          <span className="spinner"></span>
-                          Rating your outfit...
-                        </>
-                      ) : (
-                        'Rate My Outfit'
-                      )}
-                    </button>
-                  </>
-                )}
-
-                {/* COMPARISON MODE */}
-                {comparisonMode && (
-                  <>
-                    {/* Instructions for comparison mode */}
-                    <div className="comparison-instructions">
-                      <h4>How to Compare Outfits:</h4>
-                      <ul>
-                        <li>Click the upload area below</li>
-                        <li>Select 2-5 outfit photos at once (hold Ctrl/Cmd to select multiple)</li>
-                        <li>Wait for all images to upload</li>
-                        <li>Click "Compare Outfits" button</li>
-                      </ul>
-                    </div>
-
-                    <div className="comparison-upload comparison-mode">
-                      <input
-                        type="file"
-                        accept="image/*"
-                        multiple
-                        onChange={handleComparisonImages}
-                        id="comparison-upload"
-                        style={{ display: 'none' }}
-                      />
-                      <label htmlFor="comparison-upload" className="upload-label">
-                        <div className="upload-icon">+</div>
-                        <p>Upload 2-5 outfits to compare</p>
-                        <small>💡 Hold Ctrl/Cmd to select multiple files</small>
-                      </label>
-                    </div>
-
-                    {comparisonPreviews.length > 0 && (
-                      <div className="comparison-preview-grid">
-                        {comparisonPreviews.map((preview, index) => (
-                          <div 
-                            key={index} 
-                            className="comparison-preview-item"
-                            data-index={index + 1}
-                          >
-                            <img src={preview} alt={`Outfit ${index + 1}`} />
-                            <p>Outfit {index + 1}</p>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    <div className="occasion-selector">
-                      <label htmlFor="occasion">Occasion:</label>
-                      <select
-                        id="occasion"
-                        value={occasion}
-                        onChange={(e) => setOccasion(e.target.value)}
-                      >
-                        <option value="none">No specific occasion</option>
-                        <option value="casual">Casual hangout</option>
-                        <option value="date">First date</option>
-                        <option value="interview">Job interview</option>
-                        <option value="wedding">Wedding</option>
-                        <option value="gym">Gym/Workout</option>
-                        <option value="night">Night out</option>
-                        <option value="work">Work/Office</option>
-                        <option value="beach">Beach/Vacation</option>
-                      </select>
-                    </div>
-
-                    {error && <div className="error">{error}</div>}
-
-                    <button
-                      onClick={compareOutfits}
-                      disabled={comparisonImages.length < 2 || loading}
-                      className="btn-rate comparison-mode"
-                    >
-                      {loading ? (
-                        <>
-                          <span className="spinner"></span>
-                          Comparing outfits...
-                        </>
-                      ) : (
-                        'Compare Outfits'
-                      )}
-                    </button>
-                  </>
-                )}
-
-                {/* UPGRADE PROMPT */}
-                {!isPremium && (
-                  <div className="upgrade-prompt">
-                    <h3>Upgrade to Premium</h3>
-                    <ul>
-                      <li>Unlimited ratings</li>
-                      <li>Unlimited saved outfits</li>
-                      <li>All feedback modes (Helpful, Honest, Roast)</li>
-                      <li>Priority support</li>
-                    </ul>
-                    <p className="price">Only $4.99/month</p>
-                    <button 
-                      className="btn-upgrade"
-                      onClick={() => alert('Premium coming soon! We are setting up payments. Check back soon!')}
-                    >
-                      Upgrade Now
-                    </button>
-                  </div>
-                )}
+                <button onClick={handleLogout} className="btn-logout">Logout</button>
               </div>
             </div>
-          )
-        } 
-      />
+
+            <div className="container">
+              {/* MODE TOGGLE */}
+              <div className="mode-toggle">
+                <button
+                  className={!comparisonMode ? 'active' : ''}
+                  onClick={() => {
+                    console.log('→ Switching to SINGLE mode')
+                    setComparisonMode(false)
+                    setError(null)
+                  }}
+                >
+                  Single Outfit
+                </button>
+                <button
+                  className={comparisonMode ? 'active' : ''}
+                  onClick={() => {
+                    console.log('→ Switching to COMPARE mode')
+                    setComparisonMode(true)
+                    setError(null)
+                  }}
+                >
+                  Compare Outfits
+                </button>
+              </div>
+
+              {/* DEBUG - REMOVE AFTER TESTING */}
+              <div style={{ background: 'yellow', padding: '15px', marginBottom: '20px', borderRadius: '10px' }}>
+                <strong>🐛 DEBUG:</strong> comparisonMode = {comparisonMode ? 'TRUE' : 'FALSE'}
+              </div>
+
+              {/* FEEDBACK MODE (Premium only, Single mode only) */}
+              {isPremium && !comparisonMode && (
+                <div className="mode-selector">
+                  <label>Feedback Style:</label>
+                  <div className="mode-buttons">
+                    <button className={feedbackMode === 'helpful' ? 'active' : ''} onClick={() => setFeedbackMode('helpful')}>Helpful</button>
+                    <button className={feedbackMode === 'honest' ? 'active' : ''} onClick={() => setFeedbackMode('honest')}>Honest</button>
+                    <button className={feedbackMode === 'roast' ? 'active' : ''} onClick={() => setFeedbackMode('roast')}>Roast Mode</button>
+                  </div>
+                </div>
+              )}
+
+              {/* ACTION BUTTONS */}
+              <div className="action-buttons">
+                <button onClick={loadHistory} className="btn-secondary">View History</button>
+                <button onClick={loadSavedOutfits} className="btn-secondary">Saved Outfits ({savedCount}{!isPremium ? '/10' : ''})</button>
+              </div>
+
+              {/* MODALS */}
+              {showSavedOutfits && (
+                <div className="modal-overlay" onClick={() => setShowSavedOutfits(false)}>
+                  <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                    <div className="modal-header">
+                      <h2>Saved Outfits</h2>
+                      <button onClick={() => setShowSavedOutfits(false)} className="btn-close">×</button>
+                    </div>
+                    <div className="saved-outfits-grid">
+                      {savedOutfits.length === 0 ? (
+                        <p className="empty-message">No saved outfits yet.</p>
+                      ) : (
+                        savedOutfits.map((outfit) => (
+                          <div key={outfit.id} className="saved-outfit-card">
+                            <img src={outfit.image_data} alt={outfit.name} />
+                            <div className="saved-outfit-info">
+                              <h3>{outfit.name}</h3>
+                              <p className="rating" style={{ color: getRatingColor(outfit.rating) }}>{outfit.rating}/10</p>
+                              <p className="occasion">{outfit.occasion}</p>
+                              <p className="date">{new Date(outfit.created_at).toLocaleDateString()}</p>
+                              <button onClick={() => deleteSavedOutfit(outfit.id)} className="btn-delete">Delete</button>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {showHistory && (
+                <div className="modal-overlay" onClick={() => setShowHistory(false)}>
+                  <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                    <div className="modal-header">
+                      <h2>Rating History</h2>
+                      <button onClick={() => setShowHistory(false)} className="btn-close">×</button>
+                    </div>
+                    <div className="history-list">
+                      {outfitHistory.length === 0 ? (
+                        <p className="empty-message">No ratings yet.</p>
+                      ) : (
+                        outfitHistory.map((item) => (
+                          <div key={item.id} className="history-item">
+                            <div className="history-rating">
+                              <span style={{ color: getRatingColor(item.rating) }}>{item.rating}/10</span>
+                            </div>
+                            <div className="history-details">
+                              <p className="history-occasion">{item.occasion}</p>
+                              <p className="history-date">{new Date(item.created_at).toLocaleDateString()}</p>
+                              <p className="history-feedback">{item.feedback.substring(0, 100)}...</p>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ========== SINGLE MODE ========== */}
+              {!comparisonMode && (
+                <div>
+                  <h3 style={{ color: 'green', marginBottom: '20px' }}>✅ SINGLE MODE IS SHOWING</h3>
+                  
+                  <div className="upload-zone">
+                    <input type="file" accept="image/*" onChange={handleImageChange} id="file-upload" style={{ display: 'none' }} />
+                    <label htmlFor="file-upload" className="upload-label">
+                      {imagePreview ? (
+                        <img src={imagePreview} alt="Preview" className="image-preview" />
+                      ) : (
+                        <>
+                          <div className="upload-icon">+</div>
+                          <p>Click to upload outfit photo</p>
+                        </>
+                      )}
+                    </label>
+                  </div>
+
+                  <div className="occasion-selector">
+                    <label htmlFor="occasion">Occasion:</label>
+                    <select id="occasion" value={occasion} onChange={(e) => setOccasion(e.target.value)}>
+                      <option value="none">No specific occasion</option>
+                      <option value="casual">Casual hangout</option>
+                      <option value="date">First date</option>
+                      <option value="interview">Job interview</option>
+                      <option value="wedding">Wedding</option>
+                      <option value="gym">Gym/Workout</option>
+                      <option value="night">Night out</option>
+                      <option value="work">Work/Office</option>
+                      <option value="beach">Beach/Vacation</option>
+                    </select>
+                  </div>
+
+                  {error && <div className="error">{error}</div>}
+
+                  <button onClick={rateOutfit} disabled={!image || loading} className="btn-rate">
+                    {loading ? (
+                      <>
+                        <span className="spinner"></span>
+                        Rating...
+                      </>
+                    ) : (
+                      'Rate My Outfit'
+                    )}
+                  </button>
+                </div>
+              )}
+
+              {/* ========== COMPARISON MODE ========== */}
+              {comparisonMode && (
+                <div>
+                  <h3 style={{ color: 'blue', marginBottom: '20px' }}>✅ COMPARISON MODE IS SHOWING</h3>
+                  
+                  <div className="comparison-instructions">
+                    <h4>How to Compare Outfits:</h4>
+                    <ul>
+                      <li>Click the upload area below</li>
+                      <li>Select 2-5 outfit photos (hold Ctrl/Cmd)</li>
+                      <li>Wait for upload</li>
+                      <li>Click Compare button</li>
+                    </ul>
+                  </div>
+
+                  <div className="comparison-upload">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={handleComparisonImages}
+                      id="comparison-upload"
+                      style={{ display: 'none' }}
+                    />
+                    <label htmlFor="comparison-upload" className="upload-label">
+                      <div className="upload-icon">+</div>
+                      <p>Upload 2-5 outfits to compare</p>
+                      <small>💡 Hold Ctrl/Cmd to select multiple</small>
+                    </label>
+                  </div>
+
+                  {comparisonPreviews.length > 0 && (
+                    <div className="comparison-preview-grid">
+                      {comparisonPreviews.map((preview, index) => (
+                        <div key={index} className="comparison-preview-item" data-index={index + 1}>
+                          <img src={preview} alt={`Outfit ${index + 1}`} />
+                          <p>Outfit {index + 1}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="occasion-selector">
+                    <label htmlFor="occasion">Occasion:</label>
+                    <select id="occasion" value={occasion} onChange={(e) => setOccasion(e.target.value)}>
+                      <option value="none">No specific occasion</option>
+                      <option value="casual">Casual hangout</option>
+                      <option value="date">First date</option>
+                      <option value="interview">Job interview</option>
+                      <option value="wedding">Wedding</option>
+                      <option value="gym">Gym/Workout</option>
+                      <option value="night">Night out</option>
+                      <option value="work">Work/Office</option>
+                      <option value="beach">Beach/Vacation</option>
+                    </select>
+                  </div>
+
+                  {error && <div className="error">{error}</div>}
+
+                  <button
+                    onClick={compareOutfits}
+                    disabled={comparisonImages.length < 2 || loading}
+                    className="btn-rate comparison-mode"
+                  >
+                    {loading ? (
+                      <>
+                        <span className="spinner"></span>
+                        Comparing...
+                      </>
+                    ) : (
+                      'Compare Outfits'
+                    )}
+                  </button>
+                </div>
+              )}
+
+              {/* UPGRADE PROMPT */}
+              {!isPremium && (
+                <div className="upgrade-prompt">
+                  <h3>Upgrade to Premium</h3>
+                  <ul>
+                    <li>Unlimited ratings</li>
+                    <li>Unlimited saved outfits</li>
+                    <li>All feedback modes</li>
+                    <li>Priority support</li>
+                  </ul>
+                  <p className="price">Only $4.99/month</p>
+                  <button className="btn-upgrade" onClick={() => alert('Coming soon!')}>Upgrade Now</button>
+                </div>
+              )}
+            </div>
+          </div>
+        )
+      } />
     </Routes>
   )
 }
 
-export default App 
+export default App
