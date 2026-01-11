@@ -3659,3 +3659,259 @@ body {
 body.menu-open {
   overflow: hidden;
 }
+/* ========== LAST RATING WARNING MODAL ========== */
+
+.warning-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  padding: 20px;
+  animation: fadeIn 0.3s ease-out;
+  backdrop-filter: blur(8px);
+}
+
+.warning-modal {
+  background: white;
+  border-radius: 24px;
+  padding: 50px 40px 40px;
+  max-width: 550px;
+  width: 100%;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  animation: slideUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  position: relative;
+  text-align: center;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(50px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.warning-icon {
+  font-size: 80px;
+  margin-bottom: 20px;
+  animation: bounce 1s infinite;
+  display: inline-block;
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+.warning-title {
+  font-size: 32px;
+  font-weight: 900;
+  color: #f59e0b;
+  margin: 0 0 20px 0;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.warning-message {
+  font-size: 17px;
+  color: #374151;
+  line-height: 1.7;
+  margin: 0 0 30px 0;
+}
+
+.warning-message strong {
+  color: #dc2626;
+  font-weight: 800;
+}
+
+/* Premium Features Box */
+.warning-features {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  padding: 30px;
+  border-radius: 18px;
+  border: 3px solid #fbbf24;
+  margin-bottom: 30px;
+  box-shadow: 0 8px 24px rgba(251, 191, 36, 0.3);
+}
+
+.warning-features h3 {
+  font-size: 24px;
+  color: #92400e;
+  margin: 0 0 20px 0;
+  font-weight: 900;
+}
+
+.warning-features ul {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 25px 0;
+  text-align: left;
+}
+
+.warning-features li {
+  padding: 10px 0;
+  font-size: 16px;
+  color: #78350f;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.warning-price {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 5px;
+}
+
+.price-amount {
+  font-size: 48px;
+  font-weight: 900;
+  color: #92400e;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.price-period {
+  font-size: 24px;
+  color: #78350f;
+  font-weight: 700;
+}
+
+/* Action Buttons */
+.warning-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.btn-warning-upgrade {
+  width: 100%;
+  padding: 18px 32px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 14px;
+  font-size: 18px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.3s;
+  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
+}
+
+.btn-warning-upgrade:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 36px rgba(102, 126, 234, 0.5);
+}
+
+.btn-warning-continue {
+  width: 100%;
+  padding: 16px 32px;
+  background: white;
+  color: #667eea;
+  border: 3px solid #667eea;
+  border-radius: 14px;
+  font-size: 17px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.btn-warning-continue:hover {
+  background: #667eea;
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.3);
+}
+
+.btn-warning-cancel {
+  width: 100%;
+  padding: 14px 32px;
+  background: transparent;
+  color: #6b7280;
+  border: 2px solid #d1d5db;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.btn-warning-cancel:hover {
+  background: #f3f4f6;
+  border-color: #9ca3af;
+  color: #374151;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .warning-modal {
+    padding: 40px 25px 30px;
+    max-width: 95vw;
+  }
+
+  .warning-icon {
+    font-size: 64px;
+  }
+
+  .warning-title {
+    font-size: 26px;
+  }
+
+  .warning-message {
+    font-size: 15px;
+  }
+
+  .warning-features {
+    padding: 25px 20px;
+  }
+
+  .warning-features h3 {
+    font-size: 20px;
+  }
+
+  .warning-features li {
+    font-size: 14px;
+    padding: 8px 0;
+  }
+
+  .price-amount {
+    font-size: 40px;
+  }
+
+  .price-period {
+    font-size: 20px;
+  }
+
+  .btn-warning-upgrade {
+    padding: 16px 28px;
+    font-size: 16px;
+  }
+
+  .btn-warning-continue {
+    padding: 14px 24px;
+    font-size: 15px;
+  }
+}
+
+/* Pulsing effect for upgrade button */
+@keyframes pulse-upgrade {
+  0%, 100% {
+    box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
+  }
+  50% {
+    box-shadow: 0 8px 32px rgba(102, 126, 234, 0.6);
+  }
+}
+
+.btn-warning-upgrade {
+  animation: pulse-upgrade 2s infinite;
+}
