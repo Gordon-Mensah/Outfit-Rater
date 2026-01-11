@@ -223,7 +223,7 @@ function App() {
     console.log('🔍 Compare button clicked')
     
     if (!canRate()) {
-      setError('You have used your 3 free ratings today.')
+      setError('You have used your 50 free ratings today.')
       return
     }
     
