@@ -322,9 +322,7 @@ function App() {
 
             <div className="header">
               <h1>AI Outfit Rater</h1>
-              <div className="header-right">
-                <HamburgerMenu />
-              </div>
+              <HamburgerMenu />
             </div>
 
             <div className="container">

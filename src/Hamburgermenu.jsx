@@ -89,7 +89,6 @@ function HamburgerMenu() {
             className="menu-item"
             onClick={() => navigateAndClose('/')}
           >
-            <span className="menu-item-icon">🏠</span>
             <span className="menu-item-text">Dashboard</span>
             <span className="menu-item-arrow">›</span>
           </button>
@@ -98,7 +97,6 @@ function HamburgerMenu() {
             className="menu-item"
             onClick={() => navigateAndClose('/profile')}
           >
-            <span className="menu-item-icon">👤</span>
             <span className="menu-item-text">Profile Settings</span>
             <span className="menu-item-arrow">›</span>
           </button>
@@ -110,7 +108,6 @@ function HamburgerMenu() {
               setIsOpen(false)
             }}
           >
-            <span className="menu-item-icon">💾</span>
             <span className="menu-item-text">Saved Outfits</span>
             <span className="menu-item-badge">{dailyRatingCount}</span>
           </button>
@@ -122,7 +119,6 @@ function HamburgerMenu() {
               setIsOpen(false)
             }}
           >
-            <span className="menu-item-icon">📊</span>
             <span className="menu-item-text">Rating History</span>
             <span className="menu-item-arrow">›</span>
           </button>
@@ -137,7 +133,6 @@ function HamburgerMenu() {
                   setIsOpen(false)
                 }}
               >
-                <span className="menu-item-icon">⭐</span>
                 <span className="menu-item-text">Upgrade to Premium</span>
                 <span className="upgrade-tag">New</span>
               </button>
@@ -150,7 +145,6 @@ function HamburgerMenu() {
             className="menu-item logout-item"
             onClick={handleLogout}
           >
-            <span className="menu-item-icon">🚪</span>
             <span className="menu-item-text">Logout</span>
           </button>
         </nav>
