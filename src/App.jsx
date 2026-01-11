@@ -1,4 +1,4 @@
-// SIMPLIFIED APP.JSX WITH WORKING COMPARE MODE
+// App.jsx - Complete with UserDropdown and ProfileSettings
 import { useState } from 'react'
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 import { useAuth } from './AuthContext'
@@ -8,11 +8,13 @@ import Login from './Login'
 import SignUp from './SignUp'
 import RateResult from './RateResult'
 import CompareResult from './CompareResult'
+import ProfileSettings from './ProfileSettings'
+import HamburgerMenu from './HamburgerMenu'
 
 const API_BASE_URL = import.meta.env.PROD ? '' : 'http://localhost:3000'
 
 function App() {
-  const { user, signOut, isPremium, canRate, dailyRatingCount, checkDailyRatings, loading: authLoading } = useAuth()
+  const { user, isPremium, canRate, dailyRatingCount, checkDailyRatings, loading: authLoading } = useAuth()
   const navigate = useNavigate()
 
   // SINGLE MODE STATES
@@ -249,13 +251,6 @@ function App() {
     }
   }
 
-  const handleLogout = async () => {
-    localStorage.clear()
-    sessionStorage.clear()
-    supabase.auth.signOut().catch(() => {})
-    window.location.reload()
-  }
-
   const getRatingColor = (rating) => {
     if (rating >= 9) return '#8b5cf6'
     if (rating >= 7) return '#10b981'
@@ -269,6 +264,7 @@ function App() {
       <Route path="/signup" element={user ? <Navigate to="/" /> : <SignUp />} />
       <Route path="/result" element={user ? <RateResult /> : <Navigate to="/login" />} />
       <Route path="/compare-result" element={user ? <CompareResult /> : <Navigate to="/login" />} />
+      <Route path="/profile" element={user ? <ProfileSettings /> : <Navigate to="/login" />} />
       
       <Route path="/" element={
         !user ? <Navigate to="/login" /> : (
@@ -276,13 +272,7 @@ function App() {
             <div className="header">
               <h1>AI Outfit Rater</h1>
               <div className="header-right">
-                <span className="user-email">{user.email}</span>
-                {isPremium ? (
-                  <span className="premium-badge">Premium</span>
-                ) : (
-                  <span className="free-tier">Free: {dailyRatingCount}/3 ratings today</span>
-                )}
-                <button onClick={handleLogout} className="btn-logout">Logout</button>
+                <HamburgerMenu />
               </div>
             </div>
 
@@ -311,11 +301,6 @@ function App() {
                 </button>
               </div>
 
-              {/* DEBUG - REMOVE AFTER TESTING */}
-              <div style={{ background: 'yellow', padding: '15px', marginBottom: '20px', borderRadius: '10px' }}>
-                <strong>🐛 DEBUG:</strong> comparisonMode = {comparisonMode ? 'TRUE' : 'FALSE'}
-              </div>
-
               {/* FEEDBACK MODE (Premium only, Single mode only) */}
               {isPremium && !comparisonMode && (
                 <div className="mode-selector">
@@ -334,7 +319,7 @@ function App() {
                 <button onClick={loadSavedOutfits} className="btn-secondary">Saved Outfits ({savedCount}{!isPremium ? '/10' : ''})</button>
               </div>
 
-              {/* MODALS */}
+              {/* SAVED OUTFITS MODAL */}
               {showSavedOutfits && (
                 <div className="modal-overlay" onClick={() => setShowSavedOutfits(false)}>
                   <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -364,6 +349,7 @@ function App() {
                 </div>
               )}
 
+              {/* HISTORY MODAL */}
               {showHistory && (
                 <div className="modal-overlay" onClick={() => setShowHistory(false)}>
                   <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -396,8 +382,6 @@ function App() {
               {/* ========== SINGLE MODE ========== */}
               {!comparisonMode && (
                 <div>
-                  <h3 style={{ color: 'green', marginBottom: '20px' }}>✅ SINGLE MODE IS SHOWING</h3>
-                  
                   <div className="upload-zone">
                     <input type="file" accept="image/*" onChange={handleImageChange} id="file-upload" style={{ display: 'none' }} />
                     <label htmlFor="file-upload" className="upload-label">
@@ -445,13 +429,11 @@ function App() {
               {/* ========== COMPARISON MODE ========== */}
               {comparisonMode && (
                 <div>
-                  <h3 style={{ color: 'blue', marginBottom: '20px' }}>✅ COMPARISON MODE IS SHOWING</h3>
-                  
                   <div className="comparison-instructions">
                     <h4>How to Compare Outfits:</h4>
                     <ul>
                       <li>Click the upload area below</li>
-                      <li>Select 2-5 outfit photos (hold Ctrl/Cmd)</li>
+                      <li>Select 2-5 outfit photos </li>
                       <li>Wait for upload</li>
                       <li>Click Compare button</li>
                     </ul>
@@ -469,7 +451,6 @@ function App() {
                     <label htmlFor="comparison-upload" className="upload-label">
                       <div className="upload-icon">+</div>
                       <p>Upload 2-5 outfits to compare</p>
-                      <small>💡 Hold Ctrl/Cmd to select multiple</small>
                     </label>
                   </div>
 
@@ -515,21 +496,6 @@ function App() {
                       'Compare Outfits'
                     )}
                   </button>
-                </div>
-              )}
-
-              {/* UPGRADE PROMPT */}
-              {!isPremium && (
-                <div className="upgrade-prompt">
-                  <h3>Upgrade to Premium</h3>
-                  <ul>
-                    <li>Unlimited ratings</li>
-                    <li>Unlimited saved outfits</li>
-                    <li>All feedback modes</li>
-                    <li>Priority support</li>
-                  </ul>
-                  <p className="price">Only $4.99/month</p>
-                  <button className="btn-upgrade" onClick={() => alert('Coming soon!')}>Upgrade Now</button>
                 </div>
               )}
             </div>
