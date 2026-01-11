@@ -10,6 +10,7 @@ import RateResult from './RateResult'
 import CompareResult from './CompareResult'
 import ProfileSettings from './ProfileSettings'
 import HamburgerMenu from './HamburgerMenu'
+import LastRatingWarning from './LastRatingWarning'
 
 const API_BASE_URL = import.meta.env.PROD ? '' : 'http://localhost:3000'
 
@@ -38,6 +39,8 @@ function App() {
   const [showSavedOutfits, setShowSavedOutfits] = useState(false)
   const [savedOutfits, setSavedOutfits] = useState([])
   const [savedCount, setSavedCount] = useState(0)
+  const [showLastRatingWarning, setShowLastRatingWarning] = useState(false)
+  const [pendingRatingAction, setPendingRatingAction] = useState(null)
 
   if (authLoading) {
     return (
@@ -160,14 +163,30 @@ function App() {
   }
 
   const rateOutfit = async () => {
+    // Check if user has exceeded limit
     if (!canRate()) {
       setError('You have used your 3 free ratings today.')
       return
     }
+    
     if (!image) {
       setError('Please upload an image first')
       return
     }
+
+    // Check if this is the last free rating
+    if (!isPremium && dailyRatingCount === 2) {
+      // Show warning modal for last rating
+      setPendingRatingAction('rate')
+      setShowLastRatingWarning(true)
+      return
+    }
+
+    // Proceed with rating
+    await executeRating()
+  }
+
+  const executeRating = async () => {
     setLoading(true)
     setError(null)
     try {
@@ -202,14 +221,30 @@ function App() {
 
   const compareOutfits = async () => {
     console.log('🔍 Compare button clicked')
+    
     if (!canRate()) {
       setError('You have used your 3 free ratings today.')
       return
     }
+    
     if (comparisonImages.length < 2) {
       setError('Please upload at least 2 images')
       return
     }
+
+    // Check if this is the last free rating
+    if (!isPremium && dailyRatingCount === 2) {
+      // Show warning modal for last rating
+      setPendingRatingAction('compare')
+      setShowLastRatingWarning(true)
+      return
+    }
+
+    // Proceed with comparison
+    await executeComparison()
+  }
+
+  const executeComparison = async () => {
     setLoading(true)
     setError(null)
     try {
@@ -269,6 +304,22 @@ function App() {
       <Route path="/" element={
         !user ? <Navigate to="/login" /> : (
           <div className="app">
+            {/* Last Rating Warning Modal */}
+            <LastRatingWarning
+              isOpen={showLastRatingWarning}
+              onClose={() => {
+                setShowLastRatingWarning(false)
+                setPendingRatingAction(null)
+              }}
+              onContinue={() => {
+                if (pendingRatingAction === 'rate') {
+                  executeRating()
+                } else if (pendingRatingAction === 'compare') {
+                  executeComparison()
+                }
+              }}
+            />
+
             <div className="header">
               <h1>AI Outfit Rater</h1>
               <div className="header-right">
@@ -433,7 +484,7 @@ function App() {
                     <h4>How to Compare Outfits:</h4>
                     <ul>
                       <li>Click the upload area below</li>
-                      <li>Select 2-5 outfit photos </li>
+                      <li>Select 2-5 outfit photos (hold Ctrl/Cmd)</li>
                       <li>Wait for upload</li>
                       <li>Click Compare button</li>
                     </ul>
@@ -451,6 +502,7 @@ function App() {
                     <label htmlFor="comparison-upload" className="upload-label">
                       <div className="upload-icon">+</div>
                       <p>Upload 2-5 outfits to compare</p>
+                      <small>💡 Hold Ctrl/Cmd to select multiple</small>
                     </label>
                   </div>
 
