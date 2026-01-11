@@ -9,6 +9,8 @@ import SignUp from './SignUp'
 import RateResult from './RateResult'
 import CompareResult from './CompareResult'
 import ProfileSettings from './ProfileSettings'
+import RatingHistory from './RatingHistory'
+import SavedOutfits from './SavedOutfits'
 import HamburgerMenu from './Hamburgermenu'
 import LastRatingWarning from './LastRatingWarning'
 
@@ -165,7 +167,7 @@ function App() {
   const rateOutfit = async () => {
     // Check if user has exceeded limit
     if (!canRate()) {
-      setError('You have used your 3 free ratings today.')
+      setError('You have used your 50 free ratings today.')
       return
     }
     
@@ -223,7 +225,7 @@ function App() {
     console.log('🔍 Compare button clicked')
     
     if (!canRate()) {
-      setError('You have used your 50 free ratings today.')
+      setError('You have used your 3 free ratings today.')
       return
     }
     
@@ -300,6 +302,8 @@ function App() {
       <Route path="/result" element={user ? <RateResult /> : <Navigate to="/login" />} />
       <Route path="/compare-result" element={user ? <CompareResult /> : <Navigate to="/login" />} />
       <Route path="/profile" element={user ? <ProfileSettings /> : <Navigate to="/login" />} />
+      <Route path="/history" element={user ? <RatingHistory /> : <Navigate to="/login" />} />
+      <Route path="/saved-outfits" element={user ? <SavedOutfits /> : <Navigate to="/login" />} />
       
       <Route path="/" element={
         !user ? <Navigate to="/login" /> : (
@@ -482,7 +486,7 @@ function App() {
                     <h4>How to Compare Outfits:</h4>
                     <ul>
                       <li>Click the upload area below</li>
-                      <li>Select 2-5 outfit photos (hold Ctrl/Cmd)</li>
+                      <li>Select 2-5 outfit photos </li>
                       <li>Wait for upload</li>
                       <li>Click Compare button</li>
                     </ul>

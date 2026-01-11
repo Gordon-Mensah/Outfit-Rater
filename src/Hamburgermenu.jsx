@@ -1,11 +1,12 @@
-// HamburgerMenu.jsx - Beautiful slide-in hamburger menu
+// HamburgerMenu.jsx - Updated with navigation to dedicated pages
 import { useState, useRef, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from './AuthContext'
 
 function HamburgerMenu() {
   const { user, isPremium, dailyRatingCount, signOut } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
   const [isOpen, setIsOpen] = useState(false)
   const menuRef = useRef(null)
 
@@ -19,12 +20,12 @@ function HamburgerMenu() {
 
     if (isOpen) {
       document.addEventListener('mousedown', handleClickOutside)
-      document.body.style.overflow = 'hidden' // Prevent scrolling when menu is open
+      document.body.classList.add('menu-open')
     }
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside)
-      document.body.style.overflow = 'unset'
+      document.body.classList.remove('menu-open')
     }
   }, [isOpen])
 
@@ -43,6 +44,10 @@ function HamburgerMenu() {
   const navigateAndClose = (path) => {
     navigate(path)
     setIsOpen(false)
+  }
+
+  const isActive = (path) => {
+    return location.pathname === path
   }
 
   return (
@@ -76,7 +81,7 @@ function HamburgerMenu() {
             {isPremium ? (
               <span className="menu-badge premium">⭐ Premium Member</span>
             ) : (
-              <span className="menu-badge free">🆓 Free Tier · {dailyRatingCount}/3 today</span>
+              <span className="menu-badge free">🆓 Free Tier · {dailyRatingCount}/50 today</span>
             )}
           </div>
         </div>
@@ -86,7 +91,7 @@ function HamburgerMenu() {
         {/* Menu Items */}
         <nav className="menu-nav">
           <button 
-            className="menu-item"
+            className={`menu-item ${isActive('/') ? 'active' : ''}`}
             onClick={() => navigateAndClose('/')}
           >
             <span className="menu-item-text">Dashboard</span>
@@ -94,32 +99,26 @@ function HamburgerMenu() {
           </button>
 
           <button 
-            className="menu-item"
-            onClick={() => navigateAndClose('/profile')}
+            className={`menu-item ${isActive('/history') ? 'active' : ''}`}
+            onClick={() => navigateAndClose('/history')}
           >
-            <span className="menu-item-text">Profile Settings</span>
+            <span className="menu-item-text">Rating History</span>
             <span className="menu-item-arrow">›</span>
           </button>
 
           <button 
-            className="menu-item"
-            onClick={() => {
-              // TODO: Add saved outfits navigation
-              setIsOpen(false)
-            }}
+            className={`menu-item ${isActive('/saved-outfits') ? 'active' : ''}`}
+            onClick={() => navigateAndClose('/saved-outfits')}
           >
             <span className="menu-item-text">Saved Outfits</span>
-            <span className="menu-item-badge">{dailyRatingCount}</span>
+            <span className="menu-item-arrow">›</span>
           </button>
 
           <button 
-            className="menu-item"
-            onClick={() => {
-              // TODO: Add history navigation
-              setIsOpen(false)
-            }}
+            className={`menu-item ${isActive('/profile') ? 'active' : ''}`}
+            onClick={() => navigateAndClose('/profile')}
           >
-            <span className="menu-item-text">Rating History</span>
+            <span className="menu-item-text">Profile Settings</span>
             <span className="menu-item-arrow">›</span>
           </button>
 
@@ -129,12 +128,12 @@ function HamburgerMenu() {
               <button 
                 className="menu-item upgrade-item"
                 onClick={() => {
-                  alert('Premium coming soon! Only $4.99/month')
+                  alert('Premium coming soon! Only $4.99/month\n\n✓ Unlimited ratings\n✓ Unlimited saved outfits\n✓ All feedback modes\n✓ Priority support')
                   setIsOpen(false)
                 }}
               >
                 <span className="menu-item-text">Upgrade to Premium</span>
-                <span className="upgrade-tag">New</span>
+                <span className="upgrade-tag">$4.99</span>
               </button>
             </>
           )}
