@@ -1,5 +1,5 @@
-// App.jsx - Complete with UserDropdown and ProfileSettings
-import { useState } from 'react'
+// App.jsx - Complete with UserDropdown and ProfileSettings + Keep-Warm Ping
+import { useState, useEffect } from 'react'
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 import { useAuth } from './AuthContext'
 import { supabase } from './supabaseClient'
@@ -43,6 +43,29 @@ function App() {
   const [savedCount, setSavedCount] = useState(0)
   const [showLastRatingWarning, setShowLastRatingWarning] = useState(false)
   const [pendingRatingAction, setPendingRatingAction] = useState(null)
+
+  // ========== KEEP-WARM PING: Prevents API cold starts ==========
+  useEffect(() => {
+    if (!user) return
+
+    // Ping API every 5 minutes to keep it warm
+    const keepWarm = setInterval(async () => {
+      try {
+        await fetch(`${API_BASE_URL}/api/ping`)
+        console.log('🔥 API kept warm')
+      } catch (err) {
+        console.log('❌ Ping failed:', err)
+      }
+    }, 5 * 60 * 1000) // 5 minutes
+
+    // Initial ping on app load
+    fetch(`${API_BASE_URL}/api/ping`)
+      .then(() => console.log('🔥 Initial ping successful'))
+      .catch(() => console.log('❌ Initial ping failed'))
+
+    return () => clearInterval(keepWarm)
+  }, [user])
+  // ========== END KEEP-WARM PING ==========
 
   if (authLoading) {
     return (
