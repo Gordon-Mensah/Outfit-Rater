@@ -983,3 +983,22 @@ button, a, input, select, textarea {
     min-height: 44px; /* Apple's recommended minimum touch target */
   }
 }
+/* GPU Acceleration for better performance */
+.spinner, .modal-overlay, .hamburger-menu, .history-card, .outfit-card {
+  transform: translateZ(0);
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+/* Optimize image rendering */
+img {
+  image-rendering: -webkit-optimize-contrast;
+}
+
+/* Reduce motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

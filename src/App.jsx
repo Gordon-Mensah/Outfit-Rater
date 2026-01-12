@@ -1,5 +1,5 @@
-// App.jsx - Complete with UserDropdown and ProfileSettings + Keep-Warm Ping
-import { useState, useEffect } from 'react'
+// App.jsx - Optimized for Performance
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 import { useAuth } from './AuthContext'
 import { supabase } from './supabaseClient'
@@ -36,11 +36,6 @@ function App() {
   const [feedbackMode, setFeedbackMode] = useState('helpful')
   
   // MODAL STATES
-  const [showHistory, setShowHistory] = useState(false)
-  const [outfitHistory, setOutfitHistory] = useState([])
-  const [showSavedOutfits, setShowSavedOutfits] = useState(false)
-  const [savedOutfits, setSavedOutfits] = useState([])
-  const [savedCount, setSavedCount] = useState(0)
   const [showLastRatingWarning, setShowLastRatingWarning] = useState(false)
   const [pendingRatingAction, setPendingRatingAction] = useState(null)
 
@@ -51,7 +46,7 @@ function App() {
     // Ping API every 5 minutes to keep it warm
     const keepWarm = setInterval(async () => {
       try {
-        await fetch(`${API_BASE_URL}/api/ping`)
+        await fetch(`${API_BASE_URL}/api/ping`, { method: 'GET' })
         console.log('🔥 API kept warm')
       } catch (err) {
         console.log('❌ Ping failed:', err)
@@ -59,7 +54,7 @@ function App() {
     }, 5 * 60 * 1000) // 5 minutes
 
     // Initial ping on app load
-    fetch(`${API_BASE_URL}/api/ping`)
+    fetch(`${API_BASE_URL}/api/ping`, { method: 'GET' })
       .then(() => console.log('🔥 Initial ping successful'))
       .catch(() => console.log('❌ Initial ping failed'))
 
@@ -76,61 +71,22 @@ function App() {
     )
   }
 
-  const loadHistory = async () => {
-    if (!user) return
-    try {
-      const { data, error } = await supabase
-        .from('outfit_history')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(10)
-      if (error) throw error
-      setOutfitHistory(data || [])
-      setShowHistory(true)
-    } catch (err) {
-      console.error('Error loading history:', err)
-    }
-  }
-
-  const loadSavedOutfits = async () => {
-    if (!user) return
-    try {
-      const { data, error } = await supabase
-        .from('saved_outfits')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-      if (error) throw error
-      setSavedOutfits(data || [])
-      setSavedCount(data?.length || 0)
-      setShowSavedOutfits(true)
-    } catch (err) {
-      console.error('Error loading saved outfits:', err)
-    }
-  }
-
-  const deleteSavedOutfit = async (outfitId) => {
-    try {
-      const { error } = await supabase
-        .from('saved_outfits')
-        .delete()
-        .eq('id', outfitId)
-        .eq('user_id', user.id)
-      if (error) throw error
-      loadSavedOutfits()
-    } catch (err) {
-      console.error('Error deleting outfit:', err)
-    }
-  }
-
-  const handleImageChange = async (e) => {
+  // OPTIMIZED: More aggressive image compression
+  const handleImageChange = useCallback(async (e) => {
     const file = e.target.files[0]
     if (!file) return
+    
     try {
-      const options = { maxSizeMB: 1, maxWidthOrHeight: 1920, useWebWorker: true }
+      // PERFORMANCE FIX: Reduced size from 1MB to 300KB and resolution from 1920 to 1024
+      const options = { 
+        maxSizeMB: 0.3,           // Much smaller file size
+        maxWidthOrHeight: 1024,    // Lower resolution
+        useWebWorker: true,
+        initialQuality: 0.7        // Optimize quality
+      }
       const compressedFile = await imageCompression(file, options)
       setImage(compressedFile)
+      
       const reader = new FileReader()
       reader.onloadend = () => setImagePreview(reader.result)
       reader.readAsDataURL(compressedFile)
@@ -139,9 +95,10 @@ function App() {
       console.error('Error compressing image:', err)
       setError('Failed to process image.')
     }
-  }
+  }, [])
 
-  const handleComparisonImages = async (e) => {
+  // OPTIMIZED: Compress comparison images
+  const handleComparisonImages = useCallback(async (e) => {
     const files = Array.from(e.target.files)
     console.log('📸 Files selected:', files.length)
     
@@ -157,10 +114,19 @@ function App() {
     try {
       const compressedFiles = []
       const previews = []
+      
+      // PERFORMANCE FIX: Better compression settings
+      const options = { 
+        maxSizeMB: 0.3, 
+        maxWidthOrHeight: 1024, 
+        useWebWorker: true,
+        initialQuality: 0.7
+      }
+      
       for (const file of files) {
-        const options = { maxSizeMB: 1, maxWidthOrHeight: 1920, useWebWorker: true }
         const compressedFile = await imageCompression(file, options)
         compressedFiles.push(compressedFile)
+        
         const reader = new FileReader()
         const preview = await new Promise((resolve) => {
           reader.onloadend = () => resolve(reader.result)
@@ -168,6 +134,7 @@ function App() {
         })
         previews.push(preview)
       }
+      
       console.log('✅ Images processed:', compressedFiles.length)
       setComparisonImages(compressedFiles)
       setComparisonPreviews(previews)
@@ -176,21 +143,21 @@ function App() {
       console.error('Error processing images:', err)
       setError('Failed to process images.')
     }
-  }
+  }, [])
 
-  const readFileAsBase64 = (file) => {
+  const readFileAsBase64 = useCallback((file) => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader()
       reader.onloadend = () => resolve(reader.result)
       reader.onerror = reject
       reader.readAsDataURL(file)
     })
-  }
+  }, [])
 
-  const rateOutfit = async () => {
+  const rateOutfit = useCallback(async () => {
     // Check if user has exceeded limit
     if (!canRate()) {
-      setError('You have used your 50 free ratings today.')
+      setError('You have used your 3 free ratings today.')
       return
     }
     
@@ -201,7 +168,6 @@ function App() {
 
     // Check if this is the last free rating
     if (!isPremium && dailyRatingCount === 2) {
-      // Show warning modal for last rating
       setPendingRatingAction('rate')
       setShowLastRatingWarning(true)
       return
@@ -209,21 +175,31 @@ function App() {
 
     // Proceed with rating
     await executeRating()
-  }
+  }, [canRate, image, isPremium, dailyRatingCount])
 
-  const executeRating = async () => {
+  const executeRating = useCallback(async () => {
     setLoading(true)
     setError(null)
+    setShowLastRatingWarning(false)
+    setPendingRatingAction(null)
+    
     try {
       const base64Image = await readFileAsBase64(image)
       const response = await fetch(`${API_BASE_URL}/api/rate-outfit`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image: base64Image, occasion, mode: feedbackMode, userId: user.id })
+        body: JSON.stringify({ 
+          image: base64Image, 
+          occasion, 
+          mode: feedbackMode, 
+          userId: user.id 
+        })
       })
+      
       const data = await response.json()
       if (!response.ok) throw new Error(data.error || 'Failed to rate outfit')
       
+      // Save to history
       await supabase.from('outfit_history').insert({
         user_id: user.id,
         rating: data.rating,
@@ -231,10 +207,16 @@ function App() {
         occasion: occasion,
         created_at: new Date().toISOString()
       })
+      
       await checkDailyRatings(user.id)
       
       navigate('/result', {
-        state: { rating: data.rating, feedback: data.feedback, imagePreview: imagePreview, occasion: occasion }
+        state: { 
+          rating: data.rating, 
+          feedback: data.feedback, 
+          imagePreview: imagePreview, 
+          occasion: occasion 
+        }
       })
     } catch (err) {
       console.error('Error rating outfit:', err)
@@ -242,9 +224,9 @@ function App() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [image, occasion, feedbackMode, user, imagePreview, readFileAsBase64, checkDailyRatings, navigate])
 
-  const compareOutfits = async () => {
+  const compareOutfits = useCallback(async () => {
     console.log('🔍 Compare button clicked')
     
     if (!canRate()) {
@@ -259,7 +241,6 @@ function App() {
 
     // Check if this is the last free rating
     if (!isPremium && dailyRatingCount === 2) {
-      // Show warning modal for last rating
       setPendingRatingAction('compare')
       setShowLastRatingWarning(true)
       return
@@ -267,11 +248,14 @@ function App() {
 
     // Proceed with comparison
     await executeComparison()
-  }
+  }, [canRate, comparisonImages, isPremium, dailyRatingCount])
 
-  const executeComparison = async () => {
+  const executeComparison = useCallback(async () => {
     setLoading(true)
     setError(null)
+    setShowLastRatingWarning(false)
+    setPendingRatingAction(null)
+    
     try {
       const base64Images = await Promise.all(
         comparisonImages.map(img => {
@@ -282,12 +266,18 @@ function App() {
           })
         })
       )
+      
       console.log('🚀 Calling API...')
       const response = await fetch(`${API_BASE_URL}/api/compare-outfits`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ images: base64Images, occasion, userId: user.id })
+        body: JSON.stringify({ 
+          images: base64Images, 
+          occasion, 
+          userId: user.id 
+        })
       })
+      
       const data = await response.json()
       if (!response.ok) throw new Error(data.error || 'Failed to compare')
       
@@ -309,14 +299,15 @@ function App() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [comparisonImages, occasion, user, comparisonPreviews, checkDailyRatings, navigate])
 
-  const getRatingColor = (rating) => {
+  // OPTIMIZED: Memoize rating color calculation
+  const getRatingColor = useCallback((rating) => {
     if (rating >= 9) return '#8b5cf6'
     if (rating >= 7) return '#10b981'
     if (rating >= 4) return '#f59e0b'
     return '#ef4444'
-  }
+  }, [])
 
   return (
     <Routes>
@@ -391,78 +382,33 @@ function App() {
 
               {/* ACTION BUTTONS */}
               <div className="action-buttons">
-                <button onClick={loadHistory} className="btn-secondary">View History</button>
-                <button onClick={loadSavedOutfits} className="btn-secondary">Saved Outfits ({savedCount}{!isPremium ? '/10' : ''})</button>
+                <button onClick={() => navigate('/history')} className="btn-secondary">
+                  View History
+                </button>
+                <button onClick={() => navigate('/saved-outfits')} className="btn-secondary">
+                  Saved Outfits
+                </button>
               </div>
-
-              {/* SAVED OUTFITS MODAL */}
-              {showSavedOutfits && (
-                <div className="modal-overlay" onClick={() => setShowSavedOutfits(false)}>
-                  <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-                    <div className="modal-header">
-                      <h2>Saved Outfits</h2>
-                      <button onClick={() => setShowSavedOutfits(false)} className="btn-close">×</button>
-                    </div>
-                    <div className="saved-outfits-grid">
-                      {savedOutfits.length === 0 ? (
-                        <p className="empty-message">No saved outfits yet.</p>
-                      ) : (
-                        savedOutfits.map((outfit) => (
-                          <div key={outfit.id} className="saved-outfit-card">
-                            <img src={outfit.image_data} alt={outfit.name} />
-                            <div className="saved-outfit-info">
-                              <h3>{outfit.name}</h3>
-                              <p className="rating" style={{ color: getRatingColor(outfit.rating) }}>{outfit.rating}/10</p>
-                              <p className="occasion">{outfit.occasion}</p>
-                              <p className="date">{new Date(outfit.created_at).toLocaleDateString()}</p>
-                              <button onClick={() => deleteSavedOutfit(outfit.id)} className="btn-delete">Delete</button>
-                            </div>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* HISTORY MODAL */}
-              {showHistory && (
-                <div className="modal-overlay" onClick={() => setShowHistory(false)}>
-                  <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-                    <div className="modal-header">
-                      <h2>Rating History</h2>
-                      <button onClick={() => setShowHistory(false)} className="btn-close">×</button>
-                    </div>
-                    <div className="history-list">
-                      {outfitHistory.length === 0 ? (
-                        <p className="empty-message">No ratings yet.</p>
-                      ) : (
-                        outfitHistory.map((item) => (
-                          <div key={item.id} className="history-item">
-                            <div className="history-rating">
-                              <span style={{ color: getRatingColor(item.rating) }}>{item.rating}/10</span>
-                            </div>
-                            <div className="history-details">
-                              <p className="history-occasion">{item.occasion}</p>
-                              <p className="history-date">{new Date(item.created_at).toLocaleDateString()}</p>
-                              <p className="history-feedback">{item.feedback.substring(0, 100)}...</p>
-                            </div>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
 
               {/* ========== SINGLE MODE ========== */}
               {!comparisonMode && (
                 <div>
                   <div className="upload-zone">
-                    <input type="file" accept="image/*" onChange={handleImageChange} id="file-upload" style={{ display: 'none' }} />
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      onChange={handleImageChange} 
+                      id="file-upload" 
+                      style={{ display: 'none' }} 
+                    />
                     <label htmlFor="file-upload" className="upload-label">
                       {imagePreview ? (
-                        <img src={imagePreview} alt="Preview" className="image-preview" />
+                        <img 
+                          src={imagePreview} 
+                          alt="Preview" 
+                          className="image-preview"
+                          loading="lazy"
+                        />
                       ) : (
                         <>
                           <div className="upload-icon">+</div>
@@ -509,7 +455,7 @@ function App() {
                     <h4>How to Compare Outfits:</h4>
                     <ul>
                       <li>Click the upload area below</li>
-                      <li>Select 2-5 outfit photos </li>
+                      <li>Select 2-5 outfit photos (hold Ctrl/Cmd)</li>
                       <li>Wait for upload</li>
                       <li>Click Compare button</li>
                     </ul>
@@ -535,7 +481,11 @@ function App() {
                     <div className="comparison-preview-grid">
                       {comparisonPreviews.map((preview, index) => (
                         <div key={index} className="comparison-preview-item" data-index={index + 1}>
-                          <img src={preview} alt={`Outfit ${index + 1}`} />
+                          <img 
+                            src={preview} 
+                            alt={`Outfit ${index + 1}`}
+                            loading="lazy"
+                          />
                           <p>Outfit {index + 1}</p>
                         </div>
                       ))}
