@@ -1,43 +1,35 @@
-// RatingHistory.jsx - ULTRA FAST VERSION
+// RatingHistory.jsx - Dedicated page for viewing rating history
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from './AuthContext'
 import { supabase } from './supabaseClient'
+import HamburgerMenu from './Hamburgermenu'
 
 function RatingHistory() {
   const { user } = useAuth()
   const navigate = useNavigate()
   const [history, setHistory] = useState([])
   const [loading, setLoading] = useState(true)
-  const [filter, setFilter] = useState('all')
-  const [stats, setStats] = useState(null)
+  const [filter, setFilter] = useState('all') // all, casual, date, interview, etc.
 
   useEffect(() => {
-    if (user) loadHistory()
+    loadHistory()
   }, [user])
 
   const loadHistory = async () => {
+    if (!user) return
     setLoading(true)
     try {
-      // SPEED: Only get essential fields, limit results
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('outfit_history')
-        .select('id, rating, feedback, occasion, created_at')
+        .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
-        .limit(100)  // SPEED: Limit to 100 most recent
       
-      if (data && data.length > 0) {
-        // Calculate stats quickly
-        const total = data.length
-        const avg = (data.reduce((acc, item) => acc + item.rating, 0) / total).toFixed(1)
-        const best = Math.max(...data.map(item => item.rating))
-        setStats({ total, avg, best })
-      }
-      
+      if (error) throw error
       setHistory(data || [])
     } catch (err) {
-      console.error('Load error:', err)
+      console.error('Error loading history:', err)
     } finally {
       setLoading(false)
     }
@@ -57,89 +49,112 @@ function RatingHistory() {
     return '😬'
   }
 
-  const filtered = filter === 'all' 
+  const filteredHistory = filter === 'all' 
     ? history 
     : history.filter(item => item.occasion === filter)
 
-  if (!user) return null
+  const occasions = ['all', 'casual', 'date', 'interview', 'wedding', 'gym', 'night', 'work', 'beach']
 
   return (
     <div className="rating-history-page">
       <div className="history-container">
-        <div className="page-header">
-          <button onClick={() => navigate('/')} className="back-btn">
-            ← Back
+        {/* Header */}
+        <div className="history-header-section">
+          <button onClick={() => navigate('/')} className="back-button">
+            ← Back to Dashboard
           </button>
-          <h1>📜 Rating History</h1>
+          <div className="header">
+            <h1>📜 Rating History</h1>
+            <HamburgerMenu />
+          </div>
+          <p className="subtitle">View all your outfit ratings and feedback</p>
         </div>
 
-        {stats && (
-          <div className="stats-row">
-            <div className="stat-item">
-              <div className="stat-value">{stats.total}</div>
-              <div className="stat-label">Ratings</div>
-            </div>
-            <div className="stat-item">
-              <div className="stat-value">{stats.avg}</div>
-              <div className="stat-label">Average</div>
-            </div>
-            <div className="stat-item">
-              <div className="stat-value">{stats.best}</div>
-              <div className="stat-label">Best</div>
-            </div>
+        {/* Stats Cards */}
+        <div className="history-stats">
+          <div className="stat-card">
+            <div className="stat-icon">📊</div>
+            <div className="stat-value">{history.length}</div>
+            <div className="stat-label">Total Ratings</div>
           </div>
-        )}
+          <div className="stat-card">
+            <div className="stat-icon">⭐</div>
+            <div className="stat-value">
+              {history.length > 0 
+                ? (history.reduce((acc, item) => acc + item.rating, 0) / history.length).toFixed(1)
+                : '0.0'
+              }
+            </div>
+            <div className="stat-label">Average Rating</div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-icon">🏆</div>
+            <div className="stat-value">
+              {history.length > 0 ? Math.max(...history.map(item => item.rating)) : '0'}
+            </div>
+            <div className="stat-label">Best Rating</div>
+          </div>
+        </div>
 
+        {/* Filter Tabs */}
         <div className="filter-tabs">
-          {['all', 'casual', 'date', 'interview', 'wedding', 'night', 'work'].map(f => (
+          {occasions.map(occ => (
             <button
-              key={f}
-              className={`filter-tab ${filter === f ? 'active' : ''}`}
-              onClick={() => setFilter(f)}
+              key={occ}
+              className={`filter-tab ${filter === occ ? 'active' : ''}`}
+              onClick={() => setFilter(occ)}
             >
-              {f === 'all' ? 'All' : f}
+              {occ === 'all' ? 'All' : occ.charAt(0).toUpperCase() + occ.slice(1)}
             </button>
           ))}
         </div>
 
-        {loading ? (
-          <div className="loading-state">
-            <div className="spinner"></div>
-            <p>Loading...</p>
-          </div>
-        ) : filtered.length === 0 ? (
-          <div className="empty-state">
-            <h3>No ratings yet</h3>
-            <button onClick={() => navigate('/')} className="btn-primary">
-              Rate Your First Outfit
-            </button>
-          </div>
-        ) : (
-          <div className="history-grid">
-            {filtered.map(item => (
-              <div key={item.id} className="history-card">
-                <div className="history-header">
-                  <div className="rating-badge" style={{ background: getRatingColor(item.rating) }}>
-                    <span>{getRatingEmoji(item.rating)}</span>
-                    <span>{item.rating}/10</span>
+        {/* History List */}
+        <div className="history-content">
+          {loading ? (
+            <div className="loading-state">
+              <div className="spinner"></div>
+              <p>Loading history...</p>
+            </div>
+          ) : filteredHistory.length === 0 ? (
+            <div className="empty-state">
+              <div className="empty-icon">📭</div>
+              <h3>No ratings yet</h3>
+              <p>Start rating your outfits to see your history here!</p>
+              <button onClick={() => navigate('/')} className="btn-primary">
+                Rate Your First Outfit
+              </button>
+            </div>
+          ) : (
+            <div className="history-grid">
+              {filteredHistory.map((item) => (
+                <div key={item.id} className="history-card">
+                  <div className="history-card-header">
+                    <div className="rating-badge" style={{ background: getRatingColor(item.rating) }}>
+                      <span className="rating-emoji">{getRatingEmoji(item.rating)}</span>
+                      <span className="rating-score">{item.rating}/10</span>
+                    </div>
+                    <div className="history-date">
+                      {new Date(item.created_at).toLocaleDateString('en-US', { 
+                        month: 'short', 
+                        day: 'numeric', 
+                        year: 'numeric' 
+                      })}
+                    </div>
                   </div>
-                  <div className="history-date">
-                    {new Date(item.created_at).toLocaleDateString('en-US', { 
-                      month: 'short', 
-                      day: 'numeric'
-                    })}
+                  
+                  <div className="history-occasion-tag">
+                    {item.occasion === 'none' ? 'General' : item.occasion}
+                  </div>
+                  
+                  <div className="history-feedback">
+                    <p>{item.feedback}</p>
                   </div>
                 </div>
-                <div className="history-occasion">
-                  {item.occasion === 'none' ? 'General' : item.occasion}
-                </div>
-                <div className="history-feedback">
-                  {item.feedback}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )
