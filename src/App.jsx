@@ -1,4 +1,4 @@
-// App.jsx - Complete with UserDropdown and ProfileSettings
+// App.jsx - Complete with LoadingOverlay and progress tracking
 import { useState } from 'react'
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 import { useAuth } from './AuthContext'
@@ -13,6 +13,7 @@ import RatingHistory from './RatingHistory'
 import SavedOutfits from './SavedOutfits'
 import HamburgerMenu from './Hamburgermenu'
 import LastRatingWarning from './LastRatingWarning'
+import LoadingOverlay from './LoadingOverlay'
 
 const API_BASE_URL = import.meta.env.PROD ? '' : 'http://localhost:3000'
 
@@ -32,6 +33,8 @@ function App() {
   const [comparisonMode, setComparisonMode] = useState(false)
   const [occasion, setOccasion] = useState('none')
   const [loading, setLoading] = useState(false)
+  const [loadingProgress, setLoadingProgress] = useState(0)
+  const [loadingMessage, setLoadingMessage] = useState('Analyzing your outfit...')
   const [error, setError] = useState(null)
   const [feedbackMode, setFeedbackMode] = useState('helpful')
   
@@ -105,7 +108,12 @@ function App() {
     const file = e.target.files[0]
     if (!file) return
     try {
-      const options = { maxSizeMB: 1, maxWidthOrHeight: 1920, useWebWorker: true }
+      // More aggressive compression for faster upload
+      const options = { 
+        maxSizeMB: 0.3,  // Reduced from 1MB to 300KB
+        maxWidthOrHeight: 1024,  // Reduced from 1920 to 1024
+        useWebWorker: true 
+      }
       const compressedFile = await imageCompression(file, options)
       setImage(compressedFile)
       const reader = new FileReader()
@@ -135,7 +143,12 @@ function App() {
       const compressedFiles = []
       const previews = []
       for (const file of files) {
-        const options = { maxSizeMB: 1, maxWidthOrHeight: 1920, useWebWorker: true }
+        // More aggressive compression for faster upload
+        const options = { 
+          maxSizeMB: 0.3,  // Reduced from 1MB to 300KB
+          maxWidthOrHeight: 1024,  // Reduced from 1920 to 1024
+          useWebWorker: true 
+        }
         const compressedFile = await imageCompression(file, options)
         compressedFiles.push(compressedFile)
         const reader = new FileReader()
@@ -167,7 +180,7 @@ function App() {
   const rateOutfit = async () => {
     // Check if user has exceeded limit
     if (!canRate()) {
-      setError('You have used your 50 free ratings today.')
+      setError('You have used your 3 free ratings today.')
       return
     }
     
@@ -190,16 +203,36 @@ function App() {
 
   const executeRating = async () => {
     setLoading(true)
+    setLoadingProgress(0)
+    setLoadingMessage('Preparing your image...')
     setError(null)
+    
     try {
+      // Progress: 25% - Processing image
+      setLoadingProgress(25)
+      setLoadingMessage('Processing image...')
       const base64Image = await readFileAsBase64(image)
+      
+      // Progress: 50% - Sending to AI
+      setLoadingProgress(50)
+      setLoadingMessage('AI is analyzing your outfit...')
+      
       const response = await fetch(`${API_BASE_URL}/api/rate-outfit`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ image: base64Image, occasion, mode: feedbackMode, userId: user.id })
       })
+      
+      // Progress: 75% - Receiving response
+      setLoadingProgress(75)
+      setLoadingMessage('Generating your personalized feedback...')
+      
       const data = await response.json()
       if (!response.ok) throw new Error(data.error || 'Failed to rate outfit')
+      
+      // Progress: 90% - Saving to database
+      setLoadingProgress(90)
+      setLoadingMessage('Saving your rating...')
       
       await supabase.from('outfit_history').insert({
         user_id: user.id,
@@ -210,6 +243,13 @@ function App() {
       })
       await checkDailyRatings(user.id)
       
+      // Progress: 100% - Complete
+      setLoadingProgress(100)
+      setLoadingMessage('Complete! Redirecting...')
+      
+      // Small delay to show completion
+      await new Promise(resolve => setTimeout(resolve, 500))
+      
       navigate('/result', {
         state: { rating: data.rating, feedback: data.feedback, imagePreview: imagePreview, occasion: occasion }
       })
@@ -218,6 +258,7 @@ function App() {
       setError(err.message || 'Something went wrong.')
     } finally {
       setLoading(false)
+      setLoadingProgress(0)
     }
   }
 
@@ -248,8 +289,15 @@ function App() {
 
   const executeComparison = async () => {
     setLoading(true)
+    setLoadingProgress(0)
+    setLoadingMessage('Preparing your outfits...')
     setError(null)
+    
     try {
+      // Progress: 20% - Converting images
+      setLoadingProgress(20)
+      setLoadingMessage(`Processing ${comparisonImages.length} outfits...`)
+      
       const base64Images = await Promise.all(
         comparisonImages.map(img => {
           return new Promise((resolve) => {
@@ -259,16 +307,37 @@ function App() {
           })
         })
       )
+      
+      // Progress: 40% - Sending to AI
+      setLoadingProgress(40)
+      setLoadingMessage('AI is comparing your outfits...')
+      
       console.log('🚀 Calling API...')
       const response = await fetch(`${API_BASE_URL}/api/compare-outfits`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ images: base64Images, occasion, userId: user.id })
       })
+      
+      // Progress: 70% - Analyzing results
+      setLoadingProgress(70)
+      setLoadingMessage('Analyzing which outfit looks best...')
+      
       const data = await response.json()
       if (!response.ok) throw new Error(data.error || 'Failed to compare')
       
+      // Progress: 90% - Saving
+      setLoadingProgress(90)
+      setLoadingMessage('Saving comparison results...')
+      
       await checkDailyRatings(user.id)
+      
+      // Progress: 100% - Complete
+      setLoadingProgress(100)
+      setLoadingMessage('Complete! Showing results...')
+      
+      // Small delay
+      await new Promise(resolve => setTimeout(resolve, 500))
       
       navigate('/compare-result', {
         state: {
@@ -285,6 +354,7 @@ function App() {
       setError(err.message || 'Something went wrong.')
     } finally {
       setLoading(false)
+      setLoadingProgress(0)
     }
   }
 
@@ -308,6 +378,13 @@ function App() {
       <Route path="/" element={
         !user ? <Navigate to="/login" /> : (
           <div className="app">
+            {/* Loading Overlay with Progress */}
+            <LoadingOverlay 
+              isLoading={loading}
+              message={loadingMessage}
+              progress={loadingProgress}
+            />
+
             {/* Last Rating Warning Modal */}
             <LastRatingWarning
               isOpen={showLastRatingWarning}

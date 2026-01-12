@@ -1,6 +1,4 @@
-// api/rate-outfit.js
-// Enhanced AI outfit rating with clean, structured feedback
-
+// api/rate-outfit.js - OPTIMIZED for speed
 import Groq from 'groq-sdk';
 
 const groq = new Groq({
@@ -8,124 +6,59 @@ const groq = new Groq({
 });
 
 export default async function handler(req, res) {
-  // Allow requests from anywhere (CORS)
+  // Enable CORS
+  res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+  res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
 
-  // Handle preflight requests
   if (req.method === 'OPTIONS') {
-    return res.status(200).end();
+    res.status(200).end();
+    return;
   }
 
-  // Only accept POST requests
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  const { image, occasion, mode = 'helpful', userId } = req.body;
+
+  if (!image) {
+    return res.status(400).json({ error: 'No image provided' });
+  }
+
   try {
-    // Get data from request
-    const { image, occasion, mode, userId } = req.body;
+    console.log('🚀 Starting outfit rating...');
 
-    // Validate data
-    if (!image) {
-      return res.status(400).json({ error: 'Image is required' });
-    }
-
-    if (!userId) {
-      return res.status(400).json({ error: 'User ID is required' });
-    }
-
-    const finalOccasion = occasion || 'none';
-    const finalMode = mode || 'helpful';
-
-    console.log(`🤖 Rating outfit for user ${userId} - ${finalOccasion} - ${finalMode} mode`);
-
-    // Enhanced prompts that produce clean, readable feedback
+    // SPEED OPTIMIZATION: Shorter, focused prompts
     const prompts = {
-      helpful: `You are a supportive, professional fashion advisor analyzing this outfit${finalOccasion !== 'none' ? ` for a ${finalOccasion} occasion` : ''}.
+      helpful: `Rate this outfit 1-10 and give 3 quick tips. Be concise.
 
-TASK: Provide a rating (1-10) and constructive feedback.
-
-FORMAT YOUR RESPONSE EXACTLY LIKE THIS:
+FORMAT:
 Rating: X/10
+1. [tip]
+2. [tip]  
+3. [tip]`,
 
-[Opening sentence about overall impression]
+      honest: `Rate this outfit 1-10 honestly. Give 2 good points and 2 areas to improve. Be direct.
 
-What Works Well:
-- [Specific positive point about fit, color, or style]
-- [Another positive observation]
-
-Areas for Improvement:
-- [Gentle, specific suggestion]
-- [Another constructive tip]
-
-Final Thoughts:
-[Encouraging closing statement with 1-2 actionable tips]
-
-STYLE GUIDELINES:
-- Be warm, encouraging, and specific
-- Focus on what's working before suggesting improvements
-- Use clear, conversational language
-- Keep each point concise (1-2 sentences max)
-- Avoid jargon or overly technical terms`,
-
-      honest: `You are a direct, experienced fashion consultant analyzing this outfit${finalOccasion !== 'none' ? ` for a ${finalOccasion} occasion` : ''}.
-
-TASK: Provide a straightforward rating (1-10) and honest feedback.
-
-FORMAT YOUR RESPONSE EXACTLY LIKE THIS:
+FORMAT:
 Rating: X/10
+Good: [2 points]
+Improve: [2 points]`,
 
-[Opening sentence with honest overall assessment]
+      roast: `Rate this outfit 1-10 with humor. Roast it but keep it light. 3-4 sentences max.
 
-The Good:
-- [What's working]
-- [Another strength]
-
-The Not-So-Good:
-- [What needs work]
-- [Another issue to address]
-
-Bottom Line:
-[Straightforward conclusion with clear next steps]
-
-STYLE GUIDELINES:
-- Be direct but professional
-- No sugar-coating, but remain respectful
-- Prioritize actionable, specific advice
-- Use clear, plain language
-- Keep points brief and punchy`,
-
-      roast: `You are a witty, playful fashion comedian analyzing this outfit${finalOccasion !== 'none' ? ` for a ${finalOccasion} occasion` : ''}.
-
-TASK: Provide a humorous rating (1-10) and entertaining roast-style commentary.
-
-FORMAT YOUR RESPONSE EXACTLY LIKE THIS:
+FORMAT:
 Rating: X/10
-
-[Clever opening line with a playful jab]
-
-The Highlights (Yes, Really):
-- [Something genuinely positive, delivered with humor]
-- [Another compliment with a twist]
-
-The Lowlights (Buckle Up):
-- [Funny observation about what's not working]
-- [Another humorous critique]
-
-Final Roast:
-[Witty closing statement with a funny comparison or pop culture reference]
-
-STYLE GUIDELINES:
-- Be funny, not mean
-- Use clever wordplay and comparisons
-- Keep it lighthearted and entertaining
-- Balance roasting with actual fashion advice
-- Stay PG-13 in humor`,
+[Your roast here]`
     };
 
-    // Call Groq AI API with vision model
+    const selectedPrompt = prompts[mode] || prompts.helpful;
+    const occasionText = occasion !== 'none' ? `Occasion: ${occasion}` : '';
+
+    console.log('📤 Sending to Groq API...');
+
     const completion = await groq.chat.completions.create({
       messages: [
         {
@@ -133,7 +66,7 @@ STYLE GUIDELINES:
           content: [
             {
               type: 'text',
-              text: prompts[finalMode]
+              text: `${selectedPrompt}\n${occasionText}`
             },
             {
               type: 'image_url',
@@ -146,85 +79,68 @@ STYLE GUIDELINES:
       ],
       model: 'llama-3.2-90b-vision-preview',
       temperature: 0.7,
-      max_tokens: 800,
-      top_p: 1,
-      stream: false
+      max_tokens: 400,  // REDUCED from 800 for faster response
+      top_p: 1
     });
 
-    const response = completion.choices[0]?.message?.content || '';
-    
-    console.log('Raw AI response:', response);
+    console.log('✅ Received AI response');
 
-    // Extract rating from AI response (multiple patterns)
-    let rating = 7; // Default rating
+    const feedback = completion.choices[0]?.message?.content || 'Could not generate feedback';
     
-    // Try different patterns to extract rating
+    // Extract rating with multiple regex patterns
+    let rating = 7; // Default fallback
     const ratingPatterns = [
-      /Rating:\s*(\d+)\/10/i,
-      /(\d+)\/10/,
-      /rating[:\s]+(\d+)/i,
-      /score[:\s]+(\d+)/i,
-      /rate[:\s]+(\d+)/i
+      /rating:\s*(\d+)\/10/i,
+      /(\d+)\/10/i,
+      /rating:\s*(\d+)/i,
+      /^(\d+)\/10/m
     ];
 
     for (const pattern of ratingPatterns) {
-      const match = response.match(pattern);
+      const match = feedback.match(pattern);
       if (match) {
-        rating = parseInt(match[1]);
-        break;
+        const extractedRating = parseInt(match[1]);
+        if (extractedRating >= 1 && extractedRating <= 10) {
+          rating = extractedRating;
+          break;
+        }
       }
     }
 
-    // Ensure rating is between 1-10
-    rating = Math.min(Math.max(rating, 1), 10);
+    console.log('✨ Rating extracted:', rating);
 
-    // Clean up the feedback text
-    let cleanedFeedback = response;
-    
-    // Remove standalone "Rating: X/10" line if it's on its own
-    cleanedFeedback = cleanedFeedback.replace(/^Rating:\s*\d+\/10\s*\n+/im, '');
-    
-    // Clean up excessive newlines
-    cleanedFeedback = cleanedFeedback.replace(/\n{3,}/g, '\n\n');
-    
-    // Trim whitespace
-    cleanedFeedback = cleanedFeedback.trim();
-
-    console.log(`✅ Rating complete: ${rating}/10`);
-    console.log(`📝 Feedback length: ${cleanedFeedback.length} characters`);
-
-    // Send response back to frontend
     return res.status(200).json({
-      rating: rating,
-      feedback: cleanedFeedback
+      rating,
+      feedback: feedback.trim()
     });
 
   } catch (error) {
-    console.error('❌ Groq API Error:', error);
+    console.error('❌ Error:', error.message);
 
-    // Handle specific error types
     if (error.status === 401) {
-      return res.status(500).json({ 
-        error: 'API authentication failed. Please check configuration.' 
+      return res.status(401).json({ 
+        error: 'Invalid API key',
+        details: 'Please check your Groq API key'
       });
     }
 
     if (error.status === 429) {
       return res.status(429).json({ 
-        error: 'Too many requests. Please try again in a moment.' 
+        error: 'Rate limit exceeded',
+        details: 'Too many requests. Please try again in a moment.'
       });
     }
 
-    if (error.message?.includes('timeout')) {
+    if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
       return res.status(504).json({ 
-        error: 'Request timed out. Please try again with a smaller image.' 
+        error: 'Request timeout',
+        details: 'AI took too long to respond. Please try again.'
       });
     }
 
-    // Generic error with details in development
     return res.status(500).json({ 
-      error: 'Failed to analyze outfit. Please try again.',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+      error: 'Failed to rate outfit',
+      details: error.message
     });
   }
 }
