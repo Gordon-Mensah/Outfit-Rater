@@ -1,4 +1,4 @@
-// ProfileSettings.jsx - Optimized for faster loading
+// ProfileSettings.jsx - FIXED: Name persistence issue resolved
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from './AuthContext'
@@ -47,13 +47,14 @@ function ProfileSettings() {
     }
   }, [activeTab])
 
+  // FIXED: Changed from .single() to .maybeSingle()
   const loadUserProfile = async () => {
     try {
       const { data, error } = await supabase
         .from('user_profiles')
         .select('display_name, bio')
         .eq('user_id', user.id)
-        .single()
+        .maybeSingle()  // ← FIXED: Changed from .single()
       
       if (data) {
         setDisplayName(data.display_name || '')
@@ -101,18 +102,24 @@ function ProfileSettings() {
     }
   }
 
+  // FIXED: Added onConflict parameter for proper upsert
   const updateProfile = async () => {
     setLoading(true)
     setMessage(null)
     try {
       const { error } = await supabase
         .from('user_profiles')
-        .upsert({
-          user_id: user.id,
-          display_name: displayName,
-          bio: bio,
-          updated_at: new Date().toISOString()
-        })
+        .upsert(
+          {
+            user_id: user.id,
+            display_name: displayName,
+            bio: bio,
+            updated_at: new Date().toISOString()
+          },
+          {
+            onConflict: 'user_id'  // ← FIXED: Added this parameter!
+          }
+        )
       
       if (error) throw error
       setMessage({ type: 'success', text: 'Profile updated successfully!' })
