@@ -64,7 +64,7 @@ function RatingHistory() {
             ← Back to Dashboard
           </button>
           <div className="header">
-            <h1>📜 Rating History</h1>
+            <h1>Rating History</h1>
             <HamburgerMenu />
           </div>
           <p className="subtitle">View all your outfit ratings and feedback</p>
@@ -73,12 +73,10 @@ function RatingHistory() {
         {/* Stats Cards */}
         <div className="history-stats">
           <div className="stat-card">
-            <div className="stat-icon">📊</div>
             <div className="stat-value">{history.length}</div>
             <div className="stat-label">Total Ratings</div>
           </div>
           <div className="stat-card">
-            <div className="stat-icon">⭐</div>
             <div className="stat-value">
               {history.length > 0 
                 ? (history.reduce((acc, item) => acc + item.rating, 0) / history.length).toFixed(1)
@@ -88,7 +86,6 @@ function RatingHistory() {
             <div className="stat-label">Average Rating</div>
           </div>
           <div className="stat-card">
-            <div className="stat-icon">🏆</div>
             <div className="stat-value">
               {history.length > 0 ? Math.max(...history.map(item => item.rating)) : '0'}
             </div>

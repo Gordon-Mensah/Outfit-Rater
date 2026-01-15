@@ -183,7 +183,7 @@ function SavedOutfits() {
               {!isPremium && savedOutfits.length >= 8 && (
                 <div className="upgrade-prompt-saved">
                   <div className="upgrade-content">
-                    <h3>🚀 Unlock Unlimited Storage!</h3>
+                    <h3>Unlock Unlimited Storage!</h3>
                     <p>Upgrade to Premium to save unlimited outfits and never lose your favorites.</p>
                     <button className="btn-upgrade" onClick={() => alert('Premium coming soon! Only $4.99/month')}>
                       Upgrade Now - $4.99/month

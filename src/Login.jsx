@@ -70,7 +70,6 @@ function Login() {
       <div className="auth-branding">
         <div className="branding-content">
           <div className="brand-logo">
-            <div className="logo-icon">👕</div>
             <h1>Outfit Rater</h1>
           </div>
           <h2>Rate your style with AI</h2>
@@ -78,15 +77,12 @@ function Login() {
           
           <div className="features-list">
             <div className="feature-item">
-              <span className="feature-icon">✨</span>
               <span>AI-Powered Analysis</span>
             </div>
             <div className="feature-item">
-              <span className="feature-icon">🎯</span>
               <span>Personalized Feedback</span>
             </div>
             <div className="feature-item">
-              <span className="feature-icon">📊</span>
               <span>Track Your Style</span>
             </div>
           </div>

@@ -126,7 +126,7 @@ function CompareResult() {
         {/* Analysis Section */}
         {analysis && (
           <div className="analysis-section">
-            <h3>🔍 Detailed Analysis</h3>
+            <h3> Detailed Analysis</h3>
             <div className="analysis-content">
               <p>{analysis}</p>
             </div>
@@ -136,7 +136,7 @@ function CompareResult() {
         {/* Mix & Match Suggestion */}
         {mixSuggestion && (
           <div className="mix-match-section">
-            <h3>✨ Mix & Match Suggestion</h3>
+            <h3> Mix & Match Suggestion</h3>
             <div className="mix-match-content">
               <span className="mix-icon">🎨</span>
               <p>{mixSuggestion}</p>
@@ -156,7 +156,7 @@ function CompareResult() {
             className={selectedView === 'best' ? 'active' : ''}
             onClick={() => setSelectedView('best')}
           >
-            🥇 Best
+             Best
           </button>
           <button
             className={selectedView === 'worst' ? 'active' : ''}
@@ -213,7 +213,7 @@ function CompareResult() {
 
         {/* Ranking Summary */}
         <div className="ranking-summary">
-          <h3>📊 Final Rankings</h3>
+          <h3> Final Rankings</h3>
           <div className="ranking-list">
             {ratings
               .map((rating, index) => ({ rating, index }))
@@ -249,14 +249,14 @@ function CompareResult() {
             onClick={shareComparison} 
             className="btn-action btn-share"
           >
-            📤 Share Results
+             Share Results
           </button>
 
           <button 
             onClick={() => navigate('/', { state: { mode: 'compare' } })} 
             className="btn-action btn-compare-again"
           >
-            🔄 Compare More Outfits
+             Compare More Outfits
           </button>
 
           <button 
@@ -272,22 +272,18 @@ function CompareResult() {
           <h3>💡 Tips for Your Lowest-Rated Outfit</h3>
           <div className="tips-grid">
             <div className="tip-card">
-              <span className="tip-icon">📏</span>
               <h4>Check the Fit</h4>
               <p>Ensure clothes fit properly - not too tight or loose</p>
             </div>
             <div className="tip-card">
-              <span className="tip-icon">🎨</span>
               <h4>Color Coordination</h4>
               <p>Use complementary or analogous color schemes</p>
             </div>
             <div className="tip-card">
-              <span className="tip-icon">👔</span>
               <h4>Occasion Match</h4>
               <p>Dress appropriately for the event</p>
             </div>
             <div className="tip-card">
-              <span className="tip-icon">✨</span>
               <h4>Details Matter</h4>
               <p>Pay attention to accessories and grooming</p>
             </div>

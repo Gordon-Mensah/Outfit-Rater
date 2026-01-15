@@ -191,7 +191,7 @@ function RateResult() {
 
           {/* Feedback Section */}
           <div className="feedback-section">
-            <h3>💬 AI Feedback</h3>
+            <h3>AI Feedback</h3>
             <div className="feedback-content">
               <p>{feedback}</p>
             </div>
