@@ -983,3 +983,989 @@ button, a, input, select, textarea {
     min-height: 44px; /* Apple's recommended minimum touch target */
   }
 }
+
+#root {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+}
+
+.logo {
+  height: 6em;
+  padding: 1.5em;
+  will-change: filter;
+  transition: filter 300ms;
+}
+.logo:hover {
+  filter: drop-shadow(0 0 2em #646cffaa);
+}
+.logo.react:hover {
+  filter: drop-shadow(0 0 2em #61dafbaa);
+}
+
+@keyframes logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  a:nth-of-type(2) .logo {
+    animation: logo-spin infinite 20s linear;
+  }
+}
+
+.card {
+  padding: 2em;
+}
+
+.read-the-docs {
+  color: #888;
+}
+/* ========== ENHANCED MOBILE RESPONSIVE STYLES ========== */
+
+/* Small Mobile (320px - 480px) */
+@media (max-width: 480px) {
+  body {
+    font-size: 14px;
+  }
+
+  /* Header - Force horizontal layout */
+  .header {
+    flex-direction: row !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    padding: 15px 20px !important;
+    gap: 10px !important;
+    text-align: left !important;
+  }
+  
+  .header h1 {
+    font-size: 18px !important;
+    margin: 0 !important;
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  
+  .hamburger-button {
+    flex-shrink: 0 !important;
+    width: 45px !important;
+    height: 45px !important;
+  }
+
+  .header-right {
+    display: flex;
+    flex-direction: row !important;
+    gap: 10px !important;
+    width: auto !important;
+    align-items: center !important;
+  }
+
+  /* App Container */
+  .app {
+    padding: 10px;
+  }
+
+  /* Container */
+  .container {
+    padding: 20px 15px;
+    border-radius: 15px;
+  }
+
+  /* Mode Toggle */
+  .mode-toggle {
+    flex-direction: row;
+    gap: 8px;
+    padding: 4px;
+  }
+
+  .mode-toggle button {
+    padding: 10px 16px;
+    font-size: 14px;
+  }
+
+  /* Mode Selector */
+  .mode-selector label {
+    font-size: 14px;
+  }
+
+  .mode-buttons {
+    flex-wrap: wrap;
+  }
+
+  .mode-buttons button {
+    padding: 8px 16px;
+    font-size: 13px;
+  }
+
+  /* Action Buttons */
+  .action-buttons {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .btn-secondary {
+    padding: 12px 20px;
+    font-size: 14px;
+  }
+
+  /* Upload Zone */
+  .upload-zone {
+    margin-bottom: 20px;
+  }
+
+  .upload-label {
+    padding: 40px 15px;
+    border-radius: 12px;
+  }
+
+  .upload-icon {
+    font-size: 40px;
+  }
+
+  .upload-label p {
+    font-size: 14px;
+  }
+
+  .image-preview {
+    max-height: 300px;
+  }
+
+  /* Comparison Upload */
+  .comparison-upload .upload-label {
+    min-height: 200px;
+    padding: 30px 15px;
+  }
+
+  .comparison-upload .upload-icon {
+    font-size: 50px;
+  }
+
+  .comparison-upload .upload-label p {
+    font-size: 18px;
+  }
+
+  .comparison-upload .upload-label small {
+    font-size: 13px;
+    padding: 6px 15px;
+  }
+
+  .comparison-upload .upload-label::after {
+    font-size: 11px;
+    padding: 5px 10px;
+    top: 15px;
+    right: 15px;
+  }
+
+  /* Comparison Preview Grid */
+  .comparison-preview-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    padding: 12px;
+  }
+
+  .comparison-preview-item img {
+    height: 140px;
+  }
+
+  .comparison-preview-item p {
+    padding: 10px;
+    font-size: 12px;
+  }
+
+  /* Comparison Instructions */
+  .comparison-instructions {
+    padding: 15px 18px;
+    margin: 15px 0;
+  }
+
+  .comparison-instructions h4 {
+    font-size: 16px;
+  }
+
+  .comparison-instructions ul {
+    font-size: 13px;
+  }
+
+  /* Occasion Selector */
+  .occasion-selector label {
+    font-size: 14px;
+  }
+
+  .occasion-selector select {
+    padding: 10px 14px;
+    font-size: 14px;
+  }
+
+  /* Error Message */
+  .error {
+    padding: 12px 16px;
+    font-size: 13px;
+    border-radius: 8px;
+  }
+
+  /* Rate Button */
+  .btn-rate {
+    padding: 14px 24px;
+    font-size: 16px;
+    border-radius: 10px;
+  }
+
+  /* Result Pages */
+  .result-page, .compare-result-page {
+    padding: 15px 10px;
+  }
+
+  .result-container, .compare-container {
+    padding: 0;
+  }
+
+  .result-header-section {
+    padding: 20px;
+    margin-bottom: 15px;
+  }
+
+  .result-header-section h1 {
+    font-size: 24px;
+  }
+
+  .subtitle {
+    font-size: 14px;
+  }
+
+  .back-button {
+    padding: 10px 18px;
+    font-size: 14px;
+  }
+
+  /* Result Card */
+  .result-card {
+    padding: 20px 15px;
+    border-radius: 15px;
+    margin-bottom: 15px;
+  }
+
+  /* Rating Circle */
+  .rating-circle {
+    width: 140px;
+    height: 140px;
+    border-width: 6px;
+    margin-bottom: 20px;
+  }
+
+  .rating-number {
+    font-size: 56px;
+  }
+
+  .rating-denominator {
+    font-size: 28px;
+  }
+
+  .rating-label {
+    font-size: 24px;
+  }
+
+  /* Result Image */
+  .result-image-container {
+    margin-bottom: 20px;
+  }
+
+  .result-outfit-image {
+    max-height: 400px;
+  }
+
+  .occasion-badge {
+    top: 10px;
+    right: 10px;
+    padding: 8px 14px;
+    font-size: 12px;
+  }
+
+  /* Feedback Content */
+  .feedback-content {
+    padding: 20px;
+  }
+
+  .feedback-content p {
+    font-size: 15px;
+    line-height: 1.7;
+  }
+
+  .feedback-section h3 {
+    font-size: 20px;
+  }
+
+  /* Winner Spotlight */
+  .winner-spotlight {
+    padding: 30px 20px;
+    margin-bottom: 20px;
+  }
+
+  .crown-icon {
+    font-size: 48px;
+  }
+
+  .spotlight-badge h2 {
+    font-size: 26px;
+  }
+
+  .winner-image-container {
+    height: 350px;
+  }
+
+  .winner-score {
+    font-size: 56px;
+  }
+
+  .winner-denominator {
+    font-size: 28px;
+  }
+
+  .winner-label {
+    font-size: 18px;
+  }
+
+  /* Analysis Section */
+  .analysis-section {
+    padding: 25px 20px;
+    margin-bottom: 20px;
+  }
+
+  .analysis-section h3 {
+    font-size: 22px;
+  }
+
+  .analysis-content {
+    padding: 20px;
+  }
+
+  .analysis-content p {
+    font-size: 15px;
+  }
+
+  /* Mix & Match Section */
+  .mix-match-section {
+    padding: 25px 20px;
+    margin-bottom: 20px;
+  }
+
+  .mix-match-section h3 {
+    font-size: 22px;
+  }
+
+  .mix-icon {
+    font-size: 36px;
+  }
+
+  .mix-match-content p {
+    font-size: 15px;
+  }
+
+  /* View Selector */
+  .view-selector {
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 20px;
+    padding: 8px;
+  }
+
+  .view-selector button {
+    padding: 12px 18px;
+    font-size: 14px;
+  }
+
+  /* Outfits Comparison Grid */
+  .outfits-comparison-grid {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
+
+  .outfit-card-header {
+    padding: 14px 16px;
+  }
+
+  .outfit-card-image {
+    height: 280px;
+  }
+
+  .outfit-card-rating {
+    padding: 16px;
+  }
+
+  /* Ranking Summary */
+  .ranking-summary {
+    padding: 25px 20px;
+    margin-bottom: 20px;
+  }
+
+  .ranking-summary h3 {
+    font-size: 22px;
+  }
+
+  .ranking-item {
+    grid-template-columns: 40px 1fr 40px 2fr 60px;
+    gap: 8px;
+    padding: 12px;
+  }
+
+  .rank-number {
+    font-size: 18px;
+  }
+
+  .rank-outfit {
+    font-size: 13px;
+  }
+
+  .rank-medal {
+    font-size: 24px;
+  }
+
+  .rank-bar-container {
+    height: 10px;
+  }
+
+  .rank-score {
+    font-size: 18px;
+  }
+
+  /* Action Buttons */
+  .result-actions,
+  .compare-actions {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .btn-action,
+  .btn-rate,
+  .btn-share,
+  .btn-compare-again,
+  .btn-rate-single {
+    padding: 14px 24px;
+    font-size: 15px;
+  }
+
+  .secondary-actions {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .btn-secondary-action {
+    padding: 12px 20px;
+    font-size: 14px;
+  }
+
+  /* Tips Grid */
+  .tips-grid {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
+
+  .tip-card {
+    padding: 25px 20px;
+  }
+
+  .tip-icon {
+    font-size: 48px;
+  }
+
+  .tip-card h4 {
+    font-size: 18px;
+  }
+
+  .tip-card p {
+    font-size: 14px;
+  }
+
+  /* Improvement Tips */
+  .improvement-tips {
+    padding: 30px 20px;
+  }
+
+  .improvement-tips h3 {
+    font-size: 24px;
+    margin-bottom: 25px;
+  }
+
+  /* Modal */
+  .modal-overlay {
+    padding: 10px;
+  }
+
+  .modal-content {
+    padding: 20px;
+    max-height: 85vh;
+    border-radius: 15px;
+  }
+
+  .modal-header {
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+  }
+
+  .modal-header h2 {
+    font-size: 22px;
+  }
+
+  .btn-close {
+    font-size: 28px;
+  }
+
+  /* History List */
+  .history-list {
+    gap: 12px;
+  }
+
+  .history-item {
+    padding: 15px;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .history-rating {
+    font-size: 20px;
+  }
+
+  .history-occasion {
+    font-size: 14px;
+  }
+
+  .history-date {
+    font-size: 13px;
+  }
+
+  .history-feedback {
+    font-size: 14px;
+  }
+
+  /* Saved Outfits Grid */
+  .saved-outfits-grid {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
+
+  .saved-outfit-card img {
+    height: 180px;
+  }
+
+  .saved-outfit-info {
+    padding: 12px;
+  }
+
+  .saved-outfit-info h3 {
+    font-size: 16px;
+  }
+
+  .saved-outfit-info .rating {
+    font-size: 20px;
+  }
+
+  /* Upgrade Prompt */
+  .upgrade-prompt {
+    padding: 25px 20px;
+    margin-top: 30px;
+  }
+
+  .upgrade-prompt h3 {
+    font-size: 22px;
+    margin-bottom: 15px;
+  }
+
+  .upgrade-prompt li {
+    font-size: 14px;
+  }
+
+  .price {
+    font-size: 28px;
+  }
+
+  .btn-upgrade {
+    padding: 14px 32px;
+    font-size: 16px;
+  }
+
+  /* Hamburger Menu */
+  .hamburger-menu {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .menu-header {
+    padding: 25px 20px;
+  }
+
+  .menu-avatar {
+    width: 60px;
+    height: 60px;
+    font-size: 20px;
+  }
+
+  .menu-user-name {
+    font-size: 18px;
+  }
+
+  .menu-user-email {
+    font-size: 13px;
+  }
+
+  .menu-item {
+    padding: 14px 20px;
+  }
+
+  .menu-item:hover {
+    padding-left: 24px;
+  }
+
+  .menu-item-text {
+    font-size: 15px;
+  }
+
+  .menu-footer {
+    padding: 20px 25px;
+  }
+
+  /* Profile Page */
+  .profile-page {
+    padding: 15px 10px;
+  }
+
+  .profile-title {
+    font-size: 28px;
+  }
+
+  .profile-subtitle {
+    font-size: 15px;
+  }
+
+  .account-card {
+    flex-direction: column;
+    text-align: center;
+    padding: 25px 20px;
+  }
+
+  .account-avatar {
+    width: 70px;
+    height: 70px;
+    font-size: 28px;
+  }
+
+  .account-details h2 {
+    font-size: 22px;
+  }
+
+  .account-email {
+    font-size: 14px;
+  }
+
+  .account-badges {
+    justify-content: center;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+
+  .stat-card {
+    padding: 20px 15px;
+  }
+
+  .stat-icon {
+    font-size: 36px;
+  }
+
+  .stat-value {
+    font-size: 28px;
+  }
+
+  .stat-label {
+    font-size: 12px;
+  }
+
+  .profile-tabs {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .tab {
+    padding: 12px 16px;
+    font-size: 14px;
+  }
+
+  .settings-section {
+    padding: 25px 20px;
+  }
+
+  .settings-section h3 {
+    font-size: 20px;
+  }
+
+  .section-description {
+    font-size: 14px;
+  }
+
+  .form-group label {
+    font-size: 14px;
+  }
+
+  .form-group input,
+  .form-group textarea {
+    padding: 12px 16px;
+    font-size: 14px;
+  }
+
+  .btn-primary {
+    padding: 14px 28px;
+    font-size: 15px;
+  }
+
+  .danger-zone {
+    padding: 25px 20px;
+    margin-top: 30px;
+  }
+
+  .danger-zone h3 {
+    font-size: 20px;
+  }
+
+  .danger-text {
+    font-size: 14px;
+  }
+
+  .btn-danger {
+    padding: 12px 24px;
+    font-size: 15px;
+  }
+
+  /* Auth Pages */
+  .modern-auth-container {
+    flex-direction: column;
+  }
+
+  .auth-branding {
+    padding: 30px 20px;
+    min-height: auto;
+  }
+
+  .brand-logo h1 {
+    font-size: 28px;
+  }
+
+  .branding-content h2 {
+    font-size: 24px;
+  }
+
+  .branding-content > p {
+    font-size: 16px;
+  }
+
+  .feature-item {
+    font-size: 14px;
+  }
+
+  .auth-form-container {
+    padding: 30px 20px;
+  }
+
+  .form-header h2 {
+    font-size: 24px;
+  }
+
+  .form-header p {
+    font-size: 14px;
+  }
+
+  .modern-google-button,
+  .modern-submit-button {
+    padding: 12px 18px;
+    font-size: 15px;
+  }
+
+  .modern-input {
+    padding: 10px 14px 10px 40px;
+    font-size: 15px;
+  }
+
+  /* Warning Modal */
+  .warning-modal {
+    padding: 35px 20px 30px;
+    max-width: 95vw;
+  }
+
+  .warning-icon {
+    font-size: 60px;
+  }
+
+  .warning-title {
+    font-size: 24px;
+  }
+
+  .warning-message {
+    font-size: 15px;
+  }
+
+  .warning-features {
+    padding: 20px;
+  }
+
+  .warning-features h3 {
+    font-size: 20px;
+  }
+
+  .warning-features li {
+    font-size: 14px;
+    padding: 8px 0;
+  }
+
+  .price-amount {
+    font-size: 36px;
+  }
+
+  .price-period {
+    font-size: 18px;
+  }
+
+  .btn-warning-upgrade {
+    padding: 14px 24px;
+    font-size: 16px;
+  }
+
+  .btn-warning-continue {
+    padding: 12px 24px;
+    font-size: 15px;
+  }
+
+  .btn-warning-cancel {
+    padding: 12px 24px;
+    font-size: 14px;
+  }
+}
+
+/* Tablet (481px - 768px) */
+@media (min-width: 481px) and (max-width: 768px) {
+  .header {
+    flex-direction: row !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    text-align: left !important;
+  }
+
+  .header h1 {
+    font-size: 22px;
+  }
+
+  .container {
+    padding: 30px 25px;
+  }
+
+  .comparison-preview-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .outfits-comparison-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .tips-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Landscape phones */
+@media (max-width: 768px) and (orientation: landscape) {
+  .header h1 {
+    font-size: 18px;
+  }
+
+  .rating-circle {
+    width: 120px;
+    height: 120px;
+  }
+
+  .rating-number {
+    font-size: 48px;
+  }
+
+  .modal-content {
+    max-height: 90vh;
+  }
+}
+
+/* Fix any remaining flex issues on mobile */
+@media (max-width: 768px) {
+  .header-right {
+    flex-direction: row !important;
+    width: auto !important;
+  }
+
+  .user-dropdown {
+    display: block;
+  }
+
+  .user-info {
+    display: none !important;
+  }
+
+  .user-dropdown-menu {
+    right: 0;
+    left: auto;
+    min-width: 300px;
+  }
+}
+
+/* Extra small devices */
+@media (max-width: 360px) {
+  .header h1 {
+    font-size: 16px;
+  }
+
+  .hamburger-button {
+    width: 40px !important;
+    height: 40px !important;
+  }
+
+  .mode-toggle button {
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+
+  .btn-rate {
+    padding: 12px 20px;
+    font-size: 15px;
+  }
+
+  .ranking-item {
+    grid-template-columns: 35px 1fr 35px 1.5fr 55px;
+    gap: 6px;
+    padding: 10px;
+  }
+}
+
+/* Ensure smooth transitions */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button, a, input, select, textarea {
+  touch-action: manipulation;
+}
+
+/* Improve touch targets */
+@media (max-width: 768px) {
+  button, 
+  a,
+  .menu-item,
+  .dropdown-item,
+  .tab {
+    min-height: 44px; /* Apple's recommended minimum touch target */
+  }
+}
