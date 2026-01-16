@@ -224,10 +224,12 @@ function PremiumStyleChat({ rating, feedback, occasion, imagePreview }) {
             disabled={!isPremium || loading || !input.trim()}
             className="send-button"
           >
-            {loading ? (
-              <span className="send-spinner"></span>
-            ) : (
-            )}
+            // FIXED:
+          {loading ? (
+            <span className="send-spinner"></span>
+          ) : (
+            <span>→</span>
+          )}
           </button>
         </div>
         {!isPremium && (
