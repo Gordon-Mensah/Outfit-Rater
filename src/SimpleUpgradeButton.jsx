@@ -1,17 +1,38 @@
+// SimpleUpgradeButton.jsx - Direct to Stripe Checkout
 import { useState } from 'react'
+import { loadStripe } from '@stripe/stripe-js'
+import { useAuth } from './AuthContext' // Your auth context
+import { useNavigate } from 'react-router-dom'
 
-// Mock auth hook - replace with your actual auth
-const useAuth = () => ({ user: { id: 'user_123', email: 'user@example.com' } })
+const API_BASE_URL = import.meta.env.PROD 
+  ? 'https://outfitrater.xyz' 
+  : 'http://localhost:3000'
 
-const API_BASE_URL = 'https://outfitrater.xyz'
+// Initialize Stripe (do this once outside component)
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY)
 
-function SimpleUpgradeButton({ text = "Upgrade to Premium", className = "btn-upgrade-simple" }) {
+function SimpleUpgradeButton({ 
+  plan = 'premium',
+  billingCycle = 'monthly', // 'monthly' or 'yearly'
+  text,
+  className = '',
+  showPrice = false
+}) {
   const { user } = useAuth()
+  const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
 
+  const prices = {
+    monthly: '$4.99/mo',
+    yearly: '$99.99/yr'
+  }
+
+  const defaultText = text || `Upgrade to ${billingCycle === 'yearly' ? 'Yearly' : 'Monthly'} Plan`
+
   const handleUpgrade = async () => {
+    // Redirect to login if not authenticated
     if (!user) {
-      alert('Please log in first')
+      navigate('/login')
       return
     }
 
@@ -22,22 +43,35 @@ function SimpleUpgradeButton({ text = "Upgrade to Premium", className = "btn-upg
       const response = await fetch(`${API_BASE_URL}/api/create-checkout-session`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           userId: user.id,
-          email: user.email
+          userEmail: user.email,
+          plan: plan,
+          billingCycle: billingCycle
         })
       })
 
+      if (!response.ok) {
+        throw new Error('Failed to create checkout session')
+      }
+
       const data = await response.json()
 
-      if (data.url) {
-        // Redirect to Stripe Checkout
-        // After payment, Stripe will:
-        // 1. Send webhook to /api/stripe-webhook
-        // 2. Redirect user to success_url
-        window.location.href = data.url
+      if (data.sessionId) {
+        // Get Stripe instance and redirect to checkout
+        const stripe = await stripePromise
+        const { error } = await stripe.redirectToCheckout({
+          sessionId: data.sessionId
+        })
+
+        if (error) {
+          console.error('Stripe redirect error:', error)
+          alert('Failed to redirect to checkout. Please try again.')
+          setLoading(false)
+        }
       } else {
-        throw new Error('No checkout URL received')
+        throw new Error('No session ID received')
       }
     } catch (error) {
       console.error('Checkout error:', error)
@@ -47,27 +81,39 @@ function SimpleUpgradeButton({ text = "Upgrade to Premium", className = "btn-upg
   }
 
   return (
-    <div className="p-8 max-w-md mx-auto">
-      <div className="bg-white rounded-lg shadow-lg p-6 text-center">
-        <h2 className="text-2xl font-bold mb-4">Premium Plan</h2>
-        <p className="text-gray-600 mb-6">
-          Unlock all features with our premium subscription
-        </p>
-        <div className="text-3xl font-bold mb-6">
-          $9.99<span className="text-lg text-gray-500">/month</span>
-        </div>
-        <button
-          className={`w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition ${className}`}
-          onClick={handleUpgrade}
-          disabled={loading}
-        >
-          {loading ? 'Loading...' : text}
-        </button>
-        <p className="text-xs text-gray-500 mt-4">
-          Secure payment powered by Stripe
-        </p>
-      </div>
-    </div>
+    <button
+      onClick={handleUpgrade}
+      disabled={loading}
+      className={`
+        inline-flex items-center justify-center gap-2
+        px-6 py-3 
+        bg-blue-600 text-white 
+        rounded-lg font-semibold 
+        hover:bg-blue-700 
+        disabled:bg-gray-400 disabled:cursor-not-allowed 
+        transition-all
+        ${className}
+      `}
+    >
+      {loading ? (
+        <>
+          <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+          </svg>
+          Processing...
+        </>
+      ) : (
+        <>
+          {defaultText}
+          {showPrice && (
+            <span className="text-sm opacity-90">
+              {prices[billingCycle]}
+            </span>
+          )}
+        </>
+      )}
+    </button>
   )
 }
 
