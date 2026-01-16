@@ -70,6 +70,19 @@ function App() {
   }, [user])
   // ========== END KEEP-WARM PING ==========
 
+   useEffect(() => {
+    const script = document.createElement('script')
+    script.src = 'https://js.stripe.com/v3/'
+    script.async = true
+    document.body.appendChild(script)
+
+    return () => {
+      // Cleanup on unmount
+      document.body.removeChild(script)
+    }
+  }, [])
+  
+
   if (authLoading) {
     return (
       <div className="loading-screen">
