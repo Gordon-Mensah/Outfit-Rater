@@ -1,364 +1,383 @@
-import { useState } from 'react';
-import { useAuth } from './AuthContext';
-import { useNavigate } from 'react-router-dom';
-import { loadStripe } from '@stripe/stripe-js';
+// Premium.jsx - Premium Subscription Page with Stripe Integration
+import { useState } from 'react'
+import { useAuth } from './AuthContext'
+import { useNavigate } from 'react-router-dom'
 
-// Initialize Stripe with your publishable key
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
+const API_BASE_URL = import.meta.env.PROD ? '' : 'http://localhost:3000'
 
-function PricingPage() {
-  const { userTier, user, userEmail } = useAuth();
-  const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
-  const [billingCycle, setBillingCycle] = useState('monthly');
-  const [error, setError] = useState('');
+function Premium() {
+  const { user, isPremium } = useAuth()
+  const navigate = useNavigate()
+  const [loading, setLoading] = useState(false)
+  const [billingPeriod, setBillingPeriod] = useState('monthly') // 'monthly' or 'yearly'
 
-  const handleUpgrade = async (plan) => {
+  const handleUpgrade = async () => {
     if (!user) {
-      alert('Please log in to upgrade');
-      navigate('/login');
-      return;
+      navigate('/login')
+      return
     }
 
-    setLoading(true);
-    setError('');
+    setLoading(true)
 
     try {
-      // Create checkout session
-      const response = await fetch('/api/create-checkout-session', {
+      // Call your backend to create Stripe checkout session
+      const response = await fetch(`${API_BASE_URL}/api/create-checkout-session`, {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           userId: user.id,
-          userEmail: userEmail,
-          plan: plan,
-          billingCycle: billingCycle
+          email: user.email,
+          priceId: billingPeriod === 'monthly' 
+            ? process.env.STRIPE_MONTHLY_PRICE_ID 
+            : process.env.STRIPE_YEARLY_PRICE_ID
         })
-      });
+      })
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to create checkout session');
-      }
+      const { url } = await response.json()
 
-      const { sessionId } = await response.json();
-      
-      // Redirect to Stripe Checkout
-      const stripe = await stripePromise;
-      const { error: stripeError } = await stripe.redirectToCheckout({ 
-        sessionId 
-      });
-      
-      if (stripeError) {
-        console.error('Stripe redirect error:', stripeError);
-        setError(stripeError.message);
+      if (url) {
+        // Redirect to Stripe Checkout
+        window.location.href = url
       }
     } catch (error) {
-      console.error('Checkout error:', error);
-      setError(error.message || 'Something went wrong. Please try again.');
+      console.error('Checkout error:', error)
+      alert('Failed to start checkout. Please try again.')
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
-  const handleManageSubscription = async () => {
-    setLoading(true);
+  const handleManageBilling = async () => {
+    setLoading(true)
+
     try {
-      // Create portal session for managing subscription
-      const response = await fetch('/api/create-portal-session', {
+      const response = await fetch(`${API_BASE_URL}/api/create-portal-session`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: user.id })
-      });
+      })
 
-      const { url } = await response.json();
-      window.location.href = url;
+      const { url } = await response.json()
+
+      if (url) {
+        window.location.href = url
+      }
     } catch (error) {
-      console.error('Portal error:', error);
-      alert('Failed to open billing portal. Please try again.');
+      console.error('Portal error:', error)
+      alert('Failed to open billing portal. Please try again.')
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
-  const features = {
-    free: [
-      '3 outfit ratings per day',
-      'Basic helpful feedback',
-      'Save up to 10 outfits',
-      'View rating history',
-      'Single outfit analysis'
-    ],
-    premium: [
-      'Unlimited outfit ratings',
-      'All feedback modes (Helpful, Honest, Roast)',
-      'Unlimited saved outfits',
-      'Outfit comparison (2-5 outfits)',
-      'AI mix & match suggestions',
-      'Priority support',
-      'Advanced analytics',
-      'Early access to new features',
-      'No ads'
-    ]
-  };
-
-  const pricing = {
-    monthly: {
-      amount: 4.99,
-      label: 'per month',
-      savings: null
+  const features = [
+    {
+      icon: '💬',
+      title: 'AI Style Chat',
+      description: 'Unlimited conversations with your personal AI fashion consultant',
+      premium: true
     },
-    yearly: {
-      amount: 49.99,
-      label: 'per year',
-      savings: 'Save $10'
+    {
+      icon: '🎯',
+      title: 'Unlimited Ratings',
+      description: 'Rate unlimited outfits per day (free users get 50/day)',
+      premium: true
+    },
+    {
+      icon: '🔄',
+      title: 'Advanced Comparisons',
+      description: 'Compare up to 5 outfits side-by-side with detailed analysis',
+      premium: true
+    },
+    {
+      icon: '😈',
+      title: 'Roast Mode',
+      description: 'Get brutally honest feedback for when you need the hard truth',
+      premium: true
+    },
+    {
+      icon: '💎',
+      title: 'Priority Support',
+      description: 'Get help faster with priority customer support',
+      premium: true
+    },
+    {
+      icon: '📊',
+      title: 'Style Analytics',
+      description: 'Track your fashion journey with detailed stats and insights',
+      premium: true
+    },
+    {
+      icon: '🎨',
+      title: 'Custom Feedback Styles',
+      description: 'Choose between Helpful, Honest, or Roast mode feedback',
+      premium: true
+    },
+    {
+      icon: '⭐',
+      title: 'Early Access',
+      description: 'Be first to try new AI features and improvements',
+      premium: true
     }
-  };
+  ]
 
   return (
-    <div className="pricing-container">
-      <div className="pricing-header">
-        <button onClick={() => navigate('/')} className="back-btn">← Back</button>
-        <h1>Choose Your Plan</h1>
-        <p className="subtitle">Upgrade to Premium for unlimited outfit ratings and advanced features</p>
-      </div>
-
-      {error && (
-        <div className="error-message" style={{ maxWidth: '600px', margin: '0 auto 2rem' }}>
-          {error}
-        </div>
-      )}
-
-      {userTier === 'premium' && (
-        <div className="current-plan-banner">
-          <div>
-            <strong>You're currently on the Premium plan.</strong> Thank you for your support!
+    <div className="premium-page">
+      {/* Hero Section */}
+      <div className="premium-hero">
+        <div className="premium-hero-content">
+          <div className="premium-badge-large">
+            <span className="badge-icon">⭐</span>
+            <span>Premium</span>
           </div>
-          <button 
-            onClick={handleManageSubscription}
-            className="manage-subscription-btn"
-            disabled={loading}
-          >
-            {loading ? 'Loading...' : 'Manage Subscription'}
-          </button>
-        </div>
-      )}
+          
+          <h1 className="premium-title">
+            Unlock Your Full Style Potential
+          </h1>
+          
+          <p className="premium-subtitle">
+            Get unlimited AI-powered fashion advice, advanced features, and personalized styling help
+          </p>
 
-      {/* Billing Cycle Toggle */}
-      <div className="billing-toggle">
-        <button 
-          className={billingCycle === 'monthly' ? 'active' : ''}
-          onClick={() => setBillingCycle('monthly')}
-          disabled={loading}
-        >
-          Monthly
-        </button>
-        <button 
-          className={billingCycle === 'yearly' ? 'active' : ''}
-          onClick={() => setBillingCycle('yearly')}
-          disabled={loading}
-        >
-          Yearly <span className="savings-badge">Save $10</span>
-        </button>
-      </div>
-
-      <div className="pricing-cards">
-        {/* Free Plan */}
-        <div className={`pricing-card ${userTier === 'free' ? 'current' : ''}`}>
-          <div className="plan-header">
-            <h2>Free</h2>
-            <div className="price">
-              <span className="amount">$0</span>
-              <span className="period">forever</span>
+          {isPremium && (
+            <div className="premium-status-banner">
+              <div className="status-icon">✓</div>
+              <div className="status-text">
+                <h3>You're Premium!</h3>
+                <p>Enjoying all premium features</p>
+              </div>
             </div>
-          </div>
-
-          <ul className="features-list">
-            {features.free.map((feature, idx) => (
-              <li key={idx}>
-                <span className="checkmark">✓</span>
-                {feature}
-              </li>
-            ))}
-          </ul>
-
-          {userTier === 'free' ? (
-            <button className="plan-btn current" disabled>
-              Current Plan
-            </button>
-          ) : (
-            <button className="plan-btn secondary" disabled>
-              Downgrade
-            </button>
           )}
         </div>
 
-        {/* Premium Plan */}
-        <div className={`pricing-card premium ${userTier === 'premium' ? 'current' : ''}`}>
-          <div className="popular-badge">Most Popular</div>
-          <div className="plan-header">
-            <h2>Premium</h2>
-            <div className="price">
-              <span className="amount">${pricing[billingCycle].amount}</span>
-              <span className="period">{pricing[billingCycle].label}</span>
-            </div>
-            {pricing[billingCycle].savings && (
-              <div className="savings">{pricing[billingCycle].savings}</div>
-            )}
-          </div>
+        {/* Decorative Elements */}
+        <div className="hero-decoration decoration-1"></div>
+        <div className="hero-decoration decoration-2"></div>
+        <div className="hero-decoration decoration-3"></div>
+      </div>
 
-          <ul className="features-list">
-            {features.premium.map((feature, idx) => (
-              <li key={idx}>
-                <span className="checkmark">✓</span>
-                {feature}
-              </li>
-            ))}
-          </ul>
-
-          {userTier === 'premium' ? (
-            <button className="plan-btn current" disabled>
-              Current Plan
-            </button>
-          ) : (
-            <button 
-              className="plan-btn upgrade" 
-              onClick={() => handleUpgrade('premium')}
-              disabled={loading}
+      {/* Pricing Cards */}
+      <div className="pricing-section">
+        <div className="pricing-container">
+          {/* Billing Toggle */}
+          <div className="billing-toggle">
+            <button
+              className={billingPeriod === 'monthly' ? 'active' : ''}
+              onClick={() => setBillingPeriod('monthly')}
             >
-              {loading ? (
-                <>
-                  <span className="spinner"></span>
-                  Processing...
-                </>
-              ) : (
-                'Upgrade to Premium'
-              )}
+              Monthly
             </button>
-          )}
+            <button
+              className={billingPeriod === 'yearly' ? 'active' : ''}
+              onClick={() => setBillingPeriod('yearly')}
+            >
+              Yearly
+              <span className="save-badge">Save 40%</span>
+            </button>
+          </div>
+
+          {/* Pricing Cards */}
+          <div className="pricing-cards">
+            {/* Free Plan */}
+            <div className="pricing-card free-plan">
+              <div className="plan-header">
+                <h3>Free</h3>
+                <div className="plan-price">
+                  <span className="price-amount">$0</span>
+                  <span className="price-period">/month</span>
+                </div>
+              </div>
+
+              <ul className="plan-features">
+                <li className="feature-item">
+                  <span className="feature-icon check">✓</span>
+                  <span>50 outfit ratings per day</span>
+                </li>
+                <li className="feature-item">
+                  <span className="feature-icon check">✓</span>
+                  <span>Compare up to 3 outfits</span>
+                </li>
+                <li className="feature-item">
+                  <span className="feature-icon check">✓</span>
+                  <span>Basic AI feedback</span>
+                </li>
+                <li className="feature-item disabled">
+                  <span className="feature-icon cross">✗</span>
+                  <span>AI Style Chat</span>
+                </li>
+                <li className="feature-item disabled">
+                  <span className="feature-icon cross">✗</span>
+                  <span>Roast Mode</span>
+                </li>
+                <li className="feature-item disabled">
+                  <span className="feature-icon cross">✗</span>
+                  <span>Style Analytics</span>
+                </li>
+              </ul>
+
+              <button className="plan-button free-button" disabled>
+                Current Plan
+              </button>
+            </div>
+
+            {/* Premium Plan */}
+            <div className="pricing-card premium-plan featured">
+              <div className="featured-badge">Most Popular</div>
+              
+              <div className="plan-header">
+                <h3>Premium</h3>
+                <div className="plan-price">
+                  <span className="price-amount">
+                    ${billingPeriod === 'monthly' ? '4.99' : '2.99'}
+                  </span>
+                  <span className="price-period">/month</span>
+                </div>
+                {billingPeriod === 'yearly' && (
+                  <p className="billing-note">Billed as $35.88/year</p>
+                )}
+              </div>
+
+              <ul className="plan-features">
+                <li className="feature-item">
+                  <span className="feature-icon check gold">✓</span>
+                  <span><strong>Everything in Free, plus:</strong></span>
+                </li>
+                <li className="feature-item">
+                  <span className="feature-icon check gold">✓</span>
+                  <span>Unlimited AI Style Chat</span>
+                </li>
+                <li className="feature-item">
+                  <span className="feature-icon check gold">✓</span>
+                  <span>Unlimited daily ratings</span>
+                </li>
+                <li className="feature-item">
+                  <span className="feature-icon check gold">✓</span>
+                  <span>Compare up to 5 outfits</span>
+                </li>
+                <li className="feature-item">
+                  <span className="feature-icon check gold">✓</span>
+                  <span>Roast Mode & all feedback styles</span>
+                </li>
+                <li className="feature-item">
+                  <span className="feature-icon check gold">✓</span>
+                  <span>Style Analytics & Insights</span>
+                </li>
+                <li className="feature-item">
+                  <span className="feature-icon check gold">✓</span>
+                  <span>Priority Support</span>
+                </li>
+                <li className="feature-item">
+                  <span className="feature-icon check gold">✓</span>
+                  <span>Early access to new features</span>
+                </li>
+              </ul>
+
+              {isPremium ? (
+                <button 
+                  className="plan-button premium-button active"
+                  onClick={handleManageBilling}
+                  disabled={loading}
+                >
+                  {loading ? 'Loading...' : 'Manage Billing'}
+                </button>
+              ) : (
+                <button 
+                  className="plan-button premium-button"
+                  onClick={handleUpgrade}
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <>
+                      <span className="button-spinner"></span>
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      Upgrade to Premium
+                      <span className="button-arrow">→</span>
+                    </>
+                  )}
+                </button>
+              )}
+
+              <p className="plan-guarantee">
+                ✓ Cancel anytime • No long-term commitment
+              </p>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Benefits Comparison */}
-      <div className="benefits-section">
-        <h2>Why Upgrade to Premium?</h2>
-        <div className="benefits-grid">
-          <div className="benefit-card">
-            <div className="benefit-icon">∞</div>
-            <h3>Unlimited Ratings</h3>
-            <p>Rate as many outfits as you want, whenever you want. No daily limits.</p>
-          </div>
-          <div className="benefit-card">
-            <div className="benefit-icon">💬</div>
-            <h3>All Feedback Modes</h3>
-            <p>Choose between Helpful, Honest, or Roast mode for personalized feedback.</p>
-          </div>
-          <div className="benefit-card">
-            <div className="benefit-icon">🔄</div>
-            <h3>Outfit Comparison</h3>
-            <p>Compare up to 5 outfits side-by-side to find your best look.</p>
-          </div>
-          <div className="benefit-card">
-            <div className="benefit-icon">✨</div>
-            <h3>AI Mix & Match</h3>
-            <p>Get smart suggestions to combine items from different outfits.</p>
+      {/* Features Grid */}
+      <div className="features-showcase">
+        <div className="features-container">
+          <h2 className="features-title">Everything You Get with Premium</h2>
+          
+          <div className="features-grid">
+            {features.map((feature, index) => (
+              <div key={index} className="feature-card">
+                <div className="feature-icon-large">{feature.icon}</div>
+                <h3>{feature.title}</h3>
+                <p>{feature.description}</p>
+              </div>
+            ))}
           </div>
         </div>
       </div>
 
       {/* FAQ Section */}
       <div className="faq-section">
-        <h2>Frequently Asked Questions</h2>
-        
-        <div className="faq-item">
-          <h3>Can I cancel anytime?</h3>
-          <p>Yes! You can cancel your subscription at any time with no penalties. You'll continue to have access until the end of your billing period.</p>
-        </div>
+        <div className="faq-container">
+          <h2>Frequently Asked Questions</h2>
+          
+          <div className="faq-list">
+            <div className="faq-item">
+              <h4>Can I cancel anytime?</h4>
+              <p>Yes! You can cancel your subscription at any time from the billing portal. You'll continue to have access until the end of your billing period.</p>
+            </div>
+            
+            <div className="faq-item">
+              <h4>What payment methods do you accept?</h4>
+              <p>We accept all major credit cards (Visa, Mastercard, American Express) through our secure Stripe payment processor.</p>
+            </div>
+            
+            <div className="faq-item">
+              <h4>Is there a free trial?</h4>
+              <p>You can use our free tier indefinitely with 50 ratings per day. Upgrade to Premium anytime to unlock all features.</p>
+            </div>
+            
+            <div className="faq-item">
+              <h4>How does the AI Style Chat work?</h4>
+              <p>Our AI chatbot provides personalized fashion advice based on your outfit. Ask about color alternatives, accessories, shoes, budget options, and more!</p>
+            </div>
 
-        <div className="faq-item">
-          <h3>What payment methods do you accept?</h3>
-          <p>We accept all major credit cards (Visa, Mastercard, American Express), debit cards, and digital wallets through our secure payment processor Stripe.</p>
-        </div>
-
-        <div className="faq-item">
-          <h3>Is there a free trial?</h3>
-          <p>The free plan gives you 3 ratings per day, which is a great way to try the service. If you love it, upgrade anytime for unlimited access!</p>
-        </div>
-
-        <div className="faq-item">
-          <h3>What happens to my saved outfits if I downgrade?</h3>
-          <p>Your saved outfits are safe! However, you won't be able to add new ones until you're back under the 10-outfit limit for free users.</p>
-        </div>
-
-        <div className="faq-item">
-          <h3>Do you offer refunds?</h3>
-          <p>Yes! If you're not satisfied within the first 7 days, contact us at support@outfitrater.com for a full refund.</p>
-        </div>
-
-        <div className="faq-item">
-          <h3>How does the yearly plan work?</h3>
-          <p>With the yearly plan, you pay $49.99 once per year (saving $10 compared to monthly). You get all Premium features for the entire year.</p>
-        </div>
-
-        <div className="faq-item">
-          <h3>Is my payment information secure?</h3>
-          <p>Absolutely! We use Stripe, a PCI-compliant payment processor trusted by millions of businesses worldwide. We never store your credit card information.</p>
-        </div>
-      </div>
-
-      {/* Trust Signals */}
-      <div className="trust-section">
-        <div className="trust-item">
-          <span className="trust-icon">🔒</span>
-          <div>
-            <strong>Secure Payment</strong>
-            <p>256-bit SSL encryption</p>
-          </div>
-        </div>
-        <div className="trust-item">
-          <span className="trust-icon">⚡</span>
-          <div>
-            <strong>Instant Access</strong>
-            <p>Start using Premium immediately</p>
-          </div>
-        </div>
-        <div className="trust-item">
-          <span className="trust-icon">↻</span>
-          <div>
-            <strong>Cancel Anytime</strong>
-            <p>No long-term commitment</p>
-          </div>
-        </div>
-        <div className="trust-item">
-          <span className="trust-icon">💯</span>
-          <div>
-            <strong>7-Day Guarantee</strong>
-            <p>Full refund if not satisfied</p>
+            <div className="faq-item">
+              <h4>What happens to my data if I cancel?</h4>
+              <p>Your outfit history and ratings are saved. You'll keep access to your data but won't be able to use premium features like AI chat.</p>
+            </div>
           </div>
         </div>
       </div>
 
       {/* CTA Section */}
-      {userTier === 'free' && (
+      {!isPremium && (
         <div className="cta-section">
-          <h2>Ready to upgrade your style game?</h2>
-          <p>Join hundreds of fashion-forward users who trust AI Outfit Rater</p>
-          <button 
-            className="cta-button"
-            onClick={() => handleUpgrade('premium')}
-            disabled={loading}
-          >
-            {loading ? 'Processing...' : 'Start Premium Now'}
-          </button>
-          <p className="cta-note">
-            Cancel anytime • 7-day money-back guarantee • No hidden fees
-          </p>
+          <div className="cta-content">
+            <h2>Ready to Upgrade Your Style?</h2>
+            <p>Join thousands of fashion-forward users getting AI-powered advice</p>
+            <button 
+              className="cta-button"
+              onClick={handleUpgrade}
+              disabled={loading}
+            >
+              {loading ? 'Processing...' : 'Start Premium Now'}
+            </button>
+            <p className="cta-subtext">$4.99/month • Cancel anytime</p>
+          </div>
         </div>
       )}
     </div>
-  );
+  )
 }
 
-export default PricingPage;
+export default Premium

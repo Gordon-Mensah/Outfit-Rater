@@ -7,7 +7,7 @@ function LastRatingWarning({ isOpen, onClose, onContinue }) {
   if (!isOpen) return null
 
   const handleUpgrade = () => {
-    alert('Premium coming soon! Only $4.99/month for unlimited ratings.')
+    navigate('/premium') 
     onClose()
   }
 

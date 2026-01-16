@@ -13,6 +13,7 @@ import RatingHistory from './RatingHistory'
 import SavedOutfits from './SavedOutfits'
 import HamburgerMenu from './Hamburgermenu'
 import LastRatingWarning from './LastRatingWarning'
+import Premium from './Premium'
 
 const API_BASE_URL = import.meta.env.PROD ? '' : 'http://localhost:3000'
 
@@ -327,6 +328,7 @@ function App() {
       <Route path="/profile" element={user ? <ProfileSettings /> : <Navigate to="/login" />} />
       <Route path="/history" element={user ? <RatingHistory /> : <Navigate to="/login" />} />
       <Route path="/saved-outfits" element={user ? <SavedOutfits /> : <Navigate to="/login" />} />
+      <Route path="/premium" element={user ? <Premium /> : <Navigate to="/login" />} />
       
       <Route path="/" element={
         !user ? <Navigate to="/login" /> : (

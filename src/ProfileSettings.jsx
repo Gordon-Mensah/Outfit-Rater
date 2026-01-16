@@ -496,7 +496,7 @@ function ProfileSettings() {
                 </ul>
                 <button
                   className="btn-upgrade"
-                  onClick={() => alert('Premium coming soon! Only $4.99/month')}
+                  onClick={() => navigate('/premium')}
                 >
                   Upgrade for $4.99/month
                 </button>

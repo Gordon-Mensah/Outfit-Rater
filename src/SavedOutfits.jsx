@@ -185,7 +185,7 @@ function SavedOutfits() {
                   <div className="upgrade-content">
                     <h3>Unlock Unlimited Storage!</h3>
                     <p>Upgrade to Premium to save unlimited outfits and never lose your favorites.</p>
-                    <button className="btn-upgrade" onClick={() => alert('Premium coming soon! Only $4.99/month')}>
+                    <button className="btn-upgrade" onClick={() => window.location.href = '/premium'}>
                       Upgrade Now - $4.99/month
                     </button>
                   </div>
