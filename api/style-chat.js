@@ -1,71 +1,88 @@
-// Add this to your server.js or routes file
+// api/style-chat.js - Backend API for Premium Style Chat
+import Groq from 'groq-sdk'
 
-app.post('/api/style-chat', async (req, res) => {
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
+
+export default async function handler(req, res) {
+  // Enable CORS
+  res.setHeader('Access-Control-Allow-Credentials', true)
+  res.setHeader('Access-Control-Allow-Origin', '*')
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
+
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end()
+  }
+
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' })
+  }
+
   try {
-    const { userId, conversation, outfitContext } = req.body
+    const { message, originalRating, originalFeedback, occasion, conversationHistory } = req.body
 
-    if (!userId || !conversation) {
-      return res.status(400).json({ error: 'Missing required fields' })
+    if (!message) {
+      return res.status(400).json({ error: 'Message is required' })
     }
 
-    // Build the system prompt with outfit context
-    const systemPrompt = `You are an expert AI fashion stylist and personal shopper. You're having a conversation with a user about their outfit that was just rated ${outfitContext.rating}/10 for a ${outfitContext.occasion} occasion.
+    // Build conversation context
+    const systemPrompt = `You are an expert AI fashion consultant and personal stylist. You're chatting with a user about their outfit that received a ${originalRating}/10 rating.
 
-Original feedback given: "${outfitContext.feedback}"
+Original Feedback: "${originalFeedback}"
+Occasion: ${occasion || 'casual'}
 
 Your role:
-- Help them find alternatives when they don't have suggested items
-- Suggest what colors/items work with what they DO have
-- Give specific, actionable advice
-- Be encouraging and supportive
-- Suggest budget-friendly options when asked
-- Consider their wardrobe constraints
+- Help users find alternatives when they don't have suggested items
+- Suggest color combinations and substitutions
+- Recommend accessories, shoes, and styling tips
+- Provide budget-friendly shopping alternatives
+- Be conversational, friendly, and helpful
+- Keep responses concise (2-3 sentences max)
+- Be specific and actionable
 
-Guidelines:
-- Keep responses concise (2-4 sentences usually)
-- Be specific about colors, styles, and combinations
-- If they say they don't have something, suggest alternatives with what they likely DO have
-- Focus on practical, wearable advice
-- Be warm and conversational
+If they say they don't have a color/item you suggested, immediately suggest practical alternatives they might have in their wardrobe.`
 
-Example exchange:
-User: "You suggested a blue top but I don't have blue, I have black"
-You: "Black is actually a great alternative! A black top would work perfectly here. To add visual interest since black is more muted, I'd suggest adding a colorful accessory - maybe a statement necklace in gold or silver, or a bright scarf. This keeps the outfit polished while adding that pop of personality."
+    // Build message history for context
+    const messages = [
+      { role: 'system', content: systemPrompt }
+    ]
 
-Now respond to the user's message:`
-
-    // Call Claude API
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': process.env.ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01'
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 500,
-        system: systemPrompt,
-        messages: conversation
-      })
+    // Add conversation history (last 6 messages for context)
+    const recentHistory = conversationHistory.slice(-6)
+    recentHistory.forEach(msg => {
+      if (msg.role === 'user' || msg.role === 'assistant') {
+        messages.push({
+          role: msg.role,
+          content: msg.content
+        })
+      }
     })
 
-    const data = await response.json()
+    // Add current message
+    messages.push({
+      role: 'user',
+      content: message
+    })
 
-    if (!response.ok) {
-      throw new Error(data.error?.message || 'AI request failed')
-    }
+    // Call Groq API
+    const completion = await groq.chat.completions.create({
+      messages,
+      model: 'llama-3.1-70b-versatile',
+      temperature: 0.7,
+      max_tokens: 300,
+      top_p: 1,
+      stream: false
+    })
 
-    // Extract the response text
-    const aiResponse = data.content[0].text
+    const reply = completion.choices[0]?.message?.content || 'I apologize, I couldn\'t generate a response. Please try again.'
 
-    res.json({ response: aiResponse })
+    return res.status(200).json({ reply })
 
   } catch (error) {
     console.error('Style chat error:', error)
-    res.status(500).json({ 
+    return res.status(500).json({ 
       error: 'Failed to get style advice',
       details: error.message 
     })
   }
-})
+}
