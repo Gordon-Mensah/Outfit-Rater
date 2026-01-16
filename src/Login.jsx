@@ -5,6 +5,7 @@ import { useState } from 'react'
 import { useAuth } from './AuthContext'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from './supabaseClient'
+import SimpleUpgradeButton from './SimpleUpgradeButton'
 
 function Login() {
   const { signIn } = useAuth()

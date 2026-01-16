@@ -1,6 +1,7 @@
 // CompareResult.jsx - Dedicated page for outfit comparison results
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useState } from 'react'
+import SimpleUpgradeButton from './SimpleUpgradeButton'
 
 function CompareResult() {
   const location = useLocation()
