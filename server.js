@@ -28,7 +28,114 @@ const supabase = createClient(
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middleware
+// CRITICAL: Webhook route MUST come BEFORE express.json() middleware
+// Stripe webhooks need raw body for signature verification
+app.post('/api/stripe-webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+  const sig = req.headers['stripe-signature'];
+
+  try {
+    const event = stripe.webhooks.constructEvent(
+      req.body,
+      sig,
+      process.env.STRIPE_WEBHOOK_SECRET
+    );
+
+    console.log('🔔 Webhook received:', event.type);
+
+    switch (event.type) {
+      case 'checkout.session.completed': {
+        const session = event.data.object;
+        const userId = session.metadata.userId || session.client_reference_id;
+
+        console.log(`✅ Payment successful for user ${userId}`);
+
+        // Update subscription in database
+        const { error } = await supabase.from('subscriptions').upsert({
+          user_id: userId,
+          stripe_customer_id: session.customer,
+          stripe_subscription_id: session.subscription,
+          status: 'active',
+          plan: session.metadata.plan || 'premium',
+          billing_cycle: session.metadata.billingCycle || 'monthly',
+          current_period_start: new Date().toISOString(),
+          current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+          updated_at: new Date().toISOString()
+        });
+
+        if (error) {
+          console.error('❌ Error updating subscription:', error);
+        } else {
+          console.log(`🎉 User ${userId} upgraded to premium`);
+        }
+        break;
+      }
+
+      case 'customer.subscription.updated': {
+        const subscription = event.data.object;
+        const status = subscription.status === 'active' ? 'active' : 'inactive';
+
+        console.log(`🔄 Subscription updated: ${subscription.id} - ${status}`);
+
+        await supabase
+          .from('subscriptions')
+          .update({ 
+            status, 
+            current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+            updated_at: new Date().toISOString() 
+          })
+          .eq('stripe_subscription_id', subscription.id);
+        break;
+      }
+
+      case 'customer.subscription.deleted': {
+        const subscription = event.data.object;
+        
+        console.log(`❌ Subscription cancelled: ${subscription.id}`);
+
+        await supabase
+          .from('subscriptions')
+          .update({ 
+            status: 'cancelled',
+            updated_at: new Date().toISOString() 
+          })
+          .eq('stripe_subscription_id', subscription.id);
+        break;
+      }
+
+      case 'invoice.payment_succeeded': {
+        const invoice = event.data.object;
+        console.log(`💰 Payment succeeded: ${invoice.id}`);
+        // Subscription is already active, just log
+        break;
+      }
+
+      case 'invoice.payment_failed': {
+        const invoice = event.data.object;
+        console.log(`⚠️ Payment failed: ${invoice.id}`);
+        
+        // Update subscription status to past_due
+        await supabase
+          .from('subscriptions')
+          .update({ 
+            status: 'past_due',
+            updated_at: new Date().toISOString() 
+          })
+          .eq('stripe_customer_id', invoice.customer);
+        break;
+      }
+
+      default:
+        console.log(`ℹ️ Unhandled event type: ${event.type}`);
+    }
+
+    res.json({ received: true });
+  } catch (err) {
+    console.error('❌ Webhook Error:', err.message);
+    res.status(400).send(`Webhook Error: ${err.message}`);
+  }
+});
+
+// Regular middleware (AFTER webhook route)
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
@@ -102,7 +209,7 @@ app.post('/api/compare-outfits', async (req, res) => {
 
     const completion = await groq.chat.completions.create({
       messages: [{ role: 'user', content: content }],
-        model: 'meta-llama/llama-4-scout-17b-16e-instruct',
+      model: 'meta-llama/llama-4-scout-17b-16e-instruct',
       temperature: 0.7,
       max_tokens: 800
     });
@@ -158,6 +265,7 @@ app.post('/api/create-checkout-session', async (req, res) => {
       email = user.email;
     }
 
+    // Check for existing customer
     const { data: subscription } = await supabase
       .from('subscriptions')
       .select('stripe_customer_id')
@@ -193,12 +301,14 @@ app.post('/api/create-checkout-session', async (req, res) => {
       metadata: { userId, plan, billingCycle },
       allow_promotion_codes: true,
       billing_address_collection: 'auto',
-      subscription_data: { metadata: { userId } }
+      subscription_data: { metadata: { userId, plan, billingCycle } }
     });
+
+    console.log(`💳 Checkout session created for user ${userId}`);
 
     res.json({ sessionId: session.id });
   } catch (error) {
-    console.error('Stripe Checkout error:', error);
+    console.error('❌ Stripe Checkout error:', error);
     res.status(500).json({ error: error.message || 'Internal server error' });
   }
 });
@@ -229,57 +339,8 @@ app.post('/api/create-portal-session', async (req, res) => {
 
     res.json({ url: session.url });
   } catch (error) {
-    console.error('Portal session error:', error);
+    console.error('❌ Portal session error:', error);
     res.status(500).json({ error: error.message || 'Internal server error' });
-  }
-});
-
-// 5. Stripe Webhook
-app.post('/api/stripe-webhook', express.raw({ type: 'application/json' }), async (req, res) => {
-  const sig = req.headers['stripe-signature'];
-
-  try {
-    const event = stripe.webhooks.constructEvent(
-      req.body,
-      sig,
-      process.env.STRIPE_WEBHOOK_SECRET
-    );
-
-    console.log('🔔 Webhook received:', event.type);
-
-    switch (event.type) {
-      case 'checkout.session.completed': {
-        const session = event.data.object;
-        const userId = session.metadata.userId || session.client_reference_id;
-
-        await supabase.from('subscriptions').upsert({
-          user_id: userId,
-          stripe_customer_id: session.customer,
-          stripe_subscription_id: session.subscription,
-          status: 'active',
-          plan: session.metadata.plan || 'premium',
-          updated_at: new Date().toISOString()
-        });
-        break;
-      }
-
-      case 'customer.subscription.updated':
-      case 'customer.subscription.deleted': {
-        const subscription = event.data.object;
-        const status = subscription.status === 'active' ? 'active' : 'inactive';
-
-        await supabase
-          .from('subscriptions')
-          .update({ status, updated_at: new Date().toISOString() })
-          .eq('stripe_subscription_id', subscription.id);
-        break;
-      }
-    }
-
-    res.json({ received: true });
-  } catch (err) {
-    console.error('Webhook Error:', err.message);
-    res.status(400).send(`Webhook Error: ${err.message}`);
   }
 });
 
@@ -302,4 +363,5 @@ app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🔗 API available at: http://localhost:${PORT}/api`);
+  console.log(`🔔 Webhook endpoint: /api/stripe-webhook`);
 });
