@@ -296,8 +296,8 @@ app.post('/api/create-checkout-session', async (req, res) => {
       payment_method_types: ['card'],
       mode: 'subscription',
       line_items: [{ price: priceIds[billingCycle], quantity: 1 }],
-      success_url: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/?success=true&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/pricing?canceled=true`,
+      success_url: `${process.env.FRONTEND_URL || 'http://outfitrater.xyz'}/?success=true&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${process.env.FRONTEND_URL || 'http://outfitrater.xyz'}/pricing?canceled=true`,
       metadata: { userId, plan, billingCycle },
       allow_promotion_codes: true,
       billing_address_collection: 'auto',
@@ -334,7 +334,7 @@ app.post('/api/create-portal-session', async (req, res) => {
 
     const session = await stripe.billingPortal.sessions.create({
       customer: subscription.stripe_customer_id,
-      return_url: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/settings`,
+      return_url: `${process.env.FRONTEND_URL || 'http://outater.xyz'}/settings`,
     });
 
     res.json({ url: session.url });
@@ -362,6 +362,6 @@ if (process.env.NODE_ENV === 'production') {
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`🔗 API available at: http://localhost:${PORT}/api`);
+  console.log(`🔗 API available at: http://outfitrater:${PORT}/api`);
   console.log(`🔔 Webhook endpoint: /api/stripe-webhook`);
 });
