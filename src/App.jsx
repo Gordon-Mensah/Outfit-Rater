@@ -13,7 +13,7 @@ import RatingHistory from './RatingHistory'
 import SavedOutfits from './SavedOutfits'
 import HamburgerMenu from './Hamburgermenu'
 import LastRatingWarning from './LastRatingWarning'
-import Premium from './Premium'
+import Premium from './PremiumStyleChat'
 
 const API_BASE_URL = import.meta.env.PROD ? '' : 'http://localhost:3000'
 
