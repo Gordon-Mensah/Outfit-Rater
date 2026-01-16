@@ -5213,4 +5213,122 @@ body.menu-open {
     width: 250px;
     height: 250px;
   }
+}/* ========== FASHION SIGNUP ADDITIONS ========== */
+
+/* Success Message */
+.fashion-success {
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 12px;
+  padding: 1rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  color: #6ee7b7;
+  animation: fadeSlideDown 0.5s ease-out;
+}
+
+.success-icon-fashion {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.fashion-success div {
+  flex: 1;
+}
+
+.fashion-success strong {
+  display: block;
+  font-size: 1rem;
+  margin-bottom: 0.25rem;
+  color: #d1fae5;
+}
+
+.fashion-success p {
+  font-size: 0.9rem;
+  margin: 0;
+  color: rgba(110, 231, 183, 0.8);
+}
+
+/* Password Strength for Fashion Theme */
+.fashion-password-strength {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.strength-bar-fashion {
+  flex: 1;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.strength-fill-fashion {
+  height: 100%;
+  transition: all 0.4s ease;
+  border-radius: 10px;
+}
+
+.strength-fill-fashion.weak {
+  width: 33%;
+  background: linear-gradient(90deg, #ef4444, #f87171);
+}
+
+.strength-fill-fashion.medium {
+  width: 66%;
+  background: linear-gradient(90deg, #f59e0b, #fbbf24);
+}
+
+.strength-fill-fashion.strong {
+  width: 100%;
+  background: linear-gradient(90deg, #10b981, #34d399);
+}
+
+.strength-text-fashion {
+  font-size: 0.85rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.strength-text-fashion.weak {
+  color: #fca5a5;
+}
+
+.strength-text-fashion.medium {
+  color: #fcd34d;
+}
+
+.strength-text-fashion.strong {
+  color: #6ee7b7;
+}
+
+/* Terms Text */
+.fashion-terms {
+  text-align: center;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.5);
+  margin: 1rem 0 0 0;
+  line-height: 1.5;
+}
+
+/* Responsive adjustments for signup */
+@media (max-width: 480px) {
+  .fashion-input-group {
+    margin-bottom: 1.25rem;
+  }
+
+  .fashion-password-strength {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+
+  .strength-text-fashion {
+    text-align: center;
+  }
 }
