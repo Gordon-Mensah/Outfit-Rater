@@ -1,66 +1,52 @@
-// LastRatingWarning.jsx - Warning modal when user has 1 rating left
-import { useNavigate } from 'react-router-dom'
+// LastRatingWarning.jsx - Simplified with Direct Checkout
+import SimpleUpgradeButton from './SimpleUpgradeButton'
 
 function LastRatingWarning({ isOpen, onClose, onContinue }) {
-  const navigate = useNavigate()
-
   if (!isOpen) return null
 
-  const handleUpgrade = () => {
-    navigate('/premium') 
-    onClose()
-  }
-
   return (
-    <div className="warning-overlay" onClick={onClose}>
-      <div className="warning-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="warning-icon">⚠️</div>
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="last-rating-modal" onClick={(e) => e.stopPropagation()}>
         
-        <h2 className="warning-title">Last Free Rating!</h2>
+        <h2>This is Your Last Free Rating!</h2>
         
-        <p className="warning-message">
-          You're about to use your <strong>last free rating</strong> for today.
-          After this, you'll need to wait until tomorrow or upgrade to Premium.
+        <p className="modal-message">
+          You've used 2 out of 3 free ratings today. After this rating, 
+          you'll need to upgrade to Premium to continue.
         </p>
 
-        <div className="warning-features">
-          <h3>🌟 Upgrade to Premium</h3>
+        <div className="premium-features-box">
+          <h3>Premium includes:</h3>
           <ul>
-            <li>✅ <strong>Unlimited</strong> outfit ratings per day</li>
-            <li>✅ <strong>Unlimited</strong> saved outfits</li>
-            <li>✅ All feedback modes (Helpful, Honest, Roast)</li>
-            <li>✅ Compare up to 5 outfits at once</li>
-            <li>✅ Priority support</li>
+            <li> Unlimited daily ratings</li>
+            <li> AI Style Chat with personalized advice</li>
+            <li> Roast Mode feedback</li>
+            <li> Compare up to 5 outfits</li>
+            <li> Style analytics & insights</li>
           </ul>
-          <div className="warning-price">
-            <span className="price-amount">$4.99</span>
-            <span className="price-period">/month</span>
-          </div>
         </div>
 
-        <div className="warning-actions">
-          <button 
-            className="btn-warning-upgrade"
-            onClick={handleUpgrade}
-          >
-            ⭐ Upgrade to Premium
-          </button>
-          <button 
-            className="btn-warning-continue"
+        <div className="modal-actions">
+          <button
+            className="btn-continue"
             onClick={() => {
               onContinue()
               onClose()
             }}
           >
-            Use Last Free Rating
+            Use My Last Free Rating
           </button>
-          <button 
-            className="btn-warning-cancel"
-            onClick={onClose}
-          >
-            Cancel
-          </button>
+          
+          {/* SIMPLE BUTTON - Goes straight to Stripe */}
+          <SimpleUpgradeButton 
+            text="Upgrade for $4.99/month"
+            className="btn-upgrade"
+          />
         </div>
+
+        <button className="btn-close-modal" onClick={onClose}>
+          Cancel
+        </button>
       </div>
     </div>
   )

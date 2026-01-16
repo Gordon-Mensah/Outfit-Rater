@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from './AuthContext'
 import { supabase } from './supabaseClient'
 import HamburgerMenu from './Hamburgermenu'
+import SimpleUpgradeButton from './SimpleUpgradeButton'
 
 function SavedOutfits() {
   const { user, isPremium } = useAuth()
@@ -185,9 +186,7 @@ function SavedOutfits() {
                   <div className="upgrade-content">
                     <h3>Unlock Unlimited Storage!</h3>
                     <p>Upgrade to Premium to save unlimited outfits and never lose your favorites.</p>
-                    <button className="btn-upgrade" onClick={() => window.location.href = '/premium'}>
-                      Upgrade Now - $4.99/month
-                    </button>
+                    <SimpleUpgradeButton text="Upgrade for $4.99/month" />
                   </div>
                 </div>
               )}

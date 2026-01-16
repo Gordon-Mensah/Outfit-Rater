@@ -4,6 +4,8 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from './AuthContext'
 import { supabase } from './supabaseClient'
 import HamburgerMenu from './Hamburgermenu'
+import SimpleUpgradeButton from './SimpleUpgradeButton'
+
 
 function ProfileSettings() {
   const { user, isPremium, signOut } = useAuth()
@@ -494,12 +496,7 @@ function ProfileSettings() {
                   <li>✓ Priority customer support</li>
                   <li>✓ Early access to new features</li>
                 </ul>
-                <button
-                  className="btn-upgrade"
-                  onClick={() => navigate('/premium')}
-                >
-                  Upgrade for $4.99/month
-                </button>
+                <SimpleUpgradeButton text="Upgrade for $4.99/month" />
               </div>
             </div>
           )}

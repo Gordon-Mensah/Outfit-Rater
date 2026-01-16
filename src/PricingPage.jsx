@@ -2,6 +2,8 @@
 import { useState } from 'react'
 import { useAuth } from './AuthContext'
 import { useNavigate } from 'react-router-dom'
+import SimpleUpgradeButton from './SimpleUpgradeButton'
+
 
 const API_BASE_URL = import.meta.env.PROD ? '' : 'http://localhost:3000'
 
@@ -365,13 +367,7 @@ function Premium() {
           <div className="cta-content">
             <h2>Ready to Upgrade Your Style?</h2>
             <p>Join thousands of fashion-forward users getting AI-powered advice</p>
-            <button 
-              className="cta-button"
-              onClick={handleUpgrade}
-              disabled={loading}
-            >
-              {loading ? 'Processing...' : 'Start Premium Now'}
-            </button>
+            <SimpleUpgradeButton text="Upgrade for $4.99/month" />
             <p className="cta-subtext">$4.99/month • Cancel anytime</p>
           </div>
         </div>

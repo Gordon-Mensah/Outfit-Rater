@@ -5974,3 +5974,73 @@ body.menu-open {
     padding: 0.4rem 0.8rem;
   }
 }
+/* Simple Upgrade Button Styles */
+
+.btn-upgrade-simple {
+  padding: 0.875rem 1.75rem;
+  background: linear-gradient(135deg, #d4af37 0%, #f4e4c1 100%);
+  border: none;
+  border-radius: 12px;
+  color: #0a0a0a;
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3);
+}
+
+.btn-upgrade-simple:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(212, 175, 55, 0.4);
+}
+
+.btn-upgrade-simple:active {
+  transform: translateY(0);
+}
+
+.btn-upgrade-simple:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Alternative button style - outlined */
+.btn-upgrade-outlined {
+  padding: 0.875rem 1.75rem;
+  background: transparent;
+  border: 2px solid #d4af37;
+  border-radius: 12px;
+  color: #d4af37;
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-upgrade-outlined:hover:not(:disabled) {
+  background: rgba(212, 175, 55, 0.1);
+  transform: translateY(-2px);
+}
+
+.btn-upgrade-outlined:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Small button variant */
+.btn-upgrade-small {
+  padding: 0.625rem 1.25rem;
+  background: linear-gradient(135deg, #d4af37 0%, #f4e4c1 100%);
+  border: none;
+  border-radius: 8px;
+  color: #0a0a0a;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-upgrade-small:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3);
+}

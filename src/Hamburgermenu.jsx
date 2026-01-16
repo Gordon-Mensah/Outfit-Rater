@@ -125,16 +125,7 @@ function HamburgerMenu() {
           {!isPremium && (
             <>
               <div className="menu-divider"></div>
-              <button 
-                className="menu-item upgrade-item"
-                onClick={() => {
-                  alert('Premium coming soon! Only $4.99/month\n\n✓ Unlimited ratings\n✓ Unlimited saved outfits\n✓ All feedback modes\n✓ Priority support')
-                  setIsOpen(false)
-                }}
-              >
-                <span className="menu-item-text">Upgrade to Premium</span>
-                <span className="upgrade-tag">$4.99</span>
-              </button>
+              <SimpleUpgradeButton text="Upgrade for $4.99/month" />
             </>
           )}
 
