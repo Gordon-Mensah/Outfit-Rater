@@ -496,7 +496,10 @@ function ProfileSettings() {
                   <li>✓ Priority customer support</li>
                   <li>✓ Early access to new features</li>
                 </ul>
-                <SimpleUpgradeButton text="Upgrade for $4.99/month" />
+                <SimpleUpgradeButton 
+                  text="Go Premium"
+                  className="btn-upgrade-outlined"
+                />
               </div>
             </div>
           )}

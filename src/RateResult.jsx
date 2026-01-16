@@ -5,6 +5,7 @@ import { useAuth } from './AuthContext'
 import { supabase } from './supabaseClient'
 import HamburgerMenu from './Hamburgermenu'
 import PremiumStyleChat from './PremiumStyleChat'
+import SimpleUpgradeButton from './SimpleUpgradeButton'
 
 function RateResult() {
   const location = useLocation()
@@ -164,12 +165,9 @@ function RateResult() {
           </div>
         </div>
 
-        {/* PREMIUM FEATURE: AI Style Chat */}
-        <PremiumStyleChat 
-          rating={rating}
-          feedback={feedback}
-          occasion={occasion}
-          imagePreview={imagePreview}
+        <SimpleUpgradeButton 
+          text="Upgrade for $4.99/month"
+          className="btn-upgrade"
         />
 
         {/* Style Tips */}

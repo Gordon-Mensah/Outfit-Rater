@@ -2,6 +2,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from './AuthContext'
+import SimpleUpgradeButton from './SimpleUpgradeButton'
 
 function HamburgerMenu() {
   const { user, isPremium, dailyRatingCount, signOut } = useAuth()
@@ -125,7 +126,10 @@ function HamburgerMenu() {
           {!isPremium && (
             <>
               <div className="menu-divider"></div>
-              <SimpleUpgradeButton text="Upgrade for $4.99/month" />
+             <SimpleUpgradeButton 
+                text="Premium"
+                className="btn-upgrade-small"
+              />
             </>
           )}
 

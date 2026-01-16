@@ -14,6 +14,8 @@ import SavedOutfits from './SavedOutfits'
 import HamburgerMenu from './Hamburgermenu'
 import LastRatingWarning from './LastRatingWarning'
 import Premium from './PremiumStyleChat'
+import SimpleUpgradeButton from './SimpleUpgradeButton'
+
 
 const API_BASE_URL = import.meta.env.PROD ? '' : 'http://localhost:3000'
 

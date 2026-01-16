@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from './AuthContext'
 import { supabase } from './supabaseClient'
 import HamburgerMenu from './Hamburgermenu'
+import SimpleUpgradeButton from './SimpleUpgradeButton'
 
 function RatingHistory() {
   const { user } = useAuth()
