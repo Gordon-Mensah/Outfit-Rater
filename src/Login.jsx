@@ -87,17 +87,14 @@ function Login() {
             {/* Feature Cards */}
             <div className="feature-cards">
               <div className="feature-card card-delay-1">
-                <div className="feature-icon">✨</div>
                 <h3>AI-Powered</h3>
                 <p>Advanced vision AI analyzes your style</p>
               </div>
               <div className="feature-card card-delay-2">
-                <div className="feature-icon">👗</div>
                 <h3>Fashion Expert</h3>
                 <p>Get feedback from AI fashion consultant</p>
               </div>
               <div className="feature-card card-delay-3">
-                <div className="feature-icon">📊</div>
                 <h3>Track Progress</h3>
                 <p>See your style evolve over time</p>
               </div>
