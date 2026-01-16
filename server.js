@@ -308,7 +308,7 @@ app.post('/api/create-checkout-session', async (req, res) => {
 
     res.json({ sessionId: session.id });
   } catch (error) {
-    console.error('❌ Stripe Checkout error:', error);
+    console.error('❌ Stripe Checkout error:', error.message, error.stack);
     res.status(500).json({ error: error.message || 'Internal server error' });
   }
 });
