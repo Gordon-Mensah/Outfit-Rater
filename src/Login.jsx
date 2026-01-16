@@ -151,7 +151,6 @@ function Login() {
               <div className="fashion-input-group">
                 <label className="fashion-label">Email Address</label>
                 <div className="input-wrapper-fashion">
-                  <span className="input-icon-fashion">✉️</span>
                   <input
                     type="email"
                     placeholder="Enter your email"
@@ -169,7 +168,6 @@ function Login() {
               <div className="fashion-input-group">
                 <label className="fashion-label">Password</label>
                 <div className="input-wrapper-fashion">
-                  <span className="input-icon-fashion">🔒</span>
                   <input
                     type={showPassword ? 'text' : 'password'}
                     placeholder="Enter your password"
