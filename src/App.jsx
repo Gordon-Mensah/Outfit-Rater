@@ -15,6 +15,8 @@ import HamburgerMenu from './Hamburgermenu'
 import LastRatingWarning from './LastRatingWarning'
 import Premium from './PremiumStyleChat'
 import SimpleUpgradeButton from './SimpleUpgradeButton'
+import FashionChatPage from './components/FashionChatPage'
+
 
 
 const API_BASE_URL = import.meta.env.PROD ? '' : 'http://localhost:3000'
@@ -344,6 +346,8 @@ function App() {
       <Route path="/history" element={user ? <RatingHistory /> : <Navigate to="/login" />} />
       <Route path="/saved-outfits" element={user ? <SavedOutfits /> : <Navigate to="/login" />} />
       <Route path="/premium" element={user ? <Premium /> : <Navigate to="/login" />} />
+      <Route path="/fashion-chat" element={<FashionChatPage />} />
+
       
       <Route path="/" element={
         !user ? <Navigate to="/login" /> : (

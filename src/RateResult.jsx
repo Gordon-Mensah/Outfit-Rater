@@ -4,8 +4,8 @@ import { useState } from 'react'
 import { useAuth } from './AuthContext'
 import { supabase } from './supabaseClient'
 import HamburgerMenu from './Hamburgermenu'
-import PremiumStyleChat from './PremiumStyleChat'
 import SimpleUpgradeButton from './SimpleUpgradeButton'
+import FloatingChatBubble from './FloatingChatBubble'
 
 function RateResult() {
   const location = useLocation()
@@ -135,22 +135,11 @@ function RateResult() {
 
           {/* Feedback */}
           <div className="feedback-section">
-            <h3>💬 Detailed Feedback</h3>
+            <h3> Detailed Feedback</h3>
             <div className="feedback-content">
               <p>{feedback}</p>
             </div>
           </div>
-
-          {/* Premium Style Chat - Only show if premium */}
-          {isPremium && (
-            <div className="premium-chat-section">
-              <PremiumStyleChat 
-                initialFeedback={feedback}
-                outfitImage={imagePreview}
-                occasion={occasion}
-              />
-            </div>
-          )}
 
           {/* Action Buttons */}
           <div className="result-actions">
@@ -159,19 +148,19 @@ function RateResult() {
               disabled={saving}
               className="btn-action btn-save"
             >
-              {saving ? '💾 Saving...' : saveMessage || '💾 Save Outfit'}
+              {saving ? ' Saving...' : saveMessage || ' Save Outfit'}
             </button>
             <button 
               onClick={handleShare}
               className="btn-action btn-share"
             >
-              📤 Share Result
+               Share Result
             </button>
             <button 
               onClick={() => navigate('/')}
               className="btn-action btn-reset"
             >
-              ➕ Rate Another
+               Rate Another
             </button>
           </div>
         </div>
@@ -180,7 +169,6 @@ function RateResult() {
         {!isPremium && (
           <div className="upgrade-section">
             <div className="upgrade-card">
-              <h3>🎨 Unlock Style Chat</h3>
               <p>Get personalized style advice with our AI chat feature</p>
               <SimpleUpgradeButton 
                 text="Upgrade to Premium - $9.99/month"
@@ -193,7 +181,6 @@ function RateResult() {
 
         {/* Style Tips */}
         <div className="tips-section">
-          <h3>💡 Quick Style Tips</h3>
           <div className="tips-grid">
             <div className="tip-card">
               <h4>Color Harmony</h4>
@@ -210,6 +197,16 @@ function RateResult() {
           </div>
         </div>
       </div>
+
+      {/* Floating Chat Bubble */}
+      <FloatingChatBubble 
+        outfitData={{
+          rating,
+          feedback,
+          occasion,
+          imagePreview
+        }}
+      />
     </div>
   )
 }
