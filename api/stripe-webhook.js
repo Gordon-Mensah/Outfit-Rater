@@ -48,7 +48,7 @@ export default async function handler(req, res) {
         // Update subscription to premium
         await supabase
           .from('subscriptions')
-          .update({
+          .upsert({
             status: 'active',
             plan: 'premium',
             stripe_subscription_id: session.subscription,
@@ -60,6 +60,16 @@ export default async function handler(req, res) {
         console.log('✅ User upgraded to premium:', userId)
         break
       }
+      const { error } = await supabase
+        .from('subscriptions')
+        .upsert({ ... }, { onConflict: ['user_id'] })
+
+      if (error) {
+        console.error("❌ Supabase upsert failed:", error)
+      } else {
+        console.log("✅ Supabase row written for:", userId)
+      }
+
 
       case 'customer.subscription.updated': {
         const subscription = event.data.object
