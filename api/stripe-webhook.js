@@ -43,15 +43,16 @@ export default async function handler(req, res) {
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object
-        const userId = session.metadata.user_id
+        const userId = session.metadata.userId
 
         // Update subscription to premium
         await supabase
           .from('subscriptions')
           .update({
-            status: 'premium',
+            status: 'active',
             plan: 'premium',
             stripe_subscription_id: session.subscription,
+            stripe_customer_id: session.customer,
             updated_at: new Date().toISOString()
           })
           .eq('user_id', userId)
