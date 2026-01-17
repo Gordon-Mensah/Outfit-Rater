@@ -100,7 +100,7 @@ export function AuthProvider({ children }) {
         return
       }
 
-      setIsPremium(data.status === 'premium')
+      setIsPremium(data.status === 'active' && data.plan === 'premium')
     } catch (error) {
       console.error('Error checking subscription:', error)
       setIsPremium(false)
