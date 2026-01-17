@@ -15,7 +15,7 @@ import HamburgerMenu from './Hamburgermenu'
 import LastRatingWarning from './LastRatingWarning'
 import Premium from './PremiumStyleChat'
 import SimpleUpgradeButton from './SimpleUpgradeButton'
-import FashionChatPage from './components/FashionChatPage'
+import FashionChatPage from './FashionChatPage'
 
 
 
