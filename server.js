@@ -49,23 +49,34 @@ app.post('/api/stripe-webhook', express.raw({ type: 'application/json' }), async
 
         console.log(`✅ Payment successful for user ${userId}`);
 
-        // Update subscription in database
-        const { error } = await supabase.from('subscriptions').upsert({
-          user_id: userId,
-          stripe_customer_id: session.customer,
-          stripe_subscription_id: session.subscription,
-          status: 'active',
-          plan: session.metadata.plan || 'premium',
-          billing_cycle: session.metadata.billingCycle || 'monthly',
-          current_period_start: new Date().toISOString(),
-          current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-          updated_at: new Date().toISOString()
-        });
+        // Update user's subscription to premium using the user_id column
+        const { data, error } = await supabase
+          .from('subscriptions')
+          .update({ 
+            status: 'active',
+            plan: 'premium'
+          })
+          .eq('user_id', userId)
+          .select();
 
         if (error) {
           console.error('❌ Error updating subscription:', error);
+          // If record doesn't exist, insert it
+          const { error: insertError } = await supabase
+            .from('subscriptions')
+            .insert({ 
+              user_id: userId,
+              status: 'active',
+              plan: 'premium'
+            });
+          
+          if (insertError) {
+            console.error('❌ Error inserting subscription:', insertError);
+          } else {
+            console.log(`🎉 Created new premium subscription for user ${userId}`);
+          }
         } else {
-          console.log(`🎉 User ${userId} upgraded to premium`);
+          console.log(`🎉 User ${userId} upgraded to premium`, data);
         }
         break;
       }
@@ -76,14 +87,19 @@ app.post('/api/stripe-webhook', express.raw({ type: 'application/json' }), async
 
         console.log(`🔄 Subscription updated: ${subscription.id} - ${status}`);
 
-        await supabase
-          .from('subscriptions')
-          .update({ 
-            status, 
-            current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
-            updated_at: new Date().toISOString() 
-          })
-          .eq('stripe_subscription_id', subscription.id);
+        // Find user by customer ID stored in metadata
+        const customer = await stripe.customers.retrieve(subscription.customer);
+        const userId = customer.metadata?.userId;
+
+        if (userId) {
+          await supabase
+            .from('subscriptions')
+            .update({ 
+              status: status,
+              plan: status === 'active' ? 'premium' : 'free'
+            })
+            .eq('user_id', userId);
+        }
         break;
       }
 
@@ -92,13 +108,19 @@ app.post('/api/stripe-webhook', express.raw({ type: 'application/json' }), async
         
         console.log(`❌ Subscription cancelled: ${subscription.id}`);
 
-        await supabase
-          .from('subscriptions')
-          .update({ 
-            status: 'cancelled',
-            updated_at: new Date().toISOString() 
-          })
-          .eq('stripe_subscription_id', subscription.id);
+        // Find user by customer ID stored in metadata
+        const customer = await stripe.customers.retrieve(subscription.customer);
+        const userId = customer.metadata?.userId;
+
+        if (userId) {
+          await supabase
+            .from('subscriptions')
+            .update({ 
+              status: 'cancelled',
+              plan: 'free'
+            })
+            .eq('user_id', userId);
+        }
         break;
       }
 
@@ -113,14 +135,18 @@ app.post('/api/stripe-webhook', express.raw({ type: 'application/json' }), async
         const invoice = event.data.object;
         console.log(`⚠️ Payment failed: ${invoice.id}`);
         
-        // Update subscription status to past_due
-        await supabase
-          .from('subscriptions')
-          .update({ 
-            status: 'past_due',
-            updated_at: new Date().toISOString() 
-          })
-          .eq('stripe_customer_id', invoice.customer);
+        // Find user and update to past_due
+        const customer = await stripe.customers.retrieve(invoice.customer);
+        const userId = customer.metadata?.userId;
+
+        if (userId) {
+          await supabase
+            .from('subscriptions')
+            .update({ 
+              status: 'past_due'
+            })
+            .eq('user_id', userId);
+        }
         break;
       }
 
@@ -243,6 +269,8 @@ app.post('/api/create-checkout-session', async (req, res) => {
   try {
     const { userId, userEmail, plan, billingCycle } = req.body;
 
+    console.log('📝 Creating checkout session for:', { userId, userEmail, plan, billingCycle });
+
     if (!userId || !plan || !billingCycle) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
@@ -265,50 +293,27 @@ app.post('/api/create-checkout-session', async (req, res) => {
       email = user.email;
     }
 
-    // Check for existing customer
-    const { data: subscription } = await supabase
-      .from('subscriptions')
-      .select('stripe_customer_id')
-      .eq('user_id', userId)
-      .single();
-
-    let customerId = subscription?.stripe_customer_id;
-
-    if (!customerId) {
-      const customer = await stripe.customers.create({
-        email: email,
-        metadata: { userId: userId }
-      });
-      customerId = customer.id;
-
-      await supabase
-        .from('subscriptions')
-        .upsert({
-          user_id: userId,
-          stripe_customer_id: customerId,
-          updated_at: new Date().toISOString()
-        });
-    }
-
     const session = await stripe.checkout.sessions.create({
-      customer: customerId,
+      customer_email: email,
       client_reference_id: userId,
       payment_method_types: ['card'],
       mode: 'subscription',
       line_items: [{ price: priceIds[billingCycle], quantity: 1 }],
-      success_url: `${process.env.FRONTEND_URL || 'http://outfitrater.xyz'}/?success=true&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.FRONTEND_URL || 'http://outfitrater.xyz'}/pricing?canceled=true`,
+      success_url: `${process.env.FRONTEND_URL || 'https://outfitrater.xyz'}/?success=true`,
+      cancel_url: `${process.env.FRONTEND_URL || 'https://outfitrater.xyz'}/?canceled=true`,
       metadata: { userId, plan, billingCycle },
       allow_promotion_codes: true,
       billing_address_collection: 'auto',
-      subscription_data: { metadata: { userId, plan, billingCycle } }
+      subscription_data: { metadata: { userId, plan, billingCycle } },
+      // Store userId in customer metadata for future reference
+      customer_creation: 'always'
     });
 
-    console.log(`💳 Checkout session created for user ${userId}`);
+    console.log(`💳 Checkout session created: ${session.id} for user ${userId}`);
 
     res.json({ sessionId: session.id });
   } catch (error) {
-    console.error('❌ Stripe Checkout error:', error.message, error.stack);
+    console.error('❌ Stripe Checkout error:', error.message);
     res.status(500).json({ error: error.message || 'Internal server error' });
   }
 });
@@ -322,22 +327,23 @@ app.post('/api/create-portal-session', async (req, res) => {
       return res.status(400).json({ error: 'Missing userId' });
     }
 
+    // Get user's subscription to find their Stripe customer ID
     const { data: subscription, error } = await supabase
       .from('subscriptions')
-      .select('stripe_customer_id')
+      .select('*')
       .eq('user_id', userId)
       .single();
 
-    if (error || !subscription?.stripe_customer_id) {
+    if (error || !subscription) {
       return res.status(404).json({ error: 'No subscription found' });
     }
 
-    const session = await stripe.billingPortal.sessions.create({
-      customer: subscription.stripe_customer_id,
-      return_url: `${process.env.FRONTEND_URL || 'http://outater.xyz'}/settings`,
+    // For now, return error since we don't have customer_id stored
+    // You'll need to store stripe_customer_id to use the portal
+    return res.status(400).json({ 
+      error: 'Customer portal not available. Please contact support.' 
     });
 
-    res.json({ url: session.url });
   } catch (error) {
     console.error('❌ Portal session error:', error);
     res.status(500).json({ error: error.message || 'Internal server error' });
@@ -362,6 +368,6 @@ if (process.env.NODE_ENV === 'production') {
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`🔗 API available at: http://outfitrater:${PORT}/api`);
+  console.log(`🔗 API available at: http://localhost:${PORT}/api`);
   console.log(`🔔 Webhook endpoint: /api/stripe-webhook`);
 });
