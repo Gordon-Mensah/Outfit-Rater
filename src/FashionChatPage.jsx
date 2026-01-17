@@ -2,12 +2,19 @@
 import { useState, useRef, useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from './AuthContext'
-import Groq from 'groq-sdk'
 
-const groq = new Groq({ 
-  apiKey: import.meta.env.VITE_GROQ_API_KEY,
-  dangerouslyAllowBrowser: true 
-})
+// Only import Groq when needed
+let groq = null
+const initGroq = async () => {
+  if (!groq) {
+    const Groq = (await import('groq-sdk')).default
+    groq = new Groq({ 
+      apiKey: import.meta.env.VITE_GROQ_API_KEY,
+      dangerouslyAllowBrowser: true 
+    })
+  }
+  return groq
+}
 
 function FashionChatPage() {
   const location = useLocation()
@@ -23,7 +30,7 @@ function FashionChatPage() {
   // Redirect non-premium users
   useEffect(() => {
     if (!isPremium) {
-      alert('⭐ This is a premium feature. Please upgrade to access AI chat.')
+      alert(' This is a premium feature. Please upgrade to access AI chat.')
       navigate('/')
     }
   }, [isPremium, navigate])
@@ -63,6 +70,9 @@ function FashionChatPage() {
     setLoading(true)
 
     try {
+      // Initialize Groq
+      const groqClient = await initGroq()
+      
       // Build conversation history
       const conversationHistory = messages.map(msg => ({
         role: msg.role,
@@ -76,7 +86,7 @@ function FashionChatPage() {
       }
 
       // Call Groq API
-      const completion = await groq.chat.completions.create({
+      const completion = await groqClient.chat.completions.create({
         messages: [
           systemPrompt,
           ...conversationHistory,
@@ -124,8 +134,8 @@ function FashionChatPage() {
           ← Back
         </button>
         <div style={styles.headerContent}>
-          <h1 style={styles.title}>✨ AI Style Assistant</h1>
-          <span style={styles.premiumBadge}>⭐ Premium</span>
+          <h1 style={styles.title}> AI Style Assistant</h1>
+          <span style={styles.premiumBadge}> Premium</span>
         </div>
       </div>
 
@@ -154,7 +164,6 @@ function FashionChatPage() {
         {loading && (
           <div style={styles.messageWrapper}>
             <div style={{...styles.message, ...styles.assistantMessage}}>
-              <span style={styles.avatar}>🤖</span>
               <div style={styles.typingIndicator}>
                 <span></span>
                 <span></span>
