@@ -1,4 +1,4 @@
-// HamburgerMenu.jsx - Updated with navigation to dedicated pages
+// HamburgerMenu.jsx - Fixed logout functionality
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from './AuthContext'
@@ -9,6 +9,7 @@ function HamburgerMenu() {
   const navigate = useNavigate()
   const location = useLocation()
   const [isOpen, setIsOpen] = useState(false)
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
   const menuRef = useRef(null)
 
   // Close menu when clicking outside
@@ -31,10 +32,30 @@ function HamburgerMenu() {
   }, [isOpen])
 
   const handleLogout = async () => {
-    localStorage.clear()
-    sessionStorage.clear()
-    await signOut()
-    window.location.reload()
+    if (isLoggingOut) return // Prevent double clicks
+    
+    setIsLoggingOut(true)
+    
+    try {
+      // Clear all storage first
+      localStorage.clear()
+      sessionStorage.clear()
+      
+      // Sign out from Supabase
+      await signOut()
+      
+      // Force navigate to login page
+      navigate('/login', { replace: true })
+      
+      // Small delay then reload to ensure clean state
+      setTimeout(() => {
+        window.location.href = '/login'
+      }, 100)
+    } catch (error) {
+      console.error('Logout error:', error)
+      // Even if there's an error, still redirect
+      window.location.href = '/login'
+    }
   }
 
   const getInitials = (email) => {
@@ -127,7 +148,8 @@ function HamburgerMenu() {
             <>
               <div className="menu-divider"></div>
              <SimpleUpgradeButton 
-                text="Premium"
+                text="Upgrade to Premium"
+                billingCycle="monthly"
                 className="btn-upgrade-small"
               />
             </>
@@ -138,8 +160,11 @@ function HamburgerMenu() {
           <button 
             className="menu-item logout-item"
             onClick={handleLogout}
+            disabled={isLoggingOut}
           >
-            <span className="menu-item-text">Logout</span>
+            <span className="menu-item-text">
+              {isLoggingOut ? 'Logging out...' : 'Logout'}
+            </span>
           </button>
         </nav>
 

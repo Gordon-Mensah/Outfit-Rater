@@ -1,4 +1,4 @@
-// RateResult.jsx - Updated with Premium Style Chat
+// RateResult.jsx - Fixed with Premium Status Check
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useState } from 'react'
 import { useAuth } from './AuthContext'
@@ -10,7 +10,7 @@ import SimpleUpgradeButton from './SimpleUpgradeButton'
 function RateResult() {
   const location = useLocation()
   const navigate = useNavigate()
-  const { user } = useAuth()
+  const { user, isPremium } = useAuth() // Make sure to get isPremium
   const [saving, setSaving] = useState(false)
   const [saveMessage, setSaveMessage] = useState('')
 
@@ -135,11 +135,22 @@ function RateResult() {
 
           {/* Feedback */}
           <div className="feedback-section">
-            <h3> Detailed Feedback</h3>
+            <h3>💬 Detailed Feedback</h3>
             <div className="feedback-content">
               <p>{feedback}</p>
             </div>
           </div>
+
+          {/* Premium Style Chat - Only show if premium */}
+          {isPremium && (
+            <div className="premium-chat-section">
+              <PremiumStyleChat 
+                initialFeedback={feedback}
+                outfitImage={imagePreview}
+                occasion={occasion}
+              />
+            </div>
+          )}
 
           {/* Action Buttons */}
           <div className="result-actions">
@@ -148,13 +159,13 @@ function RateResult() {
               disabled={saving}
               className="btn-action btn-save"
             >
-              {saving ? ' Saving...' : saveMessage || ' Save Outfit'}
+              {saving ? '💾 Saving...' : saveMessage || '💾 Save Outfit'}
             </button>
             <button 
               onClick={handleShare}
               className="btn-action btn-share"
             >
-               Share Result
+              📤 Share Result
             </button>
             <button 
               onClick={() => navigate('/')}
@@ -165,14 +176,24 @@ function RateResult() {
           </div>
         </div>
 
-        <SimpleUpgradeButton 
-          text="Upgrade for $4.99/month"
-          className="btn-upgrade"
-        />
+        {/* Show upgrade button only for non-premium users */}
+        {!isPremium && (
+          <div className="upgrade-section">
+            <div className="upgrade-card">
+              <h3>🎨 Unlock Style Chat</h3>
+              <p>Get personalized style advice with our AI chat feature</p>
+              <SimpleUpgradeButton 
+                text="Upgrade to Premium - $9.99/month"
+                billingCycle="monthly"
+                className="btn-upgrade"
+              />
+            </div>
+          </div>
+        )}
 
         {/* Style Tips */}
         <div className="tips-section">
-          <h3> Quick Style Tips</h3>
+          <h3>💡 Quick Style Tips</h3>
           <div className="tips-grid">
             <div className="tip-card">
               <h4>Color Harmony</h4>

@@ -54,6 +54,40 @@ export function AuthProvider({ children }) {
     }
   }, [])
 
+  // Set up real-time subscription listener
+  useEffect(() => {
+    if (!user?.id) return
+
+    console.log('🔔 Setting up real-time subscription listener for user:', user.id)
+
+    const channel = supabase
+      .channel(`subscription-${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'subscriptions',
+          filter: `user_id=eq.${user.id}`
+        },
+        (payload) => {
+          console.log('🔔 Subscription changed in real-time:', payload)
+          
+          if (payload.new) {
+            const premium = payload.new.status === 'active' && payload.new.plan === 'premium'
+            console.log('✅ Premium status updated:', premium)
+            setIsPremium(premium)
+          }
+        }
+      )
+      .subscribe()
+
+    return () => {
+      console.log('🔕 Cleaning up subscription listener')
+      supabase.removeChannel(channel)
+    }
+  }, [user?.id])
+
   const checkUser = async () => {
     try {
       console.log('🔍 Checking user...')
@@ -82,6 +116,8 @@ export function AuthProvider({ children }) {
 
   const checkSubscription = async (userId) => {
     try {
+      console.log('🔍 Checking subscription for user:', userId)
+      
       const { data, error } = await supabase
         .from('subscriptions')
         .select('status, plan')
@@ -90,6 +126,7 @@ export function AuthProvider({ children }) {
 
       if (error) {
         if (error.code === 'PGRST116') {
+          console.log('📝 Creating new subscription record')
           await supabase.from('subscriptions').insert({
             user_id: userId,
             status: 'free',
@@ -100,9 +137,11 @@ export function AuthProvider({ children }) {
         return
       }
 
-      setIsPremium(data.status === 'active' && data.plan === 'premium')
+      const premium = data.status === 'active' && data.plan === 'premium'
+      console.log('✅ Subscription check:', { status: data.status, plan: data.plan, isPremium: premium })
+      setIsPremium(premium)
     } catch (error) {
-      console.error('Error checking subscription:', error)
+      console.error('❌ Error checking subscription:', error)
       setIsPremium(false)
     }
   }
@@ -125,6 +164,16 @@ export function AuthProvider({ children }) {
       console.error('Error checking daily ratings:', error)
       setDailyRatingCount(0)
     }
+  }
+
+  // Manual refresh function (useful after payment)
+  const refreshPremiumStatus = async () => {
+    if (user?.id) {
+      console.log('🔄 Manually refreshing premium status...')
+      await checkSubscription(user.id)
+      return isPremium
+    }
+    return false
   }
 
   const signUp = async (email, password) => {
@@ -194,6 +243,7 @@ export function AuthProvider({ children }) {
     signOut,
     canRate,
     checkDailyRatings,
+    refreshPremiumStatus, // ✅ NEW: Manual refresh function
   }
 
   // ALWAYS render children
