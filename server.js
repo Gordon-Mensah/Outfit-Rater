@@ -54,7 +54,9 @@ app.post('/api/stripe-webhook', express.raw({ type: 'application/json' }), async
           .from('subscriptions')
           .update({ 
             status: 'active',
-            plan: 'premium'
+            plan: 'premium',
+            stripe_customer_id: session.customer,
+            stripe_subscription_id: session.subscription
           })
           .eq('user_id', userId)
           .select();
@@ -67,7 +69,9 @@ app.post('/api/stripe-webhook', express.raw({ type: 'application/json' }), async
             .insert({ 
               user_id: userId,
               status: 'active',
-              plan: 'premium'
+              plan: 'premium',
+              stripe_customer_id: session.customer,
+              stripe_subscription_id: session.subscription
             });
           
           if (insertError) {
@@ -304,9 +308,9 @@ app.post('/api/create-checkout-session', async (req, res) => {
       metadata: { userId, plan, billingCycle },
       allow_promotion_codes: true,
       billing_address_collection: 'auto',
-      subscription_data: { metadata: { userId, plan, billingCycle } },
-      // Store userId in customer metadata for future reference
-      customer_creation: 'always'
+      subscription_data: { 
+        metadata: { userId, plan, billingCycle } 
+      }
     });
 
     console.log(`💳 Checkout session created: ${session.id} for user ${userId}`);
