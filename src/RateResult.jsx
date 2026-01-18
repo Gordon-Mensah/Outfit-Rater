@@ -1,4 +1,4 @@
-// RateResult.jsx - Fixed with Premium Status Check
+// RateResult.jsx - Updated with image sharing
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useState } from 'react'
 import { useAuth } from './AuthContext'
@@ -10,7 +10,7 @@ import FloatingChatBubble from './FloatingChatBubble'
 function RateResult() {
   const location = useLocation()
   const navigate = useNavigate()
-  const { user, isPremium } = useAuth() // Make sure to get isPremium
+  const { user, isPremium } = useAuth()
   const [saving, setSaving] = useState(false)
   const [saveMessage, setSaveMessage] = useState('')
 
@@ -70,18 +70,37 @@ function RateResult() {
   }
 
   const handleShare = async () => {
-    if (navigator.share) {
-      try {
+    try {
+      // Convert base64 image to blob
+      const base64Response = await fetch(imagePreview)
+      const blob = await base64Response.blob()
+      const file = new File([blob], 'my-outfit.jpg', { type: 'image/jpeg' })
+
+      // Try to share with image
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
         await navigator.share({
-          title: 'AI Outfit Rater',
-          text: `I got a ${rating}/10 on my outfit! Check out AI Outfit Rater.`,
+          title: 'My Outfit Rating',
+          text: `I got a ${rating}/10 on my ${occasion} outfit! 🔥`,
+          files: [file]
+        })
+      } else if (navigator.share) {
+        // Fallback: share without image but with preview in text
+        await navigator.share({
+          title: 'My Outfit Rating',
+          text: `I got a ${rating}/10 on my ${occasion} outfit! Check it out at ${window.location.origin}`,
           url: window.location.origin
         })
-      } catch (err) {
-        console.log('Share cancelled')
+      } else {
+        // Desktop fallback: copy shareable text
+        const shareText = `I got a ${rating}/10 on my ${occasion} outfit! 🔥\n\nCheck out AI Outfit Rater at ${window.location.origin}`
+        await navigator.clipboard.writeText(shareText)
+        alert('✓ Share text copied to clipboard!')
       }
-    } else {
-      alert('Sharing not supported on this device')
+    } catch (err) {
+      if (err.name !== 'AbortError') {
+        console.error('Share error:', err)
+        alert('Unable to share. Try the screenshot instead!')
+      }
     }
   }
 
@@ -135,7 +154,7 @@ function RateResult() {
 
           {/* Feedback */}
           <div className="feedback-section">
-            <h3> Detailed Feedback</h3>
+            <h3>💬 Detailed Feedback</h3>
             <div className="feedback-content">
               <p>{feedback}</p>
             </div>
@@ -148,19 +167,19 @@ function RateResult() {
               disabled={saving}
               className="btn-action btn-save"
             >
-              {saving ? ' Saving...' : saveMessage || ' Save Outfit'}
+              {saving ? '💾 Saving...' : saveMessage || '💾 Save Outfit'}
             </button>
             <button 
               onClick={handleShare}
               className="btn-action btn-share"
             >
-               Share Result
+              📤 Share Result
             </button>
             <button 
               onClick={() => navigate('/')}
               className="btn-action btn-reset"
             >
-               Rate Another
+              ➕ Rate Another
             </button>
           </div>
         </div>
@@ -169,6 +188,7 @@ function RateResult() {
         {!isPremium && (
           <div className="upgrade-section">
             <div className="upgrade-card">
+              <h3>🎨 Unlock Style Chat</h3>
               <p>Get personalized style advice with our AI chat feature</p>
               <SimpleUpgradeButton 
                 text="Upgrade to Premium - $9.99/month"
@@ -181,6 +201,7 @@ function RateResult() {
 
         {/* Style Tips */}
         <div className="tips-section">
+          <h3>💡 Quick Style Tips</h3>
           <div className="tips-grid">
             <div className="tip-card">
               <h4>Color Harmony</h4>
