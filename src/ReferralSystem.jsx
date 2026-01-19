@@ -170,14 +170,27 @@ function ReferralSystem() {
 
         {/* ⭐ NEW — Request Payout Button */}
         <div style={{ marginTop: "20px", textAlign: "center" }}>
-          <button 
-            onClick={requestPayout} 
-            className="btn-share-soc"
-            style={{ padding: "12px 20px", fontSize: "16px" }}
+          <button
+            onClick={requestPayout}
+            style={{
+              background: 'linear-gradient(90deg, #7F5AF0, #9B5DE5)',
+              color: '#fff',
+              padding: '14px 28px',
+              borderRadius: '12px',
+              fontSize: '16px',
+              fontWeight: '600',
+              border: 'none',
+              cursor: 'pointer',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+              transition: 'transform 0.2s ease'
+            }}
+            onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.03)'}
+            onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1.0)'}
           >
             Request Payout
           </button>
         </div>
+
 
         <div className="ref-link-card">
           <h2>Your Referral Link</h2>
