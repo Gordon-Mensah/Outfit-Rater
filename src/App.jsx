@@ -17,7 +17,6 @@ import Premium from './PremiumStyleChat'
 import SimpleUpgradeButton from './SimpleUpgradeButton'
 import FashionChatPage from './FashionChatPage'
 import ReferralSystem from './ReferralSystem'
-import PricingPace from '/PricingPage'
 
 
 
@@ -350,7 +349,6 @@ function App() {
       <Route path="/premium" element={user ? <Premium /> : <Navigate to="/login" />} />
       <Route path="/fashion-chat" element={<FashionChatPage />} />
       <Route path="/referrals" element={user ? <ReferralSystem /> : <Navigate to="/login" />} />
-      <Route path="/pricing" element={user ? <PricingPage /> : <Navigate to="/pricing" />} />
 
       
       <Route path="/" element={
