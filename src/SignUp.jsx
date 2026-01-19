@@ -77,6 +77,51 @@ function SignUp() {
 
       setSuccess(true)
       setTimeout(() => navigate('/login'), 2000)
+
+
+              // Process referral or promo if stored (email/password signup)
+        try {
+          const pendingRef = localStorage.getItem("pendingReferral")
+          const pendingPromo = localStorage.getItem("pendingPromo")
+
+          if (pendingPromo) {
+            const applied = JSON.parse(pendingPromo)
+            await supabase.from("referral_transactions").insert({
+              referee_id: (await supabase.auth.getUser()).data.user.id,
+              promo_code: applied.type === "influencer" ? applied.code : null,
+              referral_code: applied.type === "user" ? applied.code : null,
+              referrer_id: applied.referrerId,
+              transaction_type: applied.type,
+              referee_discount: applied.discount === "free" ? 4.99 : 0.998,
+              status: "pending"
+            })
+          }
+
+          if (pendingRef) {
+            const { data: link } = await supabase
+              .from("referral_links")
+              .select("user_id")
+              .eq("referral_code", pendingRef)
+              .single()
+
+            if (link) {
+              await supabase.from("referral_transactions").insert({
+                referee_id: (await supabase.auth.getUser()).data.user.id,
+                referral_code: pendingRef,
+                referrer_id: link.user_id,
+                transaction_type: "user",
+                referee_discount: 0.998,
+                status: "pending"
+              })
+            }
+          }
+
+          localStorage.removeItem("pendingReferral")
+          localStorage.removeItem("pendingPromo")
+        } catch (err) {
+          console.error("Referral processing error:", err)
+        }
+
       
     } catch (err) {
       setError('Something went wrong. Please try again.')

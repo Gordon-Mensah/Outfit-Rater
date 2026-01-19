@@ -54,6 +54,63 @@ export function AuthProvider({ children }) {
     }
   }, [])
 
+  // ✅ MOVED HERE (before useEffect) — your function unchanged
+  const handlePendingReferral = async (userId) => {
+    try {
+      const pendingRef = localStorage.getItem("pendingReferral")
+      const pendingPromo = localStorage.getItem("pendingPromo")
+
+      if (!pendingRef && !pendingPromo) return
+
+      // Influencer promo code
+      if (pendingPromo) {
+        const applied = JSON.parse(pendingPromo)
+        await supabase.from("referral_transactions").insert({
+          referee_id: userId,
+          promo_code: applied.type === "influencer" ? applied.code : null,
+          referral_code: applied.type === "user" ? applied.code : null,
+          referrer_id: applied.referrerId,
+          transaction_type: applied.type,
+          referee_discount: applied.discount === "free" ? 4.99 : 0.998,
+          status: "pending"
+        })
+      }
+
+      // Normal referral link
+      if (pendingRef) {
+        const { data: link } = await supabase
+          .from("referral_links")
+          .select("user_id")
+          .eq("referral_code", pendingRef)
+          .single()
+
+        if (link) {
+          await supabase.from("referral_transactions").insert({
+            referee_id: userId,
+            referral_code: pendingRef,
+            referrer_id: link.user_id,
+            transaction_type: "user",
+            referee_discount: 0.998,
+            status: "pending"
+          })
+        }
+      }
+
+      // Cleanup
+      localStorage.removeItem("pendingReferral")
+      localStorage.removeItem("pendingPromo")
+    } catch (err) {
+      console.error("❌ Google referral processing error:", err)
+    }
+  }
+
+  // Handle referral/promo after Google OAuth login
+  useEffect(() => {
+    if (user?.id) {
+      handlePendingReferral(user.id)
+    }
+  }, [user?.id])
+
   // Set up real-time subscription listener
   useEffect(() => {
     if (!user?.id) return
@@ -166,7 +223,6 @@ export function AuthProvider({ children }) {
     }
   }
 
-  // Manual refresh function (useful after payment)
   const refreshPremiumStatus = async () => {
     if (user?.id) {
       console.log('🔄 Manually refreshing premium status...')
@@ -230,7 +286,7 @@ export function AuthProvider({ children }) {
 
   const canRate = () => {
     if (isPremium) return true
-    return dailyRatingCount < 5  // ✅ FREE USERS GET 5 RATINGS PER DAY
+    return dailyRatingCount < 5
   }
 
   const value = {
@@ -243,10 +299,9 @@ export function AuthProvider({ children }) {
     signOut,
     canRate,
     checkDailyRatings,
-    refreshPremiumStatus, // ✅ NEW: Manual refresh function
+    refreshPremiumStatus,
   }
 
-  // ALWAYS render children
   return (
     <AuthContext.Provider value={value}>
       {children}

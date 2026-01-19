@@ -1,10 +1,20 @@
 import { useState } from 'react'
 import { supabase } from './supabaseClient'
+import { useEffect } from 'react'
+
 
 function PromoCodeInput({ onCodeApplied }) {
   const [code, setCode] = useState('')
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState(null)
+
+  // Save applied promo code for Google signups
+  useEffect(() => {
+    if (message?.type === 'success') {
+        localStorage.setItem("pendingPromo", JSON.stringify({ code, message }))
+    }
+  }, [message])
+
 
   const validateCode = async () => {
     if (!code.trim()) return
