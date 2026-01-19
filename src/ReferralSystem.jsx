@@ -36,11 +36,7 @@ function ReferralSystem() {
     }
   }, [user])
 
-  const generateCode = () => {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
-    return Array.from({ length: 8 }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
-  }
-
+  // ⭐ UPDATED — No more code generation here
   const initializeReferral = async () => {
     try {
       const { data: existing } = await supabase
@@ -53,11 +49,7 @@ function ReferralSystem() {
         setReferralCode(existing.referral_code)
         setReferralLink(`${window.location.origin}/signup?ref=${existing.referral_code}`)
       } else {
-        const newCode = generateCode()
-        await supabase.from('referral_links').insert({ user_id: user.id, referral_code: newCode })
-        await supabase.from('user_rewards').insert({ user_id: user.id })
-        setReferralCode(newCode)
-        setReferralLink(`${window.location.origin}/signup?ref=${newCode}`)
+        console.error("❌ No referral code found for user — this should never happen now.")
       }
     } catch (error) {
       console.error('Error:', error)

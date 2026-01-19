@@ -20,7 +20,6 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     console.log('🚀 AuthProvider starting...')
     
-    // CRITICAL: Set timeout to force loading to false after 3 seconds
     const timeoutId = setTimeout(() => {
       console.log('⏰ Timeout reached, forcing loading to false')
       setLoading(false)
@@ -54,7 +53,6 @@ export function AuthProvider({ children }) {
     }
   }, [])
 
-  // ✅ MOVED HERE (before useEffect) — your function unchanged
   const handlePendingReferral = async (userId) => {
     try {
       const pendingRef = localStorage.getItem("pendingReferral")
@@ -62,7 +60,6 @@ export function AuthProvider({ children }) {
 
       if (!pendingRef && !pendingPromo) return
 
-      // Influencer promo code
       if (pendingPromo) {
         const applied = JSON.parse(pendingPromo)
         await supabase.from("referral_transactions").insert({
@@ -76,7 +73,6 @@ export function AuthProvider({ children }) {
         })
       }
 
-      // Normal referral link
       if (pendingRef) {
         const { data: link } = await supabase
           .from("referral_links")
@@ -96,7 +92,6 @@ export function AuthProvider({ children }) {
         }
       }
 
-      // Cleanup
       localStorage.removeItem("pendingReferral")
       localStorage.removeItem("pendingPromo")
     } catch (err) {
@@ -104,14 +99,15 @@ export function AuthProvider({ children }) {
     }
   }
 
-  // Handle referral/promo after Google OAuth login
   useEffect(() => {
     if (user?.id) {
       handlePendingReferral(user.id)
+
+      // ⭐ ADDED — Ensure Google OAuth users get a referral code
+      ensureReferralCode(user.id)
     }
   }, [user?.id])
 
-  // Set up real-time subscription listener
   useEffect(() => {
     if (!user?.id) return
 
@@ -247,6 +243,14 @@ export function AuthProvider({ children }) {
           status: 'free',
           plan: 'free'
         })
+
+        // ⭐ ADDED — Create permanent referral code
+        const referralCode = data.user.id.slice(0, 8).toUpperCase()
+
+        await supabase.from("referral_links").insert({
+          user_id: data.user.id,
+          referral_code: referralCode
+        })
       }
 
       return { data, error: null }
@@ -300,6 +304,30 @@ export function AuthProvider({ children }) {
     canRate,
     checkDailyRatings,
     refreshPremiumStatus,
+  }
+
+  // ⭐ Ensures every user has a referral code (Google or Email)
+  const ensureReferralCode = async (userId) => {
+    try {
+      const { data: existing } = await supabase
+        .from("referral_links")
+        .select("referral_code")
+        .eq("user_id", userId)
+        .single()
+
+      if (!existing) {
+        const referralCode = userId.slice(0, 8).toUpperCase()
+
+        await supabase.from("referral_links").insert({
+          user_id: userId,
+          referral_code: referralCode
+        })
+
+        console.log("🎉 Referral code created for Google user:", referralCode)
+      }
+    } catch (err) {
+      console.error("❌ Error ensuring referral code:", err)
+    }
   }
 
   return (

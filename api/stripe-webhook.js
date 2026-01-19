@@ -27,7 +27,6 @@ export default async function handler(req, res) {
   let event
 
   try {
-    // Verify webhook signature
     event = stripe.webhooks.constructEvent(
       buf,
       sig,
@@ -38,13 +37,12 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: `Webhook Error: ${err.message}` })
   }
 
-  // Handle the event
   try {
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object
         const userId = session.metadata.userId
-        const purchaseAmount = session.amount_total / 100 // Stripe sends cents
+        const purchaseAmount = session.amount_total / 100
 
         // 1. Upgrade user to premium
         await supabase
@@ -60,7 +58,7 @@ export default async function handler(req, res) {
 
         console.log('✅ User upgraded to premium:', userId)
 
-        // 2. Check if this user was referred by an influencer
+        // 2. Influencer referral
         const { data: referral } = await supabase
           .from('referral_transactions')
           .select('*')
@@ -72,7 +70,6 @@ export default async function handler(req, res) {
         if (referral) {
           console.log('🎉 Influencer referral detected:', referral.referrer_id)
 
-          // 3. Award 30% cashback to influencer
           const cashbackAmount = purchaseAmount * 0.30
 
           await supabase.rpc('add_cashback', {
@@ -80,7 +77,6 @@ export default async function handler(req, res) {
             amount_input: cashbackAmount
           })
 
-          // 4. Mark referral as completed
           await supabase
             .from('referral_transactions')
             .update({
@@ -92,25 +88,43 @@ export default async function handler(req, res) {
           console.log(`💰 Cashback awarded: $${cashbackAmount} to influencer ${referral.referrer_id}`)
         }
 
+        // ⭐ 3. USER REFERRAL LOGIC (correct placement)
+        const { data: userReferral } = await supabase
+          .from('referral_transactions')
+          .select('*')
+          .eq('referee_id', userId)
+          .eq('transaction_type', 'user')
+          .eq('status', 'pending')
+          .single()
+
+        if (userReferral) {
+          console.log('👥 User referral detected:', userReferral.referrer_id)
+
+          const freeMonthValue = purchaseAmount // or 5.99
+
+          await supabase.rpc('add_cashback', {
+            user_id_input: userReferral.referrer_id,
+            amount_input: freeMonthValue
+          })
+
+          await supabase
+            .from('referral_transactions')
+            .update({
+              status: 'completed',
+              referrer_reward_amount: freeMonthValue
+            })
+            .eq('id', userReferral.id)
+
+          console.log(`🎁 Free month reward applied to referrer ${userReferral.referrer_id}`)
+        }
+
         break
       }
-
-      const { error } = await supabase
-        .from('subscriptions')
-        .upsert({ ... }, { onConflict: ['user_id'] })
-
-      if (error) {
-        console.error("❌ Supabase upsert failed:", error)
-      } else {
-        console.log("✅ Supabase row written for:", userId)
-      }
-
 
       case 'customer.subscription.updated': {
         const subscription = event.data.object
         const customerId = subscription.customer
 
-        // Get user ID from customer
         const { data: sub } = await supabase
           .from('subscriptions')
           .select('user_id')
@@ -118,7 +132,6 @@ export default async function handler(req, res) {
           .single()
 
         if (sub) {
-          // Update subscription status
           const status = subscription.status === 'active' ? 'premium' : 'free'
           
           await supabase
@@ -139,7 +152,6 @@ export default async function handler(req, res) {
         const subscription = event.data.object
         const customerId = subscription.customer
 
-        // Get user ID from customer
         const { data: sub } = await supabase
           .from('subscriptions')
           .select('user_id')
@@ -147,7 +159,6 @@ export default async function handler(req, res) {
           .single()
 
         if (sub) {
-          // Downgrade to free
           await supabase
             .from('subscriptions')
             .update({
@@ -167,7 +178,6 @@ export default async function handler(req, res) {
         const invoice = event.data.object
         const customerId = invoice.customer
 
-        // Get user ID from customer
         const { data: sub } = await supabase
           .from('subscriptions')
           .select('user_id')
@@ -175,7 +185,6 @@ export default async function handler(req, res) {
           .single()
 
         if (sub) {
-          // Optionally send email notification or handle failed payment
           console.log('⚠️ Payment failed for user:', sub.user_id)
         }
         break

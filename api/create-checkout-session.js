@@ -4,6 +4,12 @@
 import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
 
+// backend/routes/createCheckoutSession.js
+
+// ⭐ Your coupon IDs (unchanged)
+const COUPON_FREE_MONTH = "gyBuXnfV";   // Influencer free month
+const COUPON_20_OFF = "GCHwt9qm";       // Referral 20% off
+
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -32,7 +38,8 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { userId, userEmail, plan, billingCycle } = req.body;
+    // ⭐ ADDED: Accept promo from frontend
+    const { userId, userEmail, plan, billingCycle, promo } = req.body;
 
     // Validate input
     if (!userId || !plan || !billingCycle) {
@@ -90,7 +97,18 @@ export default async function handler(req, res) {
         });
     }
 
-    // Create Stripe Checkout Session
+    // ⭐ ADDED: Build discounts array based on promo
+    let discounts = [];
+
+    if (promo) {
+      if (promo.type === "influencer") {
+        discounts.push({ coupon: COUPON_FREE_MONTH });
+      } else if (promo.type === "user") {
+        discounts.push({ coupon: COUPON_20_OFF });
+      }
+    }
+
+    // ⭐ UPDATED: Create Stripe Checkout Session WITH discounts
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       customer_creation: 'always',
@@ -103,6 +121,9 @@ export default async function handler(req, res) {
           quantity: 1,
         },
       ],
+      // ⭐ ADDED: Apply coupon if available
+      discounts: discounts.length > 0 ? discounts : undefined,
+
       success_url: `${process.env.FRONTEND_URL}/?success=true&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.FRONTEND_URL}/pricing?canceled=true`,
       metadata: {
