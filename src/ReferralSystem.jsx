@@ -20,6 +20,15 @@ function ReferralSystem() {
   const [loading, setLoading] = useState(true)
   const [copied, setCopied] = useState(false)
 
+  // ⏳ Prevent infinite loading if Supabase hangs
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setLoading(false)
+      console.warn("⏰ Referral page timeout fallback triggered")
+    }, 6000)
+    return () => clearTimeout(timeout)
+  }, [])
+
   useEffect(() => {
     if (user) {
       initializeReferral()
@@ -29,7 +38,7 @@ function ReferralSystem() {
 
   const generateCode = () => {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
-    return Array.from({length: 8}, () => chars[Math.floor(Math.random() * chars.length)]).join('')
+    return Array.from({ length: 8 }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
   }
 
   const initializeReferral = async () => {
@@ -55,11 +64,22 @@ function ReferralSystem() {
     }
   }
 
+  // ⚡️ Faster: run all Supabase queries in parallel
   const loadReferralData = async () => {
     try {
-      const { data: linkData } = await supabase.from('referral_links').select('*').eq('user_id', user.id).single()
-      const { data: rewardsData } = await supabase.from('user_rewards').select('*').eq('user_id', user.id).single()
-      const { data: transData } = await supabase.from('referral_transactions').select('*').eq('referrer_id', user.id).order('created_at', { ascending: false }).limit(10)
+      const [linkRes, rewardsRes, transRes] = await Promise.all([
+        supabase.from('referral_links').select('*').eq('user_id', user.id).single(),
+        supabase.from('user_rewards').select('*').eq('user_id', user.id).single(),
+        supabase.from('referral_transactions')
+          .select('*')
+          .eq('referrer_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(10)
+      ])
+
+      const linkData = linkRes.data
+      const rewardsData = rewardsRes.data
+      const transData = transRes.data
 
       setStats({
         totalReferrals: linkData?.total_referrals || 0,
@@ -67,6 +87,7 @@ function ReferralSystem() {
         freeMonthsEarned: rewardsData?.free_months_balance || 0,
         cashbackEarned: rewardsData?.cashback_balance || 0
       })
+
       setTransactions(transData || [])
     } catch (error) {
       console.error('Error loading data:', error)
