@@ -191,7 +191,7 @@ function RateResult() {
               <h3>🎨 Unlock Style Chat</h3>
               <p>Get personalized style advice with our AI chat feature</p>
               <SimpleUpgradeButton 
-                text="Upgrade to Premium - $9.99/month"
+                text="Upgrade to Premium - $5.99/month"
                 billingCycle="monthly"
                 className="btn-upgrade"
               />

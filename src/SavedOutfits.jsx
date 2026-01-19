@@ -186,7 +186,7 @@ function SavedOutfits() {
                   <div className="upgrade-content">
                     <h3>Unlock Unlimited Storage!</h3>
                     <p>Upgrade to Premium to save unlimited outfits and never lose your favorites.</p>
-                    <SimpleUpgradeButton text="Upgrade for $4.99/month" />
+                    <SimpleUpgradeButton text="Upgrade for $5.99/month" />
                   </div>
                 </div>
               )}

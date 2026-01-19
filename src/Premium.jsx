@@ -221,12 +221,12 @@ function Premium() {
                 <h3>Premium</h3>
                 <div className="plan-price">
                   <span className="price-amount">
-                    ${billingPeriod === 'monthly' ? '4.99' : '2.99'}
+                    ${billingPeriod === 'monthly' ? 5.99 : (5.99 * 11).toFixed(2)}
                   </span>
                   <span className="price-period">/month</span>
                 </div>
                 {billingPeriod === 'yearly' && (
-                  <p className="billing-note">Billed as $35.88/year</p>
+                  <p className="billing-note">Billed as $65.89/year</p>
                 )}
               </div>
 
@@ -359,10 +359,10 @@ function Premium() {
             <h2>Ready to Upgrade Your Style?</h2>
             <p>Join thousands of fashion-forward users getting AI-powered advice</p>
             <SimpleUpgradeButton 
-                text="Upgrade to Premium - $4.99/month"
+                text="Upgrade to Premium - $5.99/month"
                 className="btn-upgrade-simple"
             />
-            <p className="cta-subtext">$4.99/month • Cancel anytime</p>
+            <p className="cta-subtext">$5.99/month • Cancel anytime</p>
           </div>
         </div>
       )}

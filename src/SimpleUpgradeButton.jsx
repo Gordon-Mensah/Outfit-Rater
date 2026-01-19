@@ -23,8 +23,8 @@ function SimpleUpgradeButton({
   const [loading, setLoading] = useState(false)
 
   const prices = {
-    monthly: '$4.99/mo',
-    yearly: '$99.99/yr'
+    monthly: '$5.99/mo',
+    yearly: '$65.89/yr'
   }
 
   const defaultText = text || `Upgrade to ${billingCycle === 'yearly' ? 'Yearly' : 'Monthly'} Plan`

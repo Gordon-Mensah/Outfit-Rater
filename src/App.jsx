@@ -17,6 +17,7 @@ import Premium from './PremiumStyleChat'
 import SimpleUpgradeButton from './SimpleUpgradeButton'
 import FashionChatPage from './FashionChatPage'
 import ReferralSystem from './ReferralSystem'
+import PricingPace from '/PricingPage'
 
 
 
@@ -209,7 +210,7 @@ function App() {
   const rateOutfit = async () => {
     // Check if user has exceeded limit
     if (!canRate()) {
-      setError('You have used your 50 free ratings today.')
+      setError('You have used your 5 free ratings today.')
       return
     }
     
@@ -267,7 +268,7 @@ function App() {
     console.log('🔍 Compare button clicked')
     
     if (!canRate()) {
-      setError('You have used your 3 free ratings today.')
+      setError('You have used your 5 free ratings today.')
       return
     }
     
@@ -349,6 +350,7 @@ function App() {
       <Route path="/premium" element={user ? <Premium /> : <Navigate to="/login" />} />
       <Route path="/fashion-chat" element={<FashionChatPage />} />
       <Route path="/referrals" element={user ? <ReferralSystem /> : <Navigate to="/login" />} />
+      <Route path="/pricing" element={user ? <PricingPage /> : <Navigate to="/pricing" />} />
 
       
       <Route path="/" element={

@@ -11,7 +11,7 @@ function LastRatingWarning({ isOpen, onClose, onContinue }) {
         <h2>This is Your Last Free Rating!</h2>
         
         <p className="modal-message">
-          You've used 2 out of 3 free ratings today. After this rating, 
+          You've used 4 out of 5 free ratings today. After this rating, 
           you'll need to upgrade to Premium to continue.
         </p>
 
@@ -39,7 +39,7 @@ function LastRatingWarning({ isOpen, onClose, onContinue }) {
           
           {/* SIMPLE BUTTON - Goes straight to Stripe */}
           <SimpleUpgradeButton 
-            text="Upgrade for $4.99/month"
+            text="Upgrade for $5.99/month"
             className="btn-upgrade"
           />
         </div>

@@ -74,49 +74,41 @@ function Premium() {
 
   const features = [
     {
-      icon: '💬',
       title: 'AI Style Chat',
       description: 'Unlimited conversations with your personal AI fashion consultant',
       premium: true
     },
     {
-      icon: '🎯',
       title: 'Unlimited Ratings',
       description: 'Rate unlimited outfits per day (free users get 50/day)',
       premium: true
     },
     {
-      icon: '🔄',
       title: 'Advanced Comparisons',
       description: 'Compare up to 5 outfits side-by-side with detailed analysis',
       premium: true
     },
     {
-      icon: '😈',
       title: 'Roast Mode',
       description: 'Get brutally honest feedback for when you need the hard truth',
       premium: true
     },
     {
-      icon: '💎',
       title: 'Priority Support',
       description: 'Get help faster with priority customer support',
       premium: true
     },
     {
-      icon: '📊',
       title: 'Style Analytics',
       description: 'Track your fashion journey with detailed stats and insights',
       premium: true
     },
     {
-      icon: '🎨',
       title: 'Custom Feedback Styles',
       description: 'Choose between Helpful, Honest, or Roast mode feedback',
       premium: true
     },
     {
-      icon: '⭐',
       title: 'Early Access',
       description: 'Be first to try new AI features and improvements',
       premium: true
@@ -129,7 +121,6 @@ function Premium() {
       <div className="premium-hero">
         <div className="premium-hero-content">
           <div className="premium-badge-large">
-            <span className="badge-icon">⭐</span>
             <span>Premium</span>
           </div>
           
@@ -230,12 +221,12 @@ function Premium() {
                 <h3>Premium</h3>
                 <div className="plan-price">
                   <span className="price-amount">
-                    ${billingPeriod === 'monthly' ? '4.99' : '2.99'}
+                    ${billingPeriod === 'monthly' ? '5.99' : '5.99'}
                   </span>
                   <span className="price-period">/month</span>
                 </div>
                 {billingPeriod === 'yearly' && (
-                  <p className="billing-note">Billed as $35.88/year</p>
+                  <p className="billing-note">Billed as $65.89/year</p>
                 )}
               </div>
 
@@ -367,8 +358,8 @@ function Premium() {
           <div className="cta-content">
             <h2>Ready to Upgrade Your Style?</h2>
             <p>Join thousands of fashion-forward users getting AI-powered advice</p>
-            <SimpleUpgradeButton text="Upgrade for $4.99/month" />
-            <p className="cta-subtext">$4.99/month • Cancel anytime</p>
+            <SimpleUpgradeButton text="Upgrade for $5.99/month" />
+            <p className="cta-subtext">$5.99/month • Cancel anytime</p>
           </div>
         </div>
       )}

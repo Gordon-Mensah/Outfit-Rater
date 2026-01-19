@@ -195,7 +195,7 @@ function PremiumStyleChat({ originalRating, originalFeedback, occasion, outfitIm
             
             {/* SIMPLE BUTTON - NO MODAL */}
             <SimpleUpgradeButton 
-              text="Upgrade to Premium - $4.99/month"
+              text="Upgrade to Premium - $5.99/month"
               className="btn-upgrade-simple"
             />
           </div>
