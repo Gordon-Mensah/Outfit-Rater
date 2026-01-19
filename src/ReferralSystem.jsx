@@ -96,23 +96,23 @@ function ReferralSystem() {
       <div className="referral-container">
         <div className="referral-header-section">
           <button onClick={() => navigate('/')} className="back-button">← Back</button>
-          <div className="header"><h1>🎁 Referral Program</h1><HamburgerMenu /></div>
+          <div className="header"><h1> Referral Program</h1><HamburgerMenu /></div>
           <p className="subtitle">Earn rewards by inviting friends!</p>
         </div>
 
         <div className="referral-stats-grid">
-          <div className="ref-stat-card"><div className="stat-icon-lg">👥</div><div className="stat-val-lg">{stats.totalReferrals}</div><div className="stat-lbl-lg">Total Referrals</div></div>
-          <div className="ref-stat-card"><div className="stat-icon-lg">✅</div><div className="stat-val-lg">{stats.successfulConversions}</div><div className="stat-lbl-lg">Conversions</div></div>
-          <div className="ref-stat-card premium"><div className="stat-icon-lg">🎉</div><div className="stat-val-lg">{stats.freeMonthsEarned}</div><div className="stat-lbl-lg">Free Months</div></div>
-          <div className="ref-stat-card cash"><div className="stat-icon-lg">💰</div><div className="stat-val-lg">${stats.cashbackEarned.toFixed(2)}</div><div className="stat-lbl-lg">Cashback</div></div>
+          <div className="ref-stat-card"><div className="stat-val-lg">{stats.totalReferrals}</div><div className="stat-lbl-lg">Total Referrals</div></div>
+          <div className="ref-stat-card"><div className="stat-val-lg">{stats.successfulConversions}</div><div className="stat-lbl-lg">Conversions</div></div>
+          <div className="ref-stat-card premium"><div className="stat-val-lg">{stats.freeMonthsEarned}</div><div className="stat-lbl-lg">Free Months</div></div>
+          <div className="ref-stat-card cash"><div className="stat-val-lg">${stats.cashbackEarned.toFixed(2)}</div><div className="stat-lbl-lg">Cashback</div></div>
         </div>
 
         <div className="ref-link-card">
           <h2>Your Referral Link</h2>
           <p className="link-desc">Share with friends to earn rewards</p>
           <div className="code-badge-display"><span className="code-lbl">Your Code:</span><span className="code-val">{referralCode}</span></div>
-          <div className="link-input-grp"><input value={referralLink} readOnly className="link-inp"/><button onClick={copyLink} className="btn-copy">{copied ? '✓ Copied!' : '📋 Copy'}</button></div>
-          <div className="share-btns"><button onClick={shareLink} className="btn-share-soc">📤 Share</button><button onClick={copyLink} className="btn-share-soc sec">🔗 Copy</button></div>
+          <div className="link-input-grp"><input value={referralLink} readOnly className="link-inp"/><button onClick={copyLink} className="btn-copy">{copied ? '✓ Copied!' : 'Copy'}</button></div>
+          <div className="share-btns"><button onClick={shareLink} className="btn-share-soc">Share</button><button onClick={copyLink} className="btn-share-soc sec">Copy</button></div>
         </div>
 
         <div className="how-works-card">
@@ -125,8 +125,27 @@ function ReferralSystem() {
         </div>
 
         <div className="rewards-grid">
-          <div className="reward-card user"><div className="rew-icon">🎁</div><h3>User Referral</h3><div className="rew-item"><span>You:</span><span>1 Free Month</span></div><div className="rew-item"><span>Friend:</span><span>20% Off</span></div></div>
-          <div className="reward-card inf"><div className="rew-icon">⭐</div><h3>Influencer Code</h3><div className="rew-item"><span>Influencer:</span><span>30% Cashback</span></div><div className="rew-item"><span>User:</span><span>First Month FREE</span></div><button className="btn-inf" onClick={() => alert('Email: partnerships@outfitrater.com')}>Become Partner</button></div>
+          <div className="reward-card user">
+            <h3>User Referral</h3>
+            <div className="rew-item">
+                <span>You:</span>
+                <span>1 Free Month</span>    
+            </div>
+            <div className="rew-item">
+                <span>Friend:</span>
+                <span>20% Off</span>
+            </div>
+          </div>
+          <div className="reward-card inf">
+            <h3>Influencer Code</h3>
+            <div className="rew-item">
+                <span>Influencer:</span>
+                <span>30% Cashback</span>
+                </div><div className="rew-item">
+                    <span>User:</span>
+                    <span>First Month FREE</span>
+                </div>
+                <button className="btn-inf" onClick={() => alert('Email: outfitraterpartner@gmail.com')}>Become Partner</button></div>
         </div>
 
         {transactions.length > 0 && (

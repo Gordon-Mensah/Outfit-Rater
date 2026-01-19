@@ -16,7 +16,7 @@ function PromoCodeInput({ onCodeApplied }) {
       const { data: promo } = await supabase.from('promo_codes').select('*').eq('code', code.toUpperCase()).eq('is_active', true).single()
       if (promo) {
         onCodeApplied({ type: 'influencer', code: promo.code, discount: 'free' })
-        setMessage({ type: 'success', text: '🎉 First month FREE!' })
+        setMessage({ type: 'success', text: '🎉First month FREE!' })
         return
       }
 
