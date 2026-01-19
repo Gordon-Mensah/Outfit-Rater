@@ -16,6 +16,7 @@ import LastRatingWarning from './LastRatingWarning'
 import Premium from './PremiumStyleChat'
 import SimpleUpgradeButton from './SimpleUpgradeButton'
 import FashionChatPage from './FashionChatPage'
+import ReferralSystem from './ReferralSystem'
 
 
 
@@ -347,6 +348,7 @@ function App() {
       <Route path="/saved-outfits" element={user ? <SavedOutfits /> : <Navigate to="/login" />} />
       <Route path="/premium" element={user ? <Premium /> : <Navigate to="/login" />} />
       <Route path="/fashion-chat" element={<FashionChatPage />} />
+      <Route path="/referrals" element={user ? <ReferralSystem /> : <Navigate to="/login" />} />
 
       
       <Route path="/" element={

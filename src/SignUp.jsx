@@ -5,6 +5,7 @@ import { useState } from 'react'
 import { useAuth } from './AuthContext'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from './supabaseClient'
+import PromoCodeInput from './PromoCodeInput'
 
 function SignUp() {
   const { signUp } = useAuth()
@@ -18,6 +19,7 @@ function SignUp() {
   const [success, setSuccess] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [appliedCode, setAppliedCode] = useState(null)
 
   const handleGoogleSignUp = async () => {
     try {
@@ -285,6 +287,8 @@ function SignUp() {
                   <span>{error}</span>
                 </div>
               )}
+
+              <PromoCodeInput onCodeApplied={setAppliedCode} />
 
               {/* Submit Button */}
               <button 

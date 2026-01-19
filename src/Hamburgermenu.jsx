@@ -144,6 +144,15 @@ function HamburgerMenu() {
             <span className="menu-item-arrow">›</span>
           </button>
 
+          <button 
+            className={`menu-item ${isActive('/referrals') ? 'active' : ''}`}
+            onClick={() => navigateAndClose('/referrals')}
+          >
+            <span className="menu-item-icon">🎁</span>
+            <span className="menu-item-text">Referrals & Rewards</span>
+            <span className="menu-item-arrow">›</span>
+          </button>
+
           {!isPremium && (
             <>
               <div className="menu-divider"></div>

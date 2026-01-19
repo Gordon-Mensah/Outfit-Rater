@@ -44,22 +44,57 @@ export default async function handler(req, res) {
       case 'checkout.session.completed': {
         const session = event.data.object
         const userId = session.metadata.userId
+        const purchaseAmount = session.amount_total / 100 // Stripe sends cents
 
-        // Update subscription to premium
+        // 1. Upgrade user to premium
         await supabase
           .from('subscriptions')
           .upsert({
+            user_id: userId,
             status: 'active',
             plan: 'premium',
             stripe_subscription_id: session.subscription,
             stripe_customer_id: session.customer,
             updated_at: new Date().toISOString()
           })
-          .eq('user_id', userId)
 
         console.log('✅ User upgraded to premium:', userId)
+
+        // 2. Check if this user was referred by an influencer
+        const { data: referral } = await supabase
+          .from('referral_transactions')
+          .select('*')
+          .eq('referee_id', userId)
+          .eq('transaction_type', 'influencer')
+          .eq('status', 'pending')
+          .single()
+
+        if (referral) {
+          console.log('🎉 Influencer referral detected:', referral.referrer_id)
+
+          // 3. Award 30% cashback to influencer
+          const cashbackAmount = purchaseAmount * 0.30
+
+          await supabase.rpc('add_cashback', {
+            user_id_input: referral.referrer_id,
+            amount_input: cashbackAmount
+          })
+
+          // 4. Mark referral as completed
+          await supabase
+            .from('referral_transactions')
+            .update({
+              status: 'completed',
+              referrer_reward_amount: cashbackAmount
+            })
+            .eq('id', referral.id)
+
+          console.log(`💰 Cashback awarded: $${cashbackAmount} to influencer ${referral.referrer_id}`)
+        }
+
         break
       }
+
       const { error } = await supabase
         .from('subscriptions')
         .upsert({ ... }, { onConflict: ['user_id'] })
