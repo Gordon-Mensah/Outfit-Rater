@@ -23,15 +23,17 @@ export function AuthProvider({ children }) {
     const timeoutId = setTimeout(() => {
       console.log('⏰ Timeout reached, forcing loading to false')
       setLoading(false)
-    }, 3000)
+    }, 6000) // Increased to 6 seconds for better reliability
 
-    checkUser().then(() => {
+    // IMPROVED: Check session first, then set up listener
+    checkInitialSession().then(() => {
       clearTimeout(timeoutId)
     })
 
+    // Set up auth state listener
     const { data: authListener } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('🔔 Auth change:', event)
+        console.log('🔔 Auth change:', event, session?.user?.email || 'No user')
         const currentUser = session?.user ?? null
         setUser(currentUser)
         
@@ -52,6 +54,36 @@ export function AuthProvider({ children }) {
       authListener?.subscription?.unsubscribe()
     }
   }, [])
+
+  // IMPROVED: Better initial session check
+  const checkInitialSession = async () => {
+    try {
+      console.log('🔍 Checking initial session...')
+      
+      // Use getSession instead of getUser for better session detection
+      const { data: { session }, error } = await supabase.auth.getSession()
+      
+      if (error) {
+        console.error('❌ Error getting session:', error)
+        setLoading(false)
+        return
+      }
+      
+      const currentUser = session?.user ?? null
+      console.log('👤 Initial session user:', currentUser?.email || 'None')
+      setUser(currentUser)
+      
+      if (currentUser) {
+        await checkSubscription(currentUser.id)
+        await checkDailyRatings(currentUser.id)
+      }
+    } catch (error) {
+      console.error('❌ checkInitialSession error:', error)
+    } finally {
+      console.log('✅ Setting loading to false')
+      setLoading(false)
+    }
+  }
 
   const handlePendingReferral = async (userId) => {
     try {
@@ -95,19 +127,18 @@ export function AuthProvider({ children }) {
       localStorage.removeItem("pendingReferral")
       localStorage.removeItem("pendingPromo")
     } catch (err) {
-      console.error("❌ Google referral processing error:", err)
+      console.error("❌ Referral processing error:", err)
     }
   }
 
   useEffect(() => {
     if (user?.id) {
       handlePendingReferral(user.id)
-
-      // ⭐ ADDED — Ensure Google OAuth users get a referral code
       ensureReferralCode(user.id)
     }
   }, [user?.id])
 
+  // Real-time subscription listener
   useEffect(() => {
     if (!user?.id) return
 
@@ -238,19 +269,23 @@ export function AuthProvider({ children }) {
       if (error) throw error
 
       if (data.user) {
+        // Create subscription record
         await supabase.from('subscriptions').insert({
           user_id: data.user.id,
           status: 'free',
           plan: 'free'
         })
 
-        // ⭐ ADDED — Create permanent referral code
+        // Create referral code
         const referralCode = data.user.id.slice(0, 8).toUpperCase()
 
         await supabase.from("referral_links").insert({
           user_id: data.user.id,
           referral_code: referralCode
         })
+
+        // Handle any pending referrals
+        await handlePendingReferral(data.user.id)
       }
 
       return { data, error: null }
@@ -267,6 +302,14 @@ export function AuthProvider({ children }) {
       })
 
       if (error) throw error
+      
+      // Update user state immediately
+      if (data.user) {
+        setUser(data.user)
+        await checkSubscription(data.user.id)
+        await checkDailyRatings(data.user.id)
+      }
+      
       return { data, error: null }
     } catch (error) {
       return { data: null, error }
@@ -293,20 +336,7 @@ export function AuthProvider({ children }) {
     return dailyRatingCount < 5
   }
 
-  const value = {
-    user,
-    isPremium,
-    dailyRatingCount,
-    loading,
-    signUp,
-    signIn,
-    signOut,
-    canRate,
-    checkDailyRatings,
-    refreshPremiumStatus,
-  }
-
-  // ⭐ Ensures every user has a referral code (Google or Email)
+  // Ensures every user has a referral code (Google or Email)
   const ensureReferralCode = async (userId) => {
     try {
       const { data: existing } = await supabase
@@ -323,11 +353,24 @@ export function AuthProvider({ children }) {
           referral_code: referralCode
         })
 
-        console.log("🎉 Referral code created for Google user:", referralCode)
+        console.log("🎉 Referral code created:", referralCode)
       }
     } catch (err) {
       console.error("❌ Error ensuring referral code:", err)
     }
+  }
+
+  const value = {
+    user,
+    isPremium,
+    dailyRatingCount,
+    loading,
+    signUp,
+    signIn,
+    signOut,
+    canRate,
+    checkDailyRatings,
+    refreshPremiumStatus,
   }
 
   return (
