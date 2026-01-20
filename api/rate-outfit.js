@@ -1,4 +1,4 @@
-// api/rate-outfit.js - OPTIMIZED with FULL 0-10 RATING RANGE
+// api/rate-outfit.js - FIXED: Single Rating, No Mismatch
 import Groq from 'groq-sdk';
 
 const groq = new Groq({
@@ -30,55 +30,45 @@ export default async function handler(req, res) {
   try {
     console.log('🚀 Starting outfit rating...');
 
-    // UPDATED PROMPTS: Full 0-10 range with clear scoring guidance
-    const prompts = {
-      helpful: `You are a brutally honest fashion expert. Rate this outfit from 0-10 where:
-
-0-2 = Fashion disaster, completely wrong for the occasion
-3-4 = Poor choices, needs major improvements
-5-6 = Mediocre/average, significant room for improvement
-7-8 = Good outfit, minor tweaks would help
-9-10 = Excellent, very well-styled
-
-BE HONEST and use the FULL SCALE. Don't cluster around 7-8. Give low ratings to bad outfits and high ratings to great ones.
-
-FORMAT:
-Rating: X/10
-1. [tip]
-2. [tip]  
-3. [tip]`,
-
-      honest: `You are a fashion critic. Rate this outfit 0-10 HONESTLY using the FULL scale:
-
-0-2 = Disaster/awful
-3-4 = Poor/needs work
-5-6 = Average/mediocre
-7-8 = Good/solid
-9-10 = Excellent/outstanding
-
-Don't be afraid to give LOW ratings for bad outfits or HIGH ratings for exceptional ones. Be REALISTIC.
-
-FORMAT:
-Rating: X/10
-Good: [2 points]
-Improve: [2 points]`,
-
-      roast: `You are a savage fashion roaster. Rate this outfit 0-10 with BRUTAL honesty:
-
-0-3 = ROAST IT MERCILESSLY (fashion crime)
-4-6 = Decent roast (meh outfit)
-7-8 = Light roast (pretty good)
-9-10 = Compliment with humor (fire outfit)
-
-Use the FULL scale. Don't hold back on bad outfits! Roast hard if deserved.
-
-FORMAT:
-Rating: X/10
-[Your roast here - be savage if rating is low, funny if high]`
+    // Define feedback tones based on mode
+    const modeTones = {
+      helpful: "encouraging and constructive",
+      honest: "balanced and realistic", 
+      roast: "brutally honest with humor"
     };
 
-    const selectedPrompt = prompts[mode] || prompts.helpful;
-    const occasionText = occasion !== 'none' ? `\nOccasion: ${occasion}` : '';
+    const tone = modeTones[mode] || modeTones.helpful;
+    const occasionText = occasion !== 'none' ? ` for a ${occasion} occasion` : '';
+
+    // SINGLE PROMPT: Get rating and feedback in ONE call
+    const prompt = `You are a professional fashion consultant analyzing this outfit${occasionText}.
+
+RATING SCALE (use the FULL range 0-10):
+0-2 = Fashion disaster, completely wrong
+3-4 = Poor choices, needs major work
+5-6 = Average/mediocre, room for improvement
+7-8 = Good outfit, minor tweaks needed
+9-10 = Excellent, very well-styled
+
+Your task:
+1. Look at the outfit carefully
+2. Decide on ONE rating (0-10)
+3. Write feedback that matches that rating
+
+Be ${tone} in your feedback.
+
+CRITICAL: The rating number you choose MUST match your written feedback. If you rate it 7/10, your feedback should reflect a "good outfit with minor tweaks." If you rate it 3/10, your feedback should reflect "poor choices."
+
+Respond in this EXACT format:
+Rating: X/10
+
+**What works well:**
+[2-3 specific points]
+
+**What could be improved:**
+[2 specific suggestions]
+
+Remember: Your rating number and written feedback MUST be consistent!`;
 
     console.log('📤 Sending to Groq API...');
 
@@ -89,7 +79,7 @@ Rating: X/10
           content: [
             {
               type: 'text',
-              text: `${selectedPrompt}${occasionText}`
+              text: prompt
             },
             {
               type: 'image_url',
@@ -101,42 +91,45 @@ Rating: X/10
         }
       ],
       model: 'llama-3.2-90b-vision-preview',
-      temperature: 0.8,  // Increased from 0.7 for more varied ratings
-      max_tokens: 400,
+      temperature: 0.8,
+      max_tokens: 500,
       top_p: 1
     });
 
-    console.log('✅ Received AI response');
+    console.log(' Received AI response');
 
     const feedback = completion.choices[0]?.message?.content || 'Could not generate feedback';
     
-    // Extract rating with multiple regex patterns
+    // Extract rating from the response
     let rating = null;
     const ratingPatterns = [
       /rating:\s*(\d+)\/10/i,
-      /(\d+)\/10/i,
+      /^(\d+)\/10/m,
       /rating:\s*(\d+)/i,
-      /^(\d+)\/10/m
+      /(\d+)\s*\/\s*10/
     ];
 
     for (const pattern of ratingPatterns) {
       const match = feedback.match(pattern);
       if (match) {
         const extractedRating = parseInt(match[1]);
-        if (extractedRating >= 0 && extractedRating <= 10) {  // Changed from >= 1 to >= 0
+        if (extractedRating >= 0 && extractedRating <= 10) {
           rating = extractedRating;
+          console.log(' Rating extracted:', rating);
           break;
         }
       }
     }
 
-    // If no valid rating found, default to 5 (neutral)
+    // Fallback: if no rating found, default to 5
     if (rating === null) {
       rating = 5;
-      console.log('⚠️ No rating found, defaulting to 5');
+      console.log(' No rating found, defaulting to 5');
     }
 
-    console.log('✨ Rating extracted:', rating);
+    // Log for debugging
+    console.log(' Final rating:', rating);
+    console.log('Feedback preview:', feedback.substring(0, 100));
 
     return res.status(200).json({
       rating,

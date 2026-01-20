@@ -1,4 +1,4 @@
-// RateResult.jsx - Updated with image sharing
+// RateResult.jsx - FIXED Save Outfit Function
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useState } from 'react'
 import { useAuth } from './AuthContext'
@@ -44,6 +44,11 @@ function RateResult() {
   }
 
   const handleSaveOutfit = async () => {
+    if (!user) {
+      setSaveMessage('✗ Please log in to save outfits')
+      return
+    }
+
     setSaving(true)
     setSaveMessage('')
     
@@ -52,18 +57,25 @@ function RateResult() {
         .from('saved_outfits')
         .insert({
           user_id: user.id,
-          name: `${occasion} outfit`,
+          name: `${occasion || 'Casual'} outfit - ${rating}/10`,
           image_data: imagePreview,
           rating: rating,
-          occasion: occasion,
-          created_at: new Date().toISOString()
+          occasion: occasion || 'none',
+          feedback: feedback
         })
       
-      if (error) throw error
+      if (error) {
+        console.error('Save error:', error)
+        throw error
+      }
+      
       setSaveMessage('✓ Outfit saved successfully!')
+      setTimeout(() => setSaveMessage(''), 3000)
+      
     } catch (err) {
       console.error('Error saving outfit:', err)
-      setSaveMessage('✗ Failed to save outfit')
+      setSaveMessage(`✗ Failed to save outfit: ${err.message}`)
+      setTimeout(() => setSaveMessage(''), 5000)
     } finally {
       setSaving(false)
     }
