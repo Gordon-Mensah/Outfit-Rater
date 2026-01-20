@@ -132,7 +132,7 @@ function LandingPage() {
             <h3>Unlock All Features</h3>
             <p>Unlimited ratings • AI Chat • Roast Mode • Compare Outfits</p>
             <div className="price-tag-minimal">
-              <span className="price">$4.99</span><span className="period">/month</span>
+              <span className="price">$5.99</span><span className="period">/month</span>
             </div>
             <button 
               className="btn-premium-landing"
