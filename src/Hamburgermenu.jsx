@@ -103,7 +103,7 @@ function HamburgerMenu() {
             {isPremium ? (
               <span className="menu-badge premium">⭐ Premium Member</span>
             ) : (
-              <span className="menu-badge free">🆓 Free Tier · {dailyRatingCount}/50 today</span>
+              <span className="menu-badge free">🆓 Free Tier · {dailyRatingCount}/5 today</span>
             )}
           </div>
         </div>
