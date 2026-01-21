@@ -1,88 +1,101 @@
-// api/style-chat.js - Backend API for Premium Style Chat
-import Groq from 'groq-sdk'
+// api/style-chat.js - AI Style Chat with Image Context
+import Groq from 'groq-sdk';
 
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
+const groq = new Groq({
+  apiKey: process.env.GROQ_API_KEY
+});
 
 export default async function handler(req, res) {
-  // Enable CORS
-  res.setHeader('Access-Control-Allow-Credentials', true)
-  res.setHeader('Access-Control-Allow-Origin', '*')
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
+  res.setHeader('Access-Control-Allow-Credentials', true);
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+  res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
 
   if (req.method === 'OPTIONS') {
-    return res.status(200).end()
+    res.status(200).end();
+    return;
   }
 
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' })
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  const { message, outfitImage, originalRating, originalFeedback, occasion, conversationHistory } = req.body;
+
+  if (!message) {
+    return res.status(400).json({ error: 'No message provided' });
   }
 
   try {
-    const { message, originalRating, originalFeedback, occasion, conversationHistory } = req.body
+    console.log('💬 Style chat request received');
 
-    if (!message) {
-      return res.status(400).json({ error: 'Message is required' })
+    // Build context from original rating
+    const occasionText = occasion !== 'none' ? `for a ${occasion} occasion` : '';
+    const context = `You are a personal AI fashion stylist. You previously analyzed this outfit ${occasionText} and gave it ${originalRating}/10.
+
+Original feedback: "${originalFeedback}"
+
+The user is now asking follow-up questions about their outfit. You can see their outfit image, so give specific advice based on what you see.
+
+Guidelines:
+- Give practical, actionable advice
+- If they say they don't have something, suggest alternatives with what they DO have
+- Be specific about colors, items, and styling
+- Keep responses concise (2-4 sentences)
+- Be encouraging and supportive
+- Reference the outfit image when giving advice
+
+User question: ${message}`;
+
+    // Build conversation with image
+    const messages = [
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'text',
+            text: context
+          }
+        ]
+      }
+    ];
+
+    // Add image if provided
+    if (outfitImage) {
+      messages[0].content.push({
+        type: 'image_url',
+        image_url: {
+          url: outfitImage
+        }
+      });
     }
 
-    // Build conversation context
-    const systemPrompt = `You are an expert AI fashion consultant and personal stylist. You're chatting with a user about their outfit that received a ${originalRating}/10 rating.
+    console.log('📤 Sending to Groq...');
 
-Original Feedback: "${originalFeedback}"
-Occasion: ${occasion || 'casual'}
-
-Your role:
-- Help users find alternatives when they don't have suggested items
-- Suggest color combinations and substitutions
-- Recommend accessories, shoes, and styling tips
-- Provide budget-friendly shopping alternatives
-- Be conversational, friendly, and helpful
-- Keep responses concise (2-3 sentences max)
-- Be specific and actionable
-
-If they say they don't have a color/item you suggested, immediately suggest practical alternatives they might have in their wardrobe.`
-
-    // Build message history for context
-    const messages = [
-      { role: 'system', content: systemPrompt }
-    ]
-
-    // Add conversation history (last 6 messages for context)
-    const recentHistory = conversationHistory.slice(-6)
-    recentHistory.forEach(msg => {
-      if (msg.role === 'user' || msg.role === 'assistant') {
-        messages.push({
-          role: msg.role,
-          content: msg.content
-        })
-      }
-    })
-
-    // Add current message
-    messages.push({
-      role: 'user',
-      content: message
-    })
-
-    // Call Groq API
     const completion = await groq.chat.completions.create({
       messages,
-      model: 'llama-3.1-70b-versatile',
-      temperature: 0.7,
+      model: 'llama-3.2-90b-vision-preview',
+      temperature: 0.8,
       max_tokens: 300,
-      top_p: 1,
-      stream: false
-    })
+      top_p: 1
+    });
 
-    const reply = completion.choices[0]?.message?.content || 'I apologize, I couldn\'t generate a response. Please try again.'
+    const reply = completion.choices[0]?.message?.content || 'I apologize, I could not generate a response.';
 
-    return res.status(200).json({ reply })
+    console.log('✅ Style advice generated');
+
+    return res.status(200).json({ reply });
 
   } catch (error) {
-    console.error('Style chat error:', error)
+    console.error('❌ Chat error:', error.message);
+
+    if (error.status === 429) {
+      return res.status(429).json({ error: 'Too many requests. Please wait a moment.' });
+    }
+
     return res.status(500).json({ 
       error: 'Failed to get style advice',
-      details: error.message 
-    })
+      details: error.message
+    });
   }
 }
