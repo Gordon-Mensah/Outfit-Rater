@@ -1,4 +1,4 @@
-// LandingPage.jsx - Modern Futuristic Design
+// LandingPage.jsx - FIXED SYNTAX ERROR
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from './AuthContext'
 import { useEffect } from 'react'
@@ -129,7 +129,6 @@ function LandingPage() {
                     className="demo-logo"
                   />
                 </div>
-                </div>
                 <div className="demo-rating">
                   <div className="rating-circle-demo">
                     <span className="rating-num">8</span>
@@ -165,6 +164,7 @@ function LandingPage() {
                   <path d="M21 15l-5-5L5 21" strokeWidth="2" strokeLinecap="round"/>
                 </svg>
               </div>
+              <div className="feature-number">01</div>
               <h3 className="feature-title">Upload Your Outfit</h3>
               <p className="feature-description">
                 Take a photo or upload an existing image of your outfit 
@@ -178,6 +178,7 @@ function LandingPage() {
                   <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" strokeWidth="2" strokeLinecap="round"/>
                 </svg>
               </div>
+              <div className="feature-number">02</div>
               <h3 className="feature-title">AI Analysis</h3>
               <p className="feature-description">
                 Our advanced AI evaluates your outfit based on fit, color 
@@ -194,6 +195,7 @@ function LandingPage() {
                   <line x1="16" y1="17" x2="8" y2="17" strokeWidth="2" strokeLinecap="round"/>
                 </svg>
               </div>
+              <div className="feature-number">03</div>
               <h3 className="feature-title">Get Detailed Feedback</h3>
               <p className="feature-description">
                 Receive actionable suggestions to enhance your style 
