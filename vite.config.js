@@ -14,10 +14,7 @@ export default defineConfig({
     strictPort: false,
     allowedHosts: ['outfit-rater.onrender.com', '.onrender.com']
   },
-  // ✅ ADDED: Cache busting configuration
   build: {
-    // Generate unique filenames with hash for each build
-    // This forces browsers to download new files instead of using cache
     rollupOptions: {
       output: {
         entryFileNames: `assets/[name].[hash].js`,
@@ -25,9 +22,7 @@ export default defineConfig({
         assetFileNames: `assets/[name].[hash].[ext]`
       }
     },
-    // Minify for better performance
-    minify: 'terser',
-    // Generate smaller files
+    minify: 'esbuild', // ← Changed from 'terser'
     sourcemap: false
   }
 })
