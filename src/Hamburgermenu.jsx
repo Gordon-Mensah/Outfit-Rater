@@ -137,6 +137,14 @@ function HamburgerMenu() {
           </button>
 
           <button 
+            className={`menu-item ${isActive('/wardrobe') ? 'active' : ''}`}
+            onClick={() => navigateAndClose('/wardrobe')}
+          >
+            <span className="menu-item-text">Virtual Wardrobe</span>
+            <span className="menu-item-arrow">›</span>
+          </button>
+
+          <button 
             className={`menu-item ${isActive('/profile') ? 'active' : ''}`}
             onClick={() => navigateAndClose('/profile')}
           >

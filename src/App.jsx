@@ -18,6 +18,7 @@ import SimpleUpgradeButton from './SimpleUpgradeButton'
 import FashionChatPage from './FashionChatPage'
 import ReferralSystem from './ReferralSystem'
 import LandingPage from './LandingPage'
+import VirtualWardrobe from './VirtualWardrobe'
 
 const API_BASE_URL = import.meta.env.PROD ? '' : 'http://localhost:3000'
 
@@ -94,16 +95,29 @@ function App() {
   // ========== END KEEP-WARM PING ==========
 
   useEffect(() => {
+    // Check if Stripe is already loaded
+    if (window.Stripe) {
+      console.log('✅ Stripe already loaded')
+      return
+    }
+
+    // Check if script already exists
+    const existingScript = document.querySelector('script[src="https://js.stripe.com/v3/"]')
+    if (existingScript) {
+      console.log('✅ Stripe script already in DOM')
+      return
+    }
+
     const script = document.createElement('script')
     script.src = 'https://js.stripe.com/v3/'
     script.async = true
+    script.onload = () => console.log('✅ Stripe.js loaded')
+    script.onerror = () => console.error('❌ Failed to load Stripe.js')
     document.body.appendChild(script)
 
     return () => {
-      // Cleanup on unmount
-      if (document.body.contains(script)) {
-        document.body.removeChild(script)
-      }
+      // Don't remove script on cleanup to avoid reloading
+      // The script can stay for the entire session
     }
   }, [])
 
@@ -397,7 +411,7 @@ function App() {
               gap: '8px'
             }}
           >
-             View History
+            📊 View History
           </button>
           <button 
             onClick={loadSavedOutfits} 
@@ -411,7 +425,7 @@ function App() {
               gap: '8px'
             }}
           >
-             Saved Outfits ({savedCount}{!isPremium ? '/10' : ''})
+            ⭐ Saved Outfits ({savedCount}{!isPremium ? '/10' : ''})
           </button>
         </div>
 
@@ -688,6 +702,7 @@ function App() {
         path="/referrals" 
         element={user ? <ReferralSystem /> : <Navigate to="/login" replace />} 
       />
+      <Route path="/wardrobe" element={<VirtualWardrobe />} />
 
       {/* Catch all - redirect to home */}
       <Route path="*" element={<Navigate to="/" replace />} />
