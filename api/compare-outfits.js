@@ -1,4 +1,4 @@
-// api/compare-outfits.js - OPTIMIZED for speed
+// api/compare-outfits.js - WITH CONTEXT SUPPORT
 import Groq from 'groq-sdk';
 
 const groq = new Groq({
@@ -20,7 +20,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { images, occasion, userId } = req.body;
+  const { images, occasion, userId, context } = req.body;
 
   if (!images || images.length < 2) {
     return res.status(400).json({ error: 'Please provide at least 2 images' });
@@ -32,19 +32,41 @@ export default async function handler(req, res) {
 
   try {
     console.log(`🚀 Comparing ${images.length} outfits...`);
+    if (context) {
+      console.log('📍 Using user context:', context);
+    }
 
     const occasionText = occasion !== 'none' ? `Occasion: ${occasion}` : '';
 
-    // SPEED OPTIMIZATION: Shorter, more focused prompt
-    const prompt = `Compare these ${images.length} outfits and rate each 1-10. Be quick and concise.
+    // Build context section
+    let contextSection = '';
+    if (context && context.city) {
+      contextSection = '\n\n🎯 USER CONTEXT:\n';
+      
+      if (context.city) {
+        contextSection += `Location: ${context.cityLabel || context.city} (${context.climate || 'variable'} climate)\n`;
+      }
+      
+      if (context.workplace) {
+        contextSection += `Workplace: ${context.workplaceLabel || context.workplace} (${context.formality || 'medium'} formality)\n`;
+      }
+      
+      if (context.socialScene) {
+        contextSection += `Social Scene: ${context.socialSceneLabel || context.socialScene}\n`;
+      }
+      
+      contextSection += '\nConsider which outfit works best for their specific situation.\n';
+    }
 
+    const prompt = `Compare these ${images.length} outfits and rate each 1-10. Be quick and concise.
+${contextSection}
 FORMAT (REQUIRED):
 Outfit 1: X/10
 Outfit 2: X/10
 Outfit 3: X/10
 (etc)
 
-Best: Outfit X because [1 sentence]
+Best: Outfit X because [1 sentence${context ? ' referencing their context' : ''}]
 Mix: [1 quick suggestion]
 
 ${occasionText}`;
@@ -68,7 +90,7 @@ ${occasionText}`;
       ],
       model: 'llama-3.2-90b-vision-preview',
       temperature: 0.7,
-      max_tokens: 500,  // REDUCED from 1000 for faster response
+      max_tokens: 500,
       top_p: 1
     });
 
@@ -91,12 +113,12 @@ ${occasionText}`;
     // Find best outfit
     const bestIndex = ratings.indexOf(Math.max(...ratings));
 
-    // Extract analysis (shortened)
+    // Extract analysis
     const analysisMatch = feedback.match(/best:([^]*?)(?:mix:|$)/i);
     const analysis = analysisMatch ? analysisMatch[1].trim().split('\n')[0] : 
                     `Outfit ${bestIndex + 1} scored highest with ${ratings[bestIndex]}/10`;
 
-    // Extract mix suggestion (shortened)
+    // Extract mix suggestion
     const mixMatch = feedback.match(/mix:([^]*?)$/i);
     const mixSuggestion = mixMatch ? mixMatch[1].trim().split('\n')[0] : 
                          'Try mixing elements from your top-rated outfits!';
@@ -107,7 +129,8 @@ ${occasionText}`;
       ratings,
       bestIndex,
       analysis,
-      mixSuggestion
+      mixSuggestion,
+      contextUsed: !!context
     });
 
   } catch (error) {

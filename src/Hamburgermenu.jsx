@@ -144,6 +144,11 @@ function HamburgerMenu() {
             <span className="menu-item-arrow">›</span>
           </button>
 
+          // Add this button somewhere in your menu
+          <button onClick={() => navigate('/style-context')}>
+            Style Context Settings
+          </button>
+
           <button 
             className={`menu-item ${isActive('/profile') ? 'active' : ''}`}
             onClick={() => navigateAndClose('/profile')}

@@ -19,6 +19,10 @@ import FashionChatPage from './FashionChatPage'
 import ReferralSystem from './ReferralSystem'
 import LandingPage from './LandingPage'
 import VirtualWardrobe from './VirtualWardrobe'
+import StyleContext from './StyleContext'
+import { cities, workplaces, socialScenes } from './contextData'
+
+
 
 const API_BASE_URL = import.meta.env.PROD ? '' : 'http://localhost:3000'
 
@@ -270,10 +274,55 @@ function App() {
     setError(null)
     try {
       const base64Image = await readFileAsBase64(image)
+      
+      // 🆕 Load user's style context from database
+      let contextToSend = null
+      try {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('style_context')
+          .eq('id', user.id)
+          .single()
+        
+        const savedContext = profile?.style_context || null
+        
+        // Build context object with labels for API
+        if (savedContext && savedContext.city) {
+          const cityData = cities.find(c => c.value === savedContext.city)
+          const workData = workplaces.find(w => w.value === savedContext.workplace)
+          const sceneData = socialScenes.find(s => s.value === savedContext.socialScene)
+          
+          contextToSend = {
+            city: savedContext.city,
+            cityLabel: cityData?.label,
+            climate: cityData?.climate,
+            culture: cityData?.culture,
+            workplace: savedContext.workplace,
+            workplaceLabel: workData?.label,
+            formality: workData?.formality,
+            workplaceDescription: workData?.description,
+            socialScene: savedContext.socialScene,
+            socialSceneLabel: sceneData?.label,
+            sceneDescription: sceneData?.description,
+            ageGroup: savedContext.ageGroup
+          }
+          console.log('✅ Context loaded:', contextToSend)
+        }
+      } catch (contextErr) {
+        console.log('ℹ️ Context not available, proceeding without it:', contextErr)
+      }
+      // 🆕 End context loading
+      
       const response = await fetch(`${API_BASE_URL}/api/rate-outfit`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image: base64Image, occasion, mode: feedbackMode, userId: user.id })
+        body: JSON.stringify({ 
+          image: base64Image, 
+          occasion, 
+          mode: feedbackMode, 
+          userId: user.id,
+          context: contextToSend // 🆕 Send context to API
+        })
       })
       const data = await response.json()
       if (!response.ok) throw new Error(data.error || 'Failed to rate outfit')
@@ -337,10 +386,52 @@ function App() {
         })
       )
       console.log('🚀 Calling API...')
+      
+      // 🆕 Load user's style context
+      let contextToSend = null
+      try {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('style_context')
+          .eq('id', user.id)
+          .single()
+        
+        const savedContext = profile?.style_context || null
+        
+        if (savedContext && savedContext.city) {
+          const cityData = cities.find(c => c.value === savedContext.city)
+          const workData = workplaces.find(w => w.value === savedContext.workplace)
+          const sceneData = socialScenes.find(s => s.value === savedContext.socialScene)
+          
+          contextToSend = {
+            city: savedContext.city,
+            cityLabel: cityData?.label,
+            climate: cityData?.climate,
+            culture: cityData?.culture,
+            workplace: savedContext.workplace,
+            workplaceLabel: workData?.label,
+            formality: workData?.formality,
+            workplaceDescription: workData?.description,
+            socialScene: savedContext.socialScene,
+            socialSceneLabel: sceneData?.label,
+            sceneDescription: sceneData?.description,
+            ageGroup: savedContext.ageGroup
+          }
+        }
+      } catch (contextErr) {
+        console.log('Context not available:', contextErr)
+      }
+      // 🆕 End context loading
+      
       const response = await fetch(`${API_BASE_URL}/api/compare-outfits`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ images: base64Images, occasion, userId: user.id })
+        body: JSON.stringify({ 
+          images: base64Images, 
+          occasion, 
+          userId: user.id,
+          context: contextToSend // 🆕 Send context
+        })
       })
       const data = await response.json()
       if (!response.ok) throw new Error(data.error || 'Failed to compare')
@@ -703,6 +794,7 @@ function App() {
         element={user ? <ReferralSystem /> : <Navigate to="/login" replace />} 
       />
       <Route path="/wardrobe" element={<VirtualWardrobe />} />
+      <Route path="/style-context" element={<StyleContext />} />
 
       {/* Catch all - redirect to home */}
       <Route path="*" element={<Navigate to="/" replace />} />
