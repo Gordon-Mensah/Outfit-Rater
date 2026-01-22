@@ -385,11 +385,33 @@ function App() {
       <div className="container">
         {/* ========== ACTION BUTTONS - AT THE VERY TOP ========== */}
         <div className="action-buttons">
-          <button onClick={loadHistory} className="btn-secondary">
-            📊 View History
+          <button 
+            onClick={loadHistory} 
+            className="btn-secondary"
+            style={{ 
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              color: 'white',
+              border: 'none',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}
+          >
+             View History
           </button>
-          <button onClick={loadSavedOutfits} className="btn-secondary">
-            ⭐ Saved Outfits ({savedCount}{!isPremium ? '/10' : ''})
+          <button 
+            onClick={loadSavedOutfits} 
+            className="btn-secondary"
+            style={{ 
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              color: 'white',
+              border: 'none',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}
+          >
+             Saved Outfits ({savedCount}{!isPremium ? '/10' : ''})
           </button>
         </div>
 
