@@ -1,4 +1,4 @@
-// App.jsx - UPDATED with Landing Page
+// App.jsx - FIXED VERSION with visible action buttons
 import { useState, useEffect } from 'react'
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 import { useAuth } from './AuthContext'
@@ -48,6 +48,27 @@ function App() {
   const [savedCount, setSavedCount] = useState(0)
   const [showLastRatingWarning, setShowLastRatingWarning] = useState(false)
   const [pendingRatingAction, setPendingRatingAction] = useState(null)
+
+  // ========== Load saved count on mount ==========
+  useEffect(() => {
+    if (user) {
+      loadSavedCount()
+    }
+  }, [user])
+
+  const loadSavedCount = async () => {
+    if (!user) return
+    try {
+      const { data, error } = await supabase
+        .from('saved_outfits')
+        .select('id', { count: 'exact' })
+        .eq('user_id', user.id)
+      if (error) throw error
+      setSavedCount(data?.length || 0)
+    } catch (err) {
+      console.error('Error loading saved count:', err)
+    }
+  }
 
   // ========== KEEP-WARM PING: Prevents API cold starts ==========
   useEffect(() => {
@@ -219,7 +240,7 @@ function App() {
     }
 
     // Check if this is the last free rating
-    if (!isPremium && dailyRatingCount === 2) {
+    if (!isPremium && dailyRatingCount === 4) {
       // Show warning modal for last rating
       setPendingRatingAction('rate')
       setShowLastRatingWarning(true)
@@ -277,7 +298,7 @@ function App() {
     }
 
     // Check if this is the last free rating
-    if (!isPremium && dailyRatingCount === 2) {
+    if (!isPremium && dailyRatingCount === 4) {
       // Show warning modal for last rating
       setPendingRatingAction('compare')
       setShowLastRatingWarning(true)
@@ -362,6 +383,16 @@ function App() {
       </div>
 
       <div className="container">
+        {/* ========== ACTION BUTTONS - AT THE VERY TOP ========== */}
+        <div className="action-buttons">
+          <button onClick={loadHistory} className="btn-secondary">
+            📊 View History
+          </button>
+          <button onClick={loadSavedOutfits} className="btn-secondary">
+            ⭐ Saved Outfits ({savedCount}{!isPremium ? '/10' : ''})
+          </button>
+        </div>
+
         {/* MODE TOGGLE */}
         <div className="mode-toggle">
           <button
@@ -397,12 +428,6 @@ function App() {
             </div>
           </div>
         )}
-
-        {/* ACTION BUTTONS */}
-        <div className="action-buttons">
-          <button onClick={loadHistory} className="btn-secondary">View History</button>
-          <button onClick={loadSavedOutfits} className="btn-secondary">Saved Outfits ({savedCount}{!isPremium ? '/10' : ''})</button>
-        </div>
 
         {/* SAVED OUTFITS MODAL */}
         {showSavedOutfits && (
@@ -518,7 +543,7 @@ function App() {
               <h4>How to Compare Outfits:</h4>
               <ul>
                 <li>Click the upload area below</li>
-                <li>Select 2-5 outfit photos </li>
+                <li>Select 2-5 outfit photos</li>
                 <li>Wait for upload</li>
                 <li>Click Compare button</li>
               </ul>
