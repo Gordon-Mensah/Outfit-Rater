@@ -7,7 +7,7 @@ import ReactDOM from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import { AuthProvider } from './AuthContext'
 import App from './App.jsx'
-import './index_new.css'
+import './index.css'
 
 // 🎯 RENDER THE APP
 // This code runs ONCE when your app loads in the browser

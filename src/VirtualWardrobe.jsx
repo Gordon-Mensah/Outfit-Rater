@@ -1,19 +1,17 @@
-// VirtualWardrobe_Enhanced.jsx - ENHANCED with Color Detection, Weather, AI Generation
+// VirtualWardrobe.jsx - Virtual Wardrobe with AI Outfit Suggestions
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from './AuthContext'
 import { supabase } from './supabaseClient'
 import HamburgerMenu from './Hamburgermenu'
 import SimpleUpgradeButton from './SimpleUpgradeButton'
-import { extractDominantColor, getColorName } from './colorDetection'
-import { generateAIOutfits, analyzeWardrobeGaps } from './aiOutfitGenerator'
-import { getWeatherSuggestions } from './weatherIntegration'
+import './VirtualWardrobe.css'
 
 function VirtualWardrobe() {
   const { user, isPremium } = useAuth()
   const navigate = useNavigate()
   
-  const [activeTab, setActiveTab] = useState('closet')
+  const [activeTab, setActiveTab] = useState('closet') // 'closet', 'outfits', 'suggestions'
   const [wardrobe, setWardrobe] = useState({
     tops: [],
     bottoms: [],
@@ -25,46 +23,12 @@ function VirtualWardrobe() {
   const [generatedOutfits, setGeneratedOutfits] = useState([])
   const [uploadingCategory, setUploadingCategory] = useState(null)
   const [uploadingFile, setUploadingFile] = useState(null)
-  const [weather, setWeather] = useState(null)
-  const [weatherOutfits, setWeatherOutfits] = useState([])
-  const [aiSuggestions, setAiSuggestions] = useState([])
 
   useEffect(() => {
     if (user) {
       loadWardrobe()
-      loadWeather()
     }
   }, [user])
-
-  // 🌤️ WEATHER INTEGRATION
-  const loadWeather = async () => {
-    try {
-      // Get user's location
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(async (position) => {
-          const { latitude, longitude } = position.coords
-          
-          // Free weather API - OpenWeatherMap
-          const API_KEY = import.meta.env.VITE_OPENWEATHER_API_KEY || 'demo'
-          const response = await fetch(
-            `https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&units=metric&appid=${API_KEY}`
-          )
-          
-          if (response.ok) {
-            const data = await response.json()
-            setWeather({
-              temp: Math.round(data.main.temp),
-              condition: data.weather[0].main,
-              description: data.weather[0].description,
-              icon: data.weather[0].icon
-            })
-          }
-        })
-      }
-    } catch (error) {
-      console.error('Weather fetch error:', error)
-    }
-  }
 
   const loadWardrobe = async () => {
     if (!user) return
@@ -79,6 +43,7 @@ function VirtualWardrobe() {
       
       if (error) throw error
       
+      // Organize by category
       const organized = {
         tops: [],
         bottoms: [],
@@ -101,14 +66,14 @@ function VirtualWardrobe() {
     }
   }
 
-  // 🎨 COLOR DETECTION on upload
   const handleImageUpload = async (e, category) => {
     const file = e.target.files?.[0]
     if (!file) return
 
+    // Check premium limits
     const totalItems = Object.values(wardrobe).flat().length
     if (!isPremium && totalItems >= 20) {
-      alert(' Free users can add up to 20 items. Upgrade to Premium for unlimited wardrobe!')
+      alert('⭐ Free users can add up to 20 items. Upgrade to Premium for unlimited wardrobe!')
       return
     }
 
@@ -123,11 +88,7 @@ function VirtualWardrobe() {
         reader.readAsDataURL(file)
       })
 
-      // 🎨 EXTRACT DOMINANT COLOR
-      const dominantColor = await extractDominantColor(base64)
-      const colorName = getColorName(dominantColor)
-
-      // Save to database with auto-detected color
+      // Save to database
       const { data, error } = await supabase
         .from('wardrobe_items')
         .insert({
@@ -135,8 +96,7 @@ function VirtualWardrobe() {
           category: category,
           image_data: base64,
           name: file.name,
-          color: colorName, // 🎨 AUTO-DETECTED COLOR
-          color_hex: dominantColor,
+          color: 'unspecified', // Could add color detection
           last_worn: null,
           times_worn: 0
         })
@@ -145,12 +105,13 @@ function VirtualWardrobe() {
 
       if (error) throw error
 
+      // Update local state
       setWardrobe(prev => ({
         ...prev,
         [category]: [...prev[category], data]
       }))
 
-      alert(`✅ ${file.name} added! Detected color: ${colorName}`)
+      alert('✅ Item added to your wardrobe!')
     } catch (err) {
       console.error('Error uploading:', err)
       alert('Failed to add item. Please try again.')
@@ -182,7 +143,6 @@ function VirtualWardrobe() {
     }
   }
 
-  //  ENHANCED AI OUTFIT GENERATION
   const generateOutfits = async () => {
     const totalItems = Object.values(wardrobe).flat().length
     
@@ -195,14 +155,21 @@ function VirtualWardrobe() {
     setActiveTab('outfits')
 
     try {
-      let outfits = []
-      
-      if (isPremium) {
-        //  PREMIUM: Real AI Generation with color matching
-        outfits = await generateAIOutfits(wardrobe, 'casual', weather?.condition || 'moderate', 5)
-      } else {
-        // Free: Basic random generation
-        outfits = generateBasicOutfits(wardrobe, 3)
+      // Generate random combinations (simplified - real AI would be better)
+      const outfits = []
+      const { tops, bottoms, shoes, outerwear, accessories } = wardrobe
+
+      for (let i = 0; i < Math.min(5, tops.length); i++) {
+        const outfit = {
+          id: `outfit-${i}`,
+          top: tops[i] || tops[0],
+          bottom: bottoms[Math.floor(Math.random() * bottoms.length)],
+          shoes: shoes[Math.floor(Math.random() * shoes.length)],
+          outerwear: outerwear.length > 0 ? outerwear[Math.floor(Math.random() * outerwear.length)] : null,
+          accessory: accessories.length > 0 ? accessories[Math.floor(Math.random() * accessories.length)] : null,
+          occasion: ['casual', 'work', 'date', 'night out'][Math.floor(Math.random() * 4)]
+        }
+        outfits.push(outfit)
       }
 
       setGeneratedOutfits(outfits)
@@ -212,113 +179,6 @@ function VirtualWardrobe() {
     } finally {
       setLoading(false)
     }
-  }
-
-  // Basic outfit generation (free tier)
-  const generateBasicOutfits = (wardrobe, count) => {
-    const { tops, bottoms, shoes, outerwear, accessories } = wardrobe
-    const outfits = []
-
-    for (let i = 0; i < Math.min(count, tops.length); i++) {
-      const outfit = {
-        id: `outfit-${i}`,
-        top: tops[i] || tops[0],
-        bottom: bottoms[Math.floor(Math.random() * bottoms.length)],
-        shoes: shoes[Math.floor(Math.random() * shoes.length)],
-        outerwear: outerwear.length > 0 ? outerwear[Math.floor(Math.random() * outerwear.length)] : null,
-        accessory: accessories.length > 0 ? accessories[Math.floor(Math.random() * accessories.length)] : null,
-        occasion: ['casual', 'work', 'date', 'night out'][Math.floor(Math.random() * 4)],
-        times_worn: 0
-      }
-      outfits.push(outfit)
-    }
-
-    return outfits
-  }
-
-  // 🌤️ WEATHER-BASED OUTFIT SUGGESTIONS
-  const generateWeatherOutfits = async () => {
-    if (!weather) {
-      alert('Enable location access to get weather-based suggestions!')
-      return
-    }
-
-    setLoading(true)
-
-    try {
-      const suggestions = await getWeatherSuggestions(wardrobe, weather)
-      setWeatherOutfits(suggestions)
-      alert(`📍 Outfits for ${weather.temp}°C, ${weather.description}`)
-    } catch (error) {
-      console.error('Weather outfit error:', error)
-      alert('Failed to generate weather outfits')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // 👔 MARK OUTFIT AS WORN (Wear Counter)
-  const markOutfitWorn = async (outfit) => {
-    if (!confirm('Mark this outfit as worn today?')) return
-
-    try {
-      // Update each item's wear counter
-      const itemsToUpdate = [
-        outfit.top,
-        outfit.bottom,
-        outfit.shoes,
-        outfit.outerwear,
-        outfit.accessory
-      ].filter(Boolean)
-
-      for (const item of itemsToUpdate) {
-        await supabase
-          .from('wardrobe_items')
-          .update({
-            times_worn: (item.times_worn || 0) + 1,
-            last_worn: new Date().toISOString()
-          })
-          .eq('id', item.id)
-      }
-
-      // Reload wardrobe to show updated counts
-      await loadWardrobe()
-      
-      alert('Outfit marked as worn! Wear counts updated.')
-    } catch (error) {
-      console.error('Error updating wear count:', error)
-      alert('Failed to update wear count')
-    }
-  }
-
-  // 🔍 GET AI WARDROBE ANALYSIS (Premium)
-  const getAIAnalysis = async () => {
-    if (!isPremium) {
-      alert('⭐ Premium feature! Upgrade to get AI wardrobe analysis.')
-      return
-    }
-
-    setLoading(true)
-
-    try {
-      const suggestions = await analyzeWardrobeGaps(wardrobe)
-      setAiSuggestions(suggestions)
-      setActiveTab('suggestions')
-    } catch (error) {
-      console.error('AI analysis error:', error)
-      alert('Failed to analyze wardrobe')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // 📊 Get underutilized items
-  const getUnderutilizedItems = () => {
-    const allItems = Object.values(wardrobe).flat()
-    return allItems
-      .filter(item => item.times_worn !== undefined)
-      .sort((a, b) => a.times_worn - b.times_worn)
-      .slice(0, 5)
   }
 
   const getTotalItems = () => {
@@ -344,7 +204,7 @@ function VirtualWardrobe() {
           <div className="header">
             <div className="header-text">
               <h1 className="page-title">
-                 Virtual Wardrobe
+                👔 Virtual Wardrobe
                 <span className="premium-indicator">{isPremium ? '⭐ Premium' : '🆓 Free'}</span>
               </h1>
               <p className="page-subtitle">
@@ -354,29 +214,6 @@ function VirtualWardrobe() {
             <HamburgerMenu />
           </div>
         </div>
-
-        {/* 🌤️ WEATHER WIDGET */}
-        {weather && (
-          <div className="weather-widget">
-            <div className="weather-info">
-              <img 
-                src={`https://openweathermap.org/img/wn/${weather.icon}@2x.png`}
-                alt={weather.description}
-                className="weather-icon"
-              />
-              <div className="weather-details">
-                <div className="weather-temp">{weather.temp}°C</div>
-                <div className="weather-desc">{weather.description}</div>
-              </div>
-            </div>
-            <button 
-              className="btn-weather-outfits"
-              onClick={generateWeatherOutfits}
-            >
-               Outfits for Today's Weather
-            </button>
-          </div>
-        )}
 
         {/* Stats Bar */}
         <div className="wardrobe-stats-bar">
@@ -405,6 +242,7 @@ function VirtualWardrobe() {
         {/* Storage Limit Warning */}
         {!isPremium && getTotalItems() >= 15 && (
           <div className="limit-warning-banner">
+            <span className="warning-icon">⚠️</span>
             <div className="warning-text">
               <strong>Storage Limit Warning:</strong> You're using {getTotalItems()}/20 free items.
               <SimpleUpgradeButton 
@@ -421,6 +259,7 @@ function VirtualWardrobe() {
             className={`tab-btn ${activeTab === 'closet' ? 'active' : ''}`}
             onClick={() => setActiveTab('closet')}
           >
+            <span className="tab-icon">👕</span>
             <span>My Closet</span>
             <span className="tab-count">{getTotalItems()}</span>
           </button>
@@ -428,6 +267,7 @@ function VirtualWardrobe() {
             className={`tab-btn ${activeTab === 'outfits' ? 'active' : ''}`}
             onClick={() => setActiveTab('outfits')}
           >
+            <span className="tab-icon">✨</span>
             <span>Generated Outfits</span>
             <span className="tab-count">{generatedOutfits.length}</span>
           </button>
@@ -435,13 +275,8 @@ function VirtualWardrobe() {
             className={`tab-btn ${activeTab === 'suggestions' ? 'active' : ''}`}
             onClick={() => setActiveTab('suggestions')}
           >
+            <span className="tab-icon">💡</span>
             <span>AI Suggestions</span>
-          </button>
-          <button
-            className={`tab-btn ${activeTab === 'insights' ? 'active' : ''}`}
-            onClick={() => setActiveTab('insights')}
-          >
-            <span>Wear Insights</span>
           </button>
         </div>
 
@@ -474,9 +309,9 @@ function VirtualWardrobe() {
                             style={{ display: 'none' }}
                           />
                           {uploadingCategory === category ? (
-                            <span> Detecting color...</span>
+                            <span>📤 Uploading...</span>
                           ) : (
-                            <span> Add Item</span>
+                            <span>➕ Add Item</span>
                           )}
                         </label>
                       </div>
@@ -486,31 +321,17 @@ function VirtualWardrobe() {
                           <div key={item.id} className="wardrobe-item-card">
                             <div className="item-image-wrapper">
                               <img src={item.image_data} alt={item.name} />
-                              
-                              {/* 🎨 COLOR BADGE */}
-                              {item.color && item.color !== 'unspecified' && (
-                                <div className="color-badge" style={{ backgroundColor: item.color_hex }}>
-                                  {item.color}
-                                </div>
-                              )}
-                              
                               <button
                                 className="delete-item-btn"
                                 onClick={() => deleteItem(item.id, category)}
                               >
-                                Delete
+                                🗑️
                               </button>
                             </div>
                             <div className="item-info">
                               <p className="item-name">{item.name}</p>
-                              {/*  WEAR COUNTER */}
                               {item.times_worn > 0 && (
                                 <p className="item-worn">Worn {item.times_worn}x</p>
-                              )}
-                              {item.last_worn && (
-                                <p className="item-last-worn">
-                                  Last worn: {new Date(item.last_worn).toLocaleDateString()}
-                                </p>
                               )}
                             </div>
                           </div>
@@ -518,6 +339,7 @@ function VirtualWardrobe() {
 
                         {wardrobe[category].length === 0 && (
                           <div className="empty-category">
+                            <p className="empty-icon">📦</p>
                             <p className="empty-text">No {category} yet</p>
                             <p className="empty-hint">Upload your first item to get started</p>
                           </div>
@@ -532,8 +354,7 @@ function VirtualWardrobe() {
                         className="btn-generate-outfits"
                         onClick={generateOutfits}
                       >
-                         Generate Outfit Combinations
-                        {isPremium && <span className="ai-badge">AI-Powered</span>}
+                        ✨ Generate Outfit Combinations
                       </button>
                     </div>
                   )}
@@ -547,6 +368,7 @@ function VirtualWardrobe() {
             <div className="outfits-view">
               {generatedOutfits.length === 0 ? (
                 <div className="empty-outfits">
+                  <div className="empty-icon">✨</div>
                   <h3>No Outfits Generated Yet</h3>
                   <p>Add at least 3 items to your wardrobe and click "Generate Outfit Combinations"</p>
                   <button
@@ -559,11 +381,9 @@ function VirtualWardrobe() {
               ) : (
                 <>
                   <div className="outfits-header">
-                    <h2>
-                      {isPremium ? ' AI-Generated Outfits' : 'Outfit Combinations'}
-                    </h2>
+                    <h2>AI-Generated Outfit Combinations</h2>
                     <button className="btn-refresh-outfits" onClick={generateOutfits}>
-                      Generate New Outfits
+                      🔄 Generate New Outfits
                     </button>
                   </div>
 
@@ -572,13 +392,6 @@ function VirtualWardrobe() {
                       <div key={outfit.id} className="outfit-combo-card">
                         <div className="outfit-number">Outfit #{index + 1}</div>
                         <div className="outfit-occasion-badge">{outfit.occasion}</div>
-                        
-                        {/* WEAR COUNTER for outfit */}
-                        {outfit.times_worn > 0 && (
-                          <div className="outfit-wear-badge">
-                            Worn {outfit.times_worn}x
-                          </div>
-                        )}
                         
                         <div className="outfit-items">
                           {outfit.top && (
@@ -613,22 +426,9 @@ function VirtualWardrobe() {
                           )}
                         </div>
 
-                        {/* ✨ PREMIUM: AI Reasoning */}
-                        {isPremium && outfit.reasoning && (
-                          <div className="outfit-reasoning">
-                            <p className="reasoning-title">Why this works:</p>
-                            <p className="reasoning-text">{outfit.reasoning}</p>
-                          </div>
-                        )}
-
-                        <div className="outfit-actions">
-                          <button 
-                            className="btn-rate-outfit"
-                            onClick={() => markOutfitWorn(outfit)}
-                          >
-                             Mark as Worn Today
-                          </button>
-                        </div>
+                        <button className="btn-rate-outfit">
+                          Rate This Outfit →
+                        </button>
                       </div>
                     ))}
                   </div>
@@ -641,104 +441,61 @@ function VirtualWardrobe() {
           {activeTab === 'suggestions' && (
             <div className="suggestions-view">
               <div className="suggestions-header">
-                <h2> AI Shopping Suggestions</h2>
+                <h2>🤖 AI Shopping Suggestions</h2>
                 <p>Based on your current wardrobe, here's what might complete your style</p>
-                {isPremium && (
-                  <button className="btn-analyze" onClick={getAIAnalysis}>
-                     Get AI Analysis
-                  </button>
-                )}
               </div>
 
               <div className="suggestions-grid">
-                {aiSuggestions.length > 0 ? (
-                  aiSuggestions.map((suggestion, index) => (
-                    <div key={index} className="suggestion-card">
-                      <div className="suggestion-icon">
-                        {suggestion.category === 'tops' }
-                        {suggestion.category === 'bottoms' }
-                        {suggestion.category === 'shoes'}
-                        {suggestion.category === 'outerwear' }
-                        {suggestion.category === 'accessories' }
-                      </div>
-                      <h3>{suggestion.item}</h3>
-                      <p>{suggestion.reason}</p>
-                      <div className="suggestion-meta">
-                        <span className={`suggestion-priority ${suggestion.priority}`}>
-                          {suggestion.priority} priority
-                        </span>
-                        <span className="suggestion-price">{suggestion.price_range}</span>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="suggestion-card premium-suggestion">
-                    <h3>Premium AI Analysis</h3>
-                    <p>Unlock advanced AI wardrobe analysis including:</p>
-                    <ul className="suggestion-list">
-                      <li>Color palette analysis</li>
-                      <li>Style consistency scoring</li>
-                      <li>Seasonal wardrobe planning</li>
-                      <li>Budget shopping recommendations</li>
-                    </ul>
-                    {!isPremium && (
-                      <SimpleUpgradeButton 
-                        text="Upgrade to Premium"
-                        className="suggestion-upgrade-btn"
-                      />
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/*  WEAR INSIGHTS TAB */}
-          {activeTab === 'insights' && (
-            <div className="insights-view">
-              <div className="insights-header">
-                <h2>Wear Insights</h2>
-                <p>See which items you love and which ones need more attention</p>
-              </div>
-
-              <div className="insights-grid">
-                {/* Underutilized Items */}
-                <div className="insight-card">
-                  <h3> Least Worn Items</h3>
-                  <p>These items are collecting dust in your wardrobe!</p>
-                  <div className="insight-items">
-                    {getUnderutilizedItems().map(item => (
-                      <div key={item.id} className="insight-item">
-                        <img src={item.image_data} alt={item.name} />
-                        <div className="insight-item-info">
-                          <p className="insight-item-name">{item.name}</p>
-                          <p className="insight-item-stat">Worn {item.times_worn || 0}x</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                <div className="suggestion-card">
+                  <div className="suggestion-icon">👕</div>
+                  <h3>Missing Basics</h3>
+                  <p>You could use more neutral-colored tops. Consider adding:</p>
+                  <ul className="suggestion-list">
+                    <li>White button-down shirt</li>
+                    <li>Black t-shirt</li>
+                    <li>Navy sweater</li>
+                  </ul>
+                  <span className="suggestion-priority high">High Priority</span>
                 </div>
 
-                {/* Most Worn by Category */}
-                <div className="insight-card">
-                  <h3> Your Favorites</h3>
-                  <p>Items you wear most often</p>
-                  <div className="insight-items">
-                    {Object.values(wardrobe)
-                      .flat()
-                      .filter(item => item.times_worn > 0)
-                      .sort((a, b) => b.times_worn - a.times_worn)
-                      .slice(0, 5)
-                      .map(item => (
-                        <div key={item.id} className="insight-item favorite">
-                          <img src={item.image_data} alt={item.name} />
-                          <div className="insight-item-info">
-                            <p className="insight-item-name">{item.name}</p>
-                            <p className="insight-item-stat">Worn {item.times_worn}x ⭐</p>
-                          </div>
-                        </div>
-                      ))}
-                  </div>
+                <div className="suggestion-card">
+                  <div className="suggestion-icon">👞</div>
+                  <h3>Shoe Gap</h3>
+                  <p>Expand your footwear options with:</p>
+                  <ul className="suggestion-list">
+                    <li>Casual white sneakers</li>
+                    <li>Dress shoes for formal events</li>
+                  </ul>
+                  <span className="suggestion-priority medium">Medium Priority</span>
+                </div>
+
+                <div className="suggestion-card">
+                  <div className="suggestion-icon">🧥</div>
+                  <h3>Weather Protection</h3>
+                  <p>Don't forget seasonal essentials:</p>
+                  <ul className="suggestion-list">
+                    <li>Light rain jacket</li>
+                    <li>Winter coat</li>
+                  </ul>
+                  <span className="suggestion-priority low">Low Priority</span>
+                </div>
+
+                <div className="suggestion-card premium-suggestion">
+                  <div className="lock-icon">🔒</div>
+                  <h3>Premium AI Analysis</h3>
+                  <p>Unlock advanced AI wardrobe analysis including:</p>
+                  <ul className="suggestion-list">
+                    <li>Color palette analysis</li>
+                    <li>Style consistency scoring</li>
+                    <li>Seasonal wardrobe planning</li>
+                    <li>Budget shopping recommendations</li>
+                  </ul>
+                  {!isPremium && (
+                    <SimpleUpgradeButton 
+                      text="Upgrade to Premium"
+                      className="suggestion-upgrade-btn"
+                    />
+                  )}
                 </div>
               </div>
             </div>

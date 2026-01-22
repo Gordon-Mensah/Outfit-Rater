@@ -411,7 +411,7 @@ function App() {
               gap: '8px'
             }}
           >
-            📊 View History
+            View History
           </button>
           <button 
             onClick={loadSavedOutfits} 
@@ -425,7 +425,7 @@ function App() {
               gap: '8px'
             }}
           >
-            ⭐ Saved Outfits ({savedCount}{!isPremium ? '/10' : ''})
+             Saved Outfits ({savedCount}{!isPremium ? '/10' : ''})
           </button>
         </div>
 
