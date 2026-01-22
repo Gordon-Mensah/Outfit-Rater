@@ -1,0 +1,351 @@
+/* ============================================
+   RATERESULT.CSS - Rating Result Page
+   Matching Landing Page Design
+   ============================================ */
+
+/* ========== Result Page Layout ========== */
+.result-page {
+  min-height: 100vh;
+  position: relative;
+  padding-bottom: 4rem;
+}
+
+.result-container {
+  position: relative;
+  z-index: 1;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+/* ========== Result Header ========== */
+.result-header-section {
+  margin-bottom: 2.5rem;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 1.5rem 0;
+}
+
+.header h1 {
+  font-size: 2rem;
+  font-weight: 800;
+  color: white;
+  margin: 0;
+}
+
+.subtitle {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  margin-top: 0.5rem;
+}
+
+/* ========== Result Card ========== */
+.result-card {
+  background: var(--bg-card);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--border-subtle);
+  border-radius: 24px;
+  padding: 2.5rem;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  margin-bottom: 2rem;
+}
+
+/* ========== Rating Display ========== */
+.rating-display {
+  text-align: center;
+  margin-bottom: 2.5rem;
+}
+
+.rating-circle {
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  border: 8px solid;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.5rem;
+  position: relative;
+  box-shadow: 0 0 30px rgba(102, 126, 234, 0.3);
+}
+
+.rating-number {
+  font-size: 4rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.rating-denominator {
+  font-size: 2rem;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.rating-label {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: white;
+  margin: 0;
+}
+
+/* ========== Result Image ========== */
+.result-image-container {
+  position: relative;
+  border-radius: 16px;
+  overflow: hidden;
+  margin-bottom: 2rem;
+}
+
+.result-outfit-image {
+  width: 100%;
+  max-height: 500px;
+  object-fit: cover;
+  border-radius: 16px;
+}
+
+.occasion-badge {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(10px);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  text-transform: capitalize;
+}
+
+/* ========== Feedback Section ========== */
+.feedback-section {
+  margin-bottom: 2rem;
+}
+
+.feedback-section h3 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: white;
+  margin-bottom: 1rem;
+}
+
+.feedback-content {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  padding: 1.5rem;
+}
+
+.feedback-content p {
+  color: var(--text-secondary);
+  font-size: 1rem;
+  line-height: 1.8;
+  margin: 0;
+}
+
+/* ========== Action Buttons ========== */
+.result-actions {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+
+.btn-action {
+  background: var(--bg-card);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--border-subtle);
+  color: white;
+  padding: 1rem;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-align: center;
+}
+
+.btn-action:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+.btn-action:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-save {
+  background: linear-gradient(135deg, var(--success) 0%, #059669 100%);
+  border: none;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
+}
+
+.btn-share {
+  background: linear-gradient(135deg, var(--primary-purple), var(--secondary-purple));
+  border: none;
+  box-shadow: 0 4px 14px rgba(102, 126, 234, 0.3);
+}
+
+.btn-reset {
+  background: var(--bg-card);
+}
+
+/* ========== Upgrade Section ========== */
+.upgrade-section {
+  margin-bottom: 2rem;
+}
+
+.upgrade-card {
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
+  border: 1px solid rgba(102, 126, 234, 0.3);
+  border-radius: 20px;
+  padding: 2.5rem 2rem;
+  text-align: center;
+}
+
+.upgrade-card h3 {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: white;
+  margin-bottom: 0.75rem;
+}
+
+.upgrade-card p {
+  color: var(--text-secondary);
+  font-size: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+/* ========== Tips Section ========== */
+.tips-section {
+  margin-top: 2rem;
+}
+
+.tips-section h3 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: white;
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+.tips-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+}
+
+.tip-card {
+  background: var(--bg-card);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--border-subtle);
+  border-radius: 16px;
+  padding: 2rem 1.5rem;
+  text-align: center;
+  transition: all 0.3s ease;
+}
+
+.tip-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  border-color: rgba(102, 126, 234, 0.5);
+}
+
+.tip-card h4 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: white;
+  margin-bottom: 0.75rem;
+}
+
+.tip-card p {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* ========== Responsive Design ========== */
+@media (max-width: 768px) {
+  .result-container {
+    padding: 1rem;
+  }
+
+  .result-card {
+    padding: 1.5rem;
+  }
+
+  .rating-circle {
+    width: 150px;
+    height: 150px;
+    border-width: 6px;
+  }
+
+  .rating-number {
+    font-size: 3rem;
+  }
+
+  .rating-denominator {
+    font-size: 1.5rem;
+  }
+
+  .rating-label {
+    font-size: 1.5rem;
+  }
+
+  .result-actions {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .tips-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .header h1 {
+    font-size: 1.5rem;
+  }
+
+  .feedback-section h3 {
+    font-size: 1.25rem;
+  }
+
+  .upgrade-card {
+    padding: 2rem 1.5rem;
+  }
+
+  .upgrade-card h3 {
+    font-size: 1.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .result-container {
+    padding: 1rem;
+  }
+
+  .result-card {
+    padding: 1.25rem;
+  }
+
+  .rating-circle {
+    width: 130px;
+    height: 130px;
+  }
+
+  .rating-number {
+    font-size: 2.5rem;
+  }
+
+  .occasion-badge {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.75rem;
+  }
+}

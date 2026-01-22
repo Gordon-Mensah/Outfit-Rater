@@ -1,0 +1,24 @@
+/* ============================================
+   INDEX.CSS - Main Stylesheet (Simplified)
+   This file imports all component styles
+   ============================================ */
+
+/* Import Base Styles (shared across all pages) */
+@import './Base.css';
+
+/* Import Page-Specific Styles */
+@import './Auth.css';          /* Login & SignUp pages */
+@import './Rate.css';           /* Main rating interface */
+@import './RateResult.css';     /* Rating result page */
+@import './SavedOutfits.css';   /* Saved outfits page */
+@import './RatingHistory.css';  /* Rating history page */
+@import './ProfileSettings.css'; /* Profile settings page */
+@import './ReferralSystem.css';  /* Referral system page */
+
+/* Import Component Styles */
+@import './Components.css';     /* Hamburger menu, modals, etc */
+
+/* ============================================
+   That's it! All styles are now organized
+   into separate, maintainable files.
+   ============================================ */
