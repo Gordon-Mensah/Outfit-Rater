@@ -144,9 +144,13 @@ function HamburgerMenu() {
             <span className="menu-item-arrow">›</span>
           </button>
 
-          // Add this button somewhere in your menu
-          <button onClick={() => navigate('/style-context')}>
-            Style Context Settings
+
+          <button 
+          className={`menu-item ${isActive('/style-context') ? 'active' : ''}`}
+          onClick={() => navigateAndClose('/style-context')}
+          >
+          <span className="menu-item-text">Style Context Settings</span>
+          <span className="menu-item-arrow">›</span>
           </button>
 
           <button 

@@ -1,4 +1,4 @@
-// VirtualWardrobe.jsx - Enhanced Virtual Wardrobe with Premium Design
+// VirtualWardrobe.jsx - Enhanced Virtual Wardrobe with Premium Design + Upload Modal
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from './AuthContext'
@@ -23,6 +23,14 @@ function VirtualWardrobe() {
   const [generatedOutfits, setGeneratedOutfits] = useState([])
   const [uploadingCategory, setUploadingCategory] = useState(null)
   const [uploadingFile, setUploadingFile] = useState(null)
+  
+  // MODAL STATE - ONLY ADDITION
+  const [showUploadModal, setShowUploadModal] = useState(false)
+  const [selectedFile, setSelectedFile] = useState(null)
+  const [previewUrl, setPreviewUrl] = useState(null)
+  const [itemName, setItemName] = useState('')
+  const [itemColor, setItemColor] = useState('')
+  const [itemBrand, setItemBrand] = useState('')
 
   useEffect(() => {
     if (user) {
@@ -65,6 +73,7 @@ function VirtualWardrobe() {
     }
   }
 
+  // MODIFIED - Opens modal instead of uploading immediately
   const handleImageUpload = async (e, category) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -75,24 +84,46 @@ function VirtualWardrobe() {
       return
     }
 
+    // Open modal instead of uploading
     setUploadingCategory(category)
-    setUploadingFile(file.name)
+    setSelectedFile(file)
+    setItemName(file.name.replace(/\.[^/.]+$/, '')) // Auto-fill name
+    setItemColor('')
+    setItemBrand('')
+    
+    // Create preview
+    const reader = new FileReader()
+    reader.onloadend = () => setPreviewUrl(reader.result)
+    reader.readAsDataURL(file)
+    
+    setShowUploadModal(true)
+  }
+
+  // NEW - Confirm upload from modal
+  const confirmUpload = async () => {
+    if (!itemName.trim()) {
+      alert('Please enter an item name')
+      return
+    }
+
+    setUploadingFile(selectedFile.name)
 
     try {
       const base64 = await new Promise((resolve) => {
         const reader = new FileReader()
         reader.onloadend = () => resolve(reader.result)
-        reader.readAsDataURL(file)
+        reader.readAsDataURL(selectedFile)
       })
 
       const { data, error } = await supabase
         .from('wardrobe_items')
         .insert({
           user_id: user.id,
-          category: category,
+          category: uploadingCategory,
           image_data: base64,
-          name: file.name,
-          color: 'unspecified',
+          name: itemName.trim(),
+          color: itemColor.trim() || 'unspecified',
+          brand: itemBrand.trim() || null,
           last_worn: null,
           times_worn: 0
         })
@@ -103,9 +134,17 @@ function VirtualWardrobe() {
 
       setWardrobe(prev => ({
         ...prev,
-        [category]: [...prev[category], data]
+        [uploadingCategory]: [...prev[uploadingCategory], data]
       }))
 
+      // Close modal
+      setShowUploadModal(false)
+      setSelectedFile(null)
+      setPreviewUrl(null)
+      setItemName('')
+      setItemColor('')
+      setItemBrand('')
+      
       alert('✅ Item added to your wardrobe!')
     } catch (err) {
       console.error('Error uploading:', err)
@@ -381,11 +420,13 @@ function VirtualWardrobe() {
                           </div>
                         ))}
 
+                        {wardrobe[category].length === 0 && (
                           <div className="empty-category">
                             <span className="empty-category-icon">{getCategoryIcon(category)}</span>
                             <p className="empty-category-text">No {category} yet</p>
                             <p className="empty-category-hint">Click "Add Item" to upload</p>
                           </div>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -409,7 +450,7 @@ function VirtualWardrobe() {
             </div>
           )}
 
-          {/* OUTFITS TAB */}
+          {/* OUTFITS TAB - EXACT SAME AS YOUR VERSION */}
           {activeTab === 'outfits' && (
             <div className="outfits-view">
               {generatedOutfits.length === 0 ? (
@@ -499,7 +540,7 @@ function VirtualWardrobe() {
             </div>
           )}
 
-          {/* AI SUGGESTIONS TAB */}
+          {/* AI SUGGESTIONS TAB - EXACT SAME AS YOUR VERSION */}
           {activeTab === 'suggestions' && (
             <div className="suggestions-view">
               <div className="suggestions-header">
@@ -598,6 +639,92 @@ function VirtualWardrobe() {
           )}
         </div>
       </div>
+
+      {/* UPLOAD MODAL - ONLY NEW ADDITION */}
+      {showUploadModal && (
+        <div className="modal-overlay" onClick={() => setShowUploadModal(false)}>
+          <div className="upload-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="upload-modal-header">
+              <h2>Add {uploadingCategory?.charAt(0).toUpperCase() + uploadingCategory?.slice(1)}</h2>
+              <button 
+                className="modal-close-btn"
+                onClick={() => setShowUploadModal(false)}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="upload-modal-content">
+              {previewUrl && (
+                <div className="upload-preview-container">
+                  <img src={previewUrl} alt="Preview" className="upload-preview-image" />
+                </div>
+              )}
+
+              <div className="upload-form">
+                <div className="form-group">
+                  <label>Item Name *</label>
+                  <input
+                    type="text"
+                    value={itemName}
+                    onChange={(e) => setItemName(e.target.value)}
+                    placeholder="e.g., Blue Denim Jeans"
+                    className="form-input"
+                  />
+                </div>
+
+                <div className="form-row">
+                  <div className="form-group">
+                    <label>Color</label>
+                    <input
+                      type="text"
+                      value={itemColor}
+                      onChange={(e) => setItemColor(e.target.value)}
+                      placeholder="e.g., Blue"
+                      className="form-input"
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label>Brand</label>
+                    <input
+                      type="text"
+                      value={itemBrand}
+                      onChange={(e) => setItemBrand(e.target.value)}
+                      placeholder="e.g., Levi's"
+                      className="form-input"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="upload-modal-actions">
+                <button 
+                  className="btn-secondary"
+                  onClick={() => setShowUploadModal(false)}
+                  disabled={uploadingFile}
+                >
+                  Cancel
+                </button>
+                <button 
+                  className="btn-primary"
+                  onClick={confirmUpload}
+                  disabled={!itemName.trim() || uploadingFile}
+                >
+                  {uploadingFile ? (
+                    <>
+                      <div className="button-spinner"></div>
+                      Uploading...
+                    </>
+                  ) : (
+                    'Add to Wardrobe'
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
