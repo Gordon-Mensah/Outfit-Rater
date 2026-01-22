@@ -1,4 +1,4 @@
-// VirtualWardrobe.jsx - Virtual Wardrobe with AI Outfit Suggestions
+// VirtualWardrobe.jsx - Enhanced Virtual Wardrobe with Premium Design
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from './AuthContext'
@@ -11,7 +11,7 @@ function VirtualWardrobe() {
   const { user, isPremium } = useAuth()
   const navigate = useNavigate()
   
-  const [activeTab, setActiveTab] = useState('closet') // 'closet', 'outfits', 'suggestions'
+  const [activeTab, setActiveTab] = useState('closet')
   const [wardrobe, setWardrobe] = useState({
     tops: [],
     bottoms: [],
@@ -43,7 +43,6 @@ function VirtualWardrobe() {
       
       if (error) throw error
       
-      // Organize by category
       const organized = {
         tops: [],
         bottoms: [],
@@ -70,7 +69,6 @@ function VirtualWardrobe() {
     const file = e.target.files?.[0]
     if (!file) return
 
-    // Check premium limits
     const totalItems = Object.values(wardrobe).flat().length
     if (!isPremium && totalItems >= 20) {
       alert('⭐ Free users can add up to 20 items. Upgrade to Premium for unlimited wardrobe!')
@@ -81,14 +79,12 @@ function VirtualWardrobe() {
     setUploadingFile(file.name)
 
     try {
-      // Convert to base64
       const base64 = await new Promise((resolve) => {
         const reader = new FileReader()
         reader.onloadend = () => resolve(reader.result)
         reader.readAsDataURL(file)
       })
 
-      // Save to database
       const { data, error } = await supabase
         .from('wardrobe_items')
         .insert({
@@ -96,7 +92,7 @@ function VirtualWardrobe() {
           category: category,
           image_data: base64,
           name: file.name,
-          color: 'unspecified', // Could add color detection
+          color: 'unspecified',
           last_worn: null,
           times_worn: 0
         })
@@ -105,7 +101,6 @@ function VirtualWardrobe() {
 
       if (error) throw error
 
-      // Update local state
       setWardrobe(prev => ({
         ...prev,
         [category]: [...prev[category], data]
@@ -155,7 +150,6 @@ function VirtualWardrobe() {
     setActiveTab('outfits')
 
     try {
-      // Generate random combinations (simplified - real AI would be better)
       const outfits = []
       const { tops, bottoms, shoes, outerwear, accessories } = wardrobe
 
@@ -167,7 +161,7 @@ function VirtualWardrobe() {
           shoes: shoes[Math.floor(Math.random() * shoes.length)],
           outerwear: outerwear.length > 0 ? outerwear[Math.floor(Math.random() * outerwear.length)] : null,
           accessory: accessories.length > 0 ? accessories[Math.floor(Math.random() * accessories.length)] : null,
-          occasion: ['casual', 'work', 'date', 'night out'][Math.floor(Math.random() * 4)]
+          occasion: ['Casual', 'Work', 'Date Night', 'Night Out'][Math.floor(Math.random() * 4)]
         }
         outfits.push(outfit)
       }
@@ -185,10 +179,21 @@ function VirtualWardrobe() {
     return Object.values(wardrobe).flat().length
   }
 
+  const getCategoryIcon = (category) => {
+    const icons = {
+      tops: 'T',
+      bottoms: 'P',
+      shoes: 'S',
+      accessories: 'A',
+      outerwear: 'J'
+    }
+    return icons[category] || 'I'
+  }
+
   return (
     <div className="wardrobe-page">
       {/* Animated Background */}
-      <div className="landing-bg">
+      <div className="wardrobe-bg">
         <div className="gradient-orb orb-1"></div>
         <div className="gradient-orb orb-2"></div>
         <div className="gradient-orb orb-3"></div>
@@ -196,111 +201,137 @@ function VirtualWardrobe() {
       </div>
 
       <div className="wardrobe-content">
-        {/* Header */}
-        <div className="wardrobe-header">
-          <button onClick={() => navigate('/')} className="back-button">
-            ← Back to Dashboard
+        {/* Navigation Bar */}
+        <nav className="wardrobe-nav">
+          <button onClick={() => navigate('/rate')} className="nav-back-btn">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+              <path d="M12.5 15l-5-5 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            Back to Dashboard
           </button>
-          <div className="header">
-            <div className="header-text">
-              <h1 className="page-title">
-                👔 Virtual Wardrobe
-                <span className="premium-indicator">{isPremium ? '⭐ Premium' : '🆓 Free'}</span>
-              </h1>
-              <p className="page-subtitle">
-                Upload your clothes and get AI-powered outfit combinations
-              </p>
-            </div>
+          
+          <div className="nav-actions">
+            {!isPremium && (
+              <SimpleUpgradeButton 
+                text="Upgrade to Premium"
+                className="nav-upgrade-btn"
+              />
+            )}
             <HamburgerMenu />
           </div>
-        </div>
+        </nav>
 
-        {/* Stats Bar */}
-        <div className="wardrobe-stats-bar">
-          <div className="stat-box">
-            <div className="stat-number">{getTotalItems()}</div>
-            <div className="stat-label">Total Items</div>
-          </div>
-          <div className="stat-box">
-            <div className="stat-number">{wardrobe.tops.length}</div>
-            <div className="stat-label">Tops</div>
-          </div>
-          <div className="stat-box">
-            <div className="stat-number">{wardrobe.bottoms.length}</div>
-            <div className="stat-label">Bottoms</div>
-          </div>
-          <div className="stat-box">
-            <div className="stat-number">{wardrobe.shoes.length}</div>
-            <div className="stat-label">Shoes</div>
-          </div>
-          <div className="stat-box">
-            <div className="stat-number">{generatedOutfits.length}</div>
-            <div className="stat-label">Outfits</div>
-          </div>
-        </div>
+        {/* Header Section */}
+        <header className="wardrobe-header">
+          <div className="header-content">
+            <div className="header-badge">
+              <span className="badge-dot"></span>
+              {isPremium ? 'Premium Member' : 'Free Plan'}
+            </div>
+            <h1 className="header-title">
+              Virtual Wardrobe
+            </h1>
+            <p className="header-subtitle">
+              Upload your clothes and get AI-powered outfit combinations
+            </p>
 
-        {/* Storage Limit Warning */}
-        {!isPremium && getTotalItems() >= 15 && (
-          <div className="limit-warning-banner">
-            <span className="warning-icon">⚠️</span>
-            <div className="warning-text">
-              <strong>Storage Limit Warning:</strong> You're using {getTotalItems()}/20 free items.
-              <SimpleUpgradeButton 
-                text="Upgrade for Unlimited Storage"
-                className="inline-upgrade-btn"
-              />
+            {/* Stats */}
+            <div className="wardrobe-stats">
+              <div className="stat-card">
+                <div className="stat-value">{getTotalItems()}</div>
+                <div className="stat-label">Total Items</div>
+              </div>
+              <div className="stat-divider"></div>
+              <div className="stat-card">
+                <div className="stat-value">{generatedOutfits.length}</div>
+                <div className="stat-label">Outfits</div>
+              </div>
+              <div className="stat-divider"></div>
+              <div className="stat-card">
+                <div className="stat-value">{isPremium ? '∞' : '20'}</div>
+                <div className="stat-label">Item Limit</div>
+              </div>
             </div>
           </div>
-        )}
+        </header>
 
         {/* Tab Navigation */}
-        <div className="wardrobe-tabs">
-          <button
+        <div className="tab-navigation">
+          <button 
             className={`tab-btn ${activeTab === 'closet' ? 'active' : ''}`}
             onClick={() => setActiveTab('closet')}
           >
-            <span className="tab-icon">👕</span>
-            <span>My Closet</span>
-            <span className="tab-count">{getTotalItems()}</span>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <rect x="3" y="3" width="18" height="18" rx="2" strokeWidth="2"/>
+              <line x1="12" y1="3" x2="12" y2="21" strokeWidth="2"/>
+            </svg>
+            My Closet
           </button>
-          <button
+          <button 
             className={`tab-btn ${activeTab === 'outfits' ? 'active' : ''}`}
             onClick={() => setActiveTab('outfits')}
           >
-            <span className="tab-icon">✨</span>
-            <span>Generated Outfits</span>
-            <span className="tab-count">{generatedOutfits.length}</span>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="M12 2L2 7l10 5 10-5-10-5z" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M2 17l10 5 10-5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M2 12l10 5 10-5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            Outfits ({generatedOutfits.length})
           </button>
-          <button
+          <button 
             className={`tab-btn ${activeTab === 'suggestions' ? 'active' : ''}`}
             onClick={() => setActiveTab('suggestions')}
           >
-            <span className="tab-icon">💡</span>
-            <span>AI Suggestions</span>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <circle cx="12" cy="12" r="3" strokeWidth="2"/>
+              <path d="M12 1v6m0 6v6M4.22 4.22l4.24 4.24m5.08 5.08l4.24 4.24M1 12h6m6 0h6M4.22 19.78l4.24-4.24m5.08-5.08l4.24-4.24" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
+            AI Suggestions
           </button>
         </div>
 
-        {/* Tab Content */}
-        <div className="wardrobe-tab-content">
+        {/* Main Content Area */}
+        <div className="content-area">
+          {loading && (
+            <div className="loading-state">
+              <div className="spinner"></div>
+              <p>Loading your wardrobe...</p>
+            </div>
+          )}
+
           {/* MY CLOSET TAB */}
-          {activeTab === 'closet' && (
+          {!loading && activeTab === 'closet' && (
             <div className="closet-view">
-              {loading ? (
-                <div className="loading-state">
-                  <div className="spinner"></div>
-                  <p>Loading your wardrobe...</p>
+              {getTotalItems() === 0 ? (
+                <div className="empty-wardrobe">
+                  <div className="empty-icon">
+                    <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                      <rect x="3" y="3" width="18" height="18" rx="2" strokeWidth="2"/>
+                      <line x1="12" y1="3" x2="12" y2="21" strokeWidth="2"/>
+                    </svg>
+                  </div>
+                  <h3>Your Wardrobe is Empty</h3>
+                  <p>Start building your digital wardrobe by uploading your first clothing item</p>
+                  <div className="empty-stats">
+                    <span>Upload photos of your clothes</span>
+                    <span>Get AI outfit suggestions</span>
+                    <span>Never wonder what to wear again</span>
+                  </div>
                 </div>
               ) : (
                 <>
-                  {['tops', 'bottoms', 'shoes', 'outerwear', 'accessories'].map(category => (
+                  {Object.keys(wardrobe).map(category => (
                     <div key={category} className="category-section">
                       <div className="category-header">
-                        <h3 className="category-title">
-                          {category.charAt(0).toUpperCase() + category.slice(1)}
-                          <span className="item-count">({wardrobe[category].length})</span>
-                        </h3>
+                        <div className="category-title-group">
+                          <span className="category-icon">{getCategoryIcon(category)}</span>
+                          <h3 className="category-title">
+                            {category.charAt(0).toUpperCase() + category.slice(1)}
+                          </h3>
+                          <span className="category-count">{wardrobe[category].length} items</span>
+                        </div>
                         
-                        <label className="upload-btn">
+                        <label className="upload-label">
                           <input
                             type="file"
                             accept="image/*"
@@ -308,27 +339,40 @@ function VirtualWardrobe() {
                             disabled={uploadingCategory === category}
                             style={{ display: 'none' }}
                           />
-                          {uploadingCategory === category ? (
-                            <span>📤 Uploading...</span>
-                          ) : (
-                            <span>➕ Add Item</span>
-                          )}
+                          <span className="upload-btn">
+                            {uploadingCategory === category ? (
+                              <>
+                                <div className="button-spinner"></div>
+                                Uploading...
+                              </>
+                            ) : (
+                              <>
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                  <path d="M12 5v14m-7-7h14" strokeWidth="2" strokeLinecap="round"/>
+                                </svg>
+                                Add Item
+                              </>
+                            )}
+                          </span>
                         </label>
                       </div>
 
                       <div className="items-grid">
                         {wardrobe[category].map(item => (
-                          <div key={item.id} className="wardrobe-item-card">
-                            <div className="item-image-wrapper">
-                              <img src={item.image_data} alt={item.name} />
+                          <div key={item.id} className="item-card">
+                            <div className="item-image-container">
+                              <img src={item.image_data} alt={item.name} className="item-image" />
                               <button
-                                className="delete-item-btn"
+                                className="delete-btn"
                                 onClick={() => deleteItem(item.id, category)}
+                                title="Remove item"
                               >
-                                🗑️
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                  <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" strokeWidth="2" strokeLinecap="round"/>
+                                </svg>
                               </button>
                             </div>
-                            <div className="item-info">
+                            <div className="item-details">
                               <p className="item-name">{item.name}</p>
                               {item.times_worn > 0 && (
                                 <p className="item-worn">Worn {item.times_worn}x</p>
@@ -337,13 +381,11 @@ function VirtualWardrobe() {
                           </div>
                         ))}
 
-                        {wardrobe[category].length === 0 && (
                           <div className="empty-category">
-                            <p className="empty-icon">📦</p>
-                            <p className="empty-text">No {category} yet</p>
-                            <p className="empty-hint">Upload your first item to get started</p>
+                            <span className="empty-category-icon">{getCategoryIcon(category)}</span>
+                            <p className="empty-category-text">No {category} yet</p>
+                            <p className="empty-category-hint">Click "Add Item" to upload</p>
                           </div>
-                        )}
                       </div>
                     </div>
                   ))}
@@ -351,10 +393,14 @@ function VirtualWardrobe() {
                   {getTotalItems() >= 3 && (
                     <div className="generate-section">
                       <button
-                        className="btn-generate-outfits"
+                        className="btn-generate"
                         onClick={generateOutfits}
                       >
-                        ✨ Generate Outfit Combinations
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                          <circle cx="12" cy="12" r="3" strokeWidth="2"/>
+                          <path d="M12 1v6m0 6v6M4.22 4.22l4.24 4.24m5.08 5.08l4.24 4.24M1 12h6m6 0h6M4.22 19.78l4.24-4.24m5.08-5.08l4.24-4.24" strokeWidth="2" strokeLinecap="round"/>
+                        </svg>
+                        Generate AI Outfit Combinations
                       </button>
                     </div>
                   )}
@@ -363,16 +409,21 @@ function VirtualWardrobe() {
             </div>
           )}
 
-          {/* GENERATED OUTFITS TAB */}
+          {/* OUTFITS TAB */}
           {activeTab === 'outfits' && (
             <div className="outfits-view">
               {generatedOutfits.length === 0 ? (
-                <div className="empty-outfits">
-                  <div className="empty-icon">✨</div>
-                  <h3>No Outfits Generated Yet</h3>
-                  <p>Add at least 3 items to your wardrobe and click "Generate Outfit Combinations"</p>
+                <div className="empty-state">
+                  <div className="empty-icon">
+                    <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                      <circle cx="12" cy="12" r="3" strokeWidth="2"/>
+                      <path d="M12 1v6m0 6v6M4.22 4.22l4.24 4.24m5.08 5.08l4.24 4.24M1 12h6m6 0h6M4.22 19.78l4.24-4.24m5.08-5.08l4.24-4.24" strokeWidth="2" strokeLinecap="round"/>
+                    </svg>
+                  </div>
+                  <h3>No Outfits Yet</h3>
+                  <p>Generate AI-powered outfit combinations from your wardrobe</p>
                   <button
-                    className="btn-go-to-closet"
+                    className="btn-primary"
                     onClick={() => setActiveTab('closet')}
                   >
                     Go to My Closet
@@ -381,53 +432,64 @@ function VirtualWardrobe() {
               ) : (
                 <>
                   <div className="outfits-header">
-                    <h2>AI-Generated Outfit Combinations</h2>
-                    <button className="btn-refresh-outfits" onClick={generateOutfits}>
-                      🔄 Generate New Outfits
+                    <div>
+                      <h2 className="outfits-title">AI-Generated Combinations</h2>
+                      <p className="outfits-subtitle">Perfectly matched outfits from your wardrobe</p>
+                    </div>
+                    <button className="btn-refresh" onClick={generateOutfits}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0118.8-4.3M22 12.5a10 10 0 01-18.8 4.2" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                      Regenerate
                     </button>
                   </div>
 
                   <div className="outfits-grid">
                     {generatedOutfits.map((outfit, index) => (
-                      <div key={outfit.id} className="outfit-combo-card">
-                        <div className="outfit-number">Outfit #{index + 1}</div>
-                        <div className="outfit-occasion-badge">{outfit.occasion}</div>
+                      <div key={outfit.id} className="outfit-card">
+                        <div className="outfit-header">
+                          <span className="outfit-number">#{index + 1}</span>
+                          <span className="outfit-occasion">{outfit.occasion}</span>
+                        </div>
                         
                         <div className="outfit-items">
                           {outfit.top && (
                             <div className="outfit-item">
                               <img src={outfit.top.image_data} alt="Top" />
-                              <span className="item-label">Top</span>
+                              <span className="outfit-item-label">Top</span>
                             </div>
                           )}
                           {outfit.bottom && (
                             <div className="outfit-item">
                               <img src={outfit.bottom.image_data} alt="Bottom" />
-                              <span className="item-label">Bottom</span>
+                              <span className="outfit-item-label">Bottom</span>
                             </div>
                           )}
                           {outfit.shoes && (
                             <div className="outfit-item">
                               <img src={outfit.shoes.image_data} alt="Shoes" />
-                              <span className="item-label">Shoes</span>
+                              <span className="outfit-item-label">Shoes</span>
                             </div>
                           )}
                           {outfit.outerwear && (
                             <div className="outfit-item">
                               <img src={outfit.outerwear.image_data} alt="Outerwear" />
-                              <span className="item-label">Outerwear</span>
+                              <span className="outfit-item-label">Outerwear</span>
                             </div>
                           )}
                           {outfit.accessory && (
                             <div className="outfit-item">
                               <img src={outfit.accessory.image_data} alt="Accessory" />
-                              <span className="item-label">Accessory</span>
+                              <span className="outfit-item-label">Accessory</span>
                             </div>
                           )}
                         </div>
 
-                        <button className="btn-rate-outfit">
-                          Rate This Outfit →
+                        <button className="btn-rate-outfit" onClick={() => navigate('/rate')}>
+                          Rate This Outfit
+                          <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor">
+                            <path d="M4 10h12m0 0l-4-4m4 4l-4 4" strokeWidth="2" strokeLinecap="round"/>
+                          </svg>
                         </button>
                       </div>
                     ))}
@@ -441,49 +503,83 @@ function VirtualWardrobe() {
           {activeTab === 'suggestions' && (
             <div className="suggestions-view">
               <div className="suggestions-header">
-                <h2>🤖 AI Shopping Suggestions</h2>
-                <p>Based on your current wardrobe, here's what might complete your style</p>
+                <h2 className="suggestions-title">AI Shopping Suggestions</h2>
+                <p className="suggestions-subtitle">Complete your wardrobe with these recommendations</p>
               </div>
 
               <div className="suggestions-grid">
                 <div className="suggestion-card">
-                  <div className="suggestion-icon">👕</div>
-                  <h3>Missing Basics</h3>
+                  <div className="suggestion-header">
+                    <span className="suggestion-icon">
+                      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M12 2L2 7l10 5 10-5-10-5z" strokeWidth="2"/>
+                        <path d="M2 12l10 5 10-5M2 17l10 5 10-5" strokeWidth="2"/>
+                      </svg>
+                    </span>
+                    <h3>Missing Basics</h3>
+                  </div>
                   <p>You could use more neutral-colored tops. Consider adding:</p>
                   <ul className="suggestion-list">
                     <li>White button-down shirt</li>
                     <li>Black t-shirt</li>
                     <li>Navy sweater</li>
                   </ul>
-                  <span className="suggestion-priority high">High Priority</span>
+                  <span className="priority-badge high">High Priority</span>
                 </div>
 
                 <div className="suggestion-card">
-                  <div className="suggestion-icon">👞</div>
-                  <h3>Shoe Gap</h3>
+                  <div className="suggestion-header">
+                    <span className="suggestion-icon">
+                      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M4 8l8-4 8 4" strokeWidth="2"/>
+                        <path d="M4 12l8 4 8-4M4 16l8 4 8-4" strokeWidth="2"/>
+                      </svg>
+                    </span>
+                    <h3>Shoe Gap</h3>
+                  </div>
                   <p>Expand your footwear options with:</p>
                   <ul className="suggestion-list">
                     <li>Casual white sneakers</li>
                     <li>Dress shoes for formal events</li>
                   </ul>
-                  <span className="suggestion-priority medium">Medium Priority</span>
+                  <span className="priority-badge medium">Medium Priority</span>
                 </div>
 
                 <div className="suggestion-card">
-                  <div className="suggestion-icon">🧥</div>
-                  <h3>Weather Protection</h3>
+                  <div className="suggestion-header">
+                    <span className="suggestion-icon">
+                      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M12 2a4 4 0 00-4 4v4H4v12h16V10h-4V6a4 4 0 00-4-4z" strokeWidth="2"/>
+                        <path d="M8 10v3m8-3v3" strokeWidth="2"/>
+                      </svg>
+                    </span>
+                    <h3>Weather Protection</h3>
+                  </div>
                   <p>Don't forget seasonal essentials:</p>
                   <ul className="suggestion-list">
                     <li>Light rain jacket</li>
                     <li>Winter coat</li>
                   </ul>
-                  <span className="suggestion-priority low">Low Priority</span>
+                  <span className="priority-badge low">Low Priority</span>
                 </div>
 
-                <div className="suggestion-card premium-suggestion">
-                  <div className="lock-icon">🔒</div>
-                  <h3>Premium AI Analysis</h3>
-                  <p>Unlock advanced AI wardrobe analysis including:</p>
+                <div className="suggestion-card premium-card">
+                  <div className="premium-overlay">
+                    <svg className="lock-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" strokeWidth="2"/>
+                      <path d="M7 11V7a5 5 0 0110 0v4" strokeWidth="2" strokeLinecap="round"/>
+                    </svg>
+                  </div>
+                  <div className="suggestion-header">
+                    <span className="suggestion-icon">
+                      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <circle cx="12" cy="12" r="3" strokeWidth="2"/>
+                        <path d="M12 1v6m0 6v6M4.22 4.22l4.24 4.24m5.08 5.08l4.24 4.24M1 12h6m6 0h6M4.22 19.78l4.24-4.24m5.08-5.08l4.24-4.24" strokeWidth="2" strokeLinecap="round"/>
+                      </svg>
+                    </span>
+                    <h3>Premium AI Analysis</h3>
+                  </div>
+                  <p>Unlock advanced AI wardrobe analysis:</p>
                   <ul className="suggestion-list">
                     <li>Color palette analysis</li>
                     <li>Style consistency scoring</li>
