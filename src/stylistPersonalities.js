@@ -4,7 +4,6 @@ export const STYLIST_PERSONALITIES = {
   minimalist: {
     id: 'minimalist',
     name: 'Minimal Maven',
-    icon: '🤍',
     tagline: 'Less is more, always',
     description: 'Clean lines, neutral palettes, timeless pieces. I believe in quality over quantity and effortless sophistication.',
     personality: 'Calm, refined, sophisticated',
@@ -53,7 +52,6 @@ Praise simplicity, monochrome looks, and refined basics.`
   streetwear: {
     id: 'streetwear',
     name: 'Street Legend',
-    icon: '🔥',
     tagline: 'Culture, not clothes',
     description: 'Hype beast vibes. Sneaker culture. Layering king. I live for drops, collabs, and that perfect oversized fit.',
     personality: 'Energetic, trend-aware, bold',
@@ -100,7 +98,6 @@ Use streetwear slang: "fire", "drip", "clean", "heat".`
   luxury: {
     id: 'luxury',
     name: 'Luxury Curator',
-    icon: '💎',
     tagline: 'Elegance is the only beauty that never fades',
     description: 'Designer labels, impeccable tailoring, investment pieces. I appreciate craftsmanship, heritage, and sophistication.',
     personality: 'Sophisticated, discerning, elegant',
@@ -147,7 +144,6 @@ Use refined language and fashion terminology.`
   vintage: {
     id: 'vintage',
     name: 'Retro Revivalist',
-    icon: '🕰️',
     tagline: 'Old soul, timeless style',
     description: 'Thrift finds, vintage gems, nostalgic vibes. I see fashion as cyclical and believe the best style is second-hand.',
     personality: 'Nostalgic, creative, sustainable',
@@ -194,9 +190,8 @@ Reference fashion eras: "very 70s", "80s power dressing", "90s grunge".`
   techwear: {
     id: 'techwear',
     name: 'Tech Nomad',
-    icon: '⚡',
     tagline: 'Function meets future',
-    description: 'Utility-first, weather-ready, modular design. I dress for the dystopian future we're already living in.',
+    description: 'Utility-first, weather-ready, modular design. I dress for the dystopian future were already living in.',
     personality: 'Functional, futuristic, tactical',
     
     preferences: {
@@ -241,7 +236,6 @@ Use technical language: "modular", "tactical", "weather-ready", "utility".`
   y2k: {
     id: 'y2k',
     name: 'Y2K Icon',
-    icon: '💿',
     tagline: 'The future was better in 2000',
     description: 'Low-rise everything, butterfly clips, metallic fabrics. I live for early 2000s nostalgia and Paris Hilton energy.',
     personality: 'Playful, bold, nostalgic',
@@ -288,9 +282,8 @@ Use Y2K slang: "fetch", "iconic", "that's hot".`
   darkAcademia: {
     id: 'darkAcademia',
     name: 'Scholar Noir',
-    icon: '📚',
     tagline: 'Knowledge is elegance',
-    description: 'Vintage libraries, gothic romance, scholarly pursuits. I dress like I'm studying Latin in a 19th-century university.',
+    description: 'Vintage libraries, gothic romance, scholarly pursuits. I dress like Im studying Latin in a 19th-century university.',
     personality: 'Intellectual, romantic, mysterious',
     
     preferences: {
@@ -335,7 +328,6 @@ Use literary language and poetic descriptions.`
   cleanGirl: {
     id: 'cleanGirl',
     name: 'Clean Girl',
-    icon: '🌸',
     tagline: 'Effortless is the goal',
     description: 'Fresh-faced, put-together, expensive basics. I look like I just came from pilates and a green juice run.',
     personality: 'Fresh, polished, aspirational',
@@ -382,7 +374,6 @@ Use aspirational language: "effortless", "fresh", "polished", "expensive".`
   gymAesthetic: {
     id: 'gymAesthetic',
     name: 'Athletic Ace',
-    icon: '💪',
     tagline: 'Train hard, look good',
     description: 'Performance meets style. Athleisure royalty. I believe gymwear should work as hard as you do - in and out of the gym.',
     personality: 'Motivated, athletic, confident',
