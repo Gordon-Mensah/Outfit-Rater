@@ -1,4 +1,4 @@
-// HamburgerMenu.jsx - Fixed logout functionality
+// HamburgerMenu.jsx - Updated with AI Closet Simulator
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from './AuthContext'
@@ -32,28 +32,20 @@ function HamburgerMenu() {
   }, [isOpen])
 
   const handleLogout = async () => {
-    if (isLoggingOut) return // Prevent double clicks
+    if (isLoggingOut) return
     
     setIsLoggingOut(true)
     
     try {
-      // Clear all storage first
       localStorage.clear()
       sessionStorage.clear()
-      
-      // Sign out from Supabase
       await signOut()
-      
-      // Force navigate to login page
       navigate('/login', { replace: true })
-      
-      // Small delay then reload to ensure clean state
       setTimeout(() => {
         window.location.href = '/login'
       }, 100)
     } catch (error) {
       console.error('Logout error:', error)
-      // Even if there's an error, still redirect
       window.location.href = '/login'
     }
   }
@@ -113,7 +105,7 @@ function HamburgerMenu() {
         {/* Menu Items */}
         <nav className="menu-nav">
           <button 
-            className={`menu-item ${isActive('/') ? 'active' : ''}`}
+            className={`menu-item ${isActive('/') || isActive('/rate') ? 'active' : ''}`}
             onClick={() => navigateAndClose('/')}
           >
             <span className="menu-item-text">Dashboard</span>
@@ -144,13 +136,34 @@ function HamburgerMenu() {
             <span className="menu-item-arrow">›</span>
           </button>
 
+          {/* 🔥 NEW: AI Closet Simulator */}
+          <button 
+            className={`menu-item ${isActive('/closet-simulator') ? 'active' : ''}`}
+            onClick={() => navigateAndClose('/closet-simulator')}
+          >
+            <span className="menu-item-text">AI Closet Simulator</span>
+            {isPremium ? (
+              <span className="menu-item-badge premium-badge-mini">⭐</span>
+            ) : (
+              <span className="menu-item-badge new-badge">New</span>
+            )}
+            <span className="menu-item-arrow">›</span>
+          </button>
 
           <button 
-          className={`menu-item ${isActive('/style-context') ? 'active' : ''}`}
-          onClick={() => navigateAndClose('/style-context')}
+            className={`menu-item ${isActive('/fashion-chat') ? 'active' : ''}`}
+            onClick={() => navigateAndClose('/fashion-chat')}
           >
-          <span className="menu-item-text">Style Context Settings</span>
-          <span className="menu-item-arrow">›</span>
+            <span className="menu-item-text">AI Style Chat</span>
+            <span className="menu-item-arrow">›</span>
+          </button>
+
+          <button 
+            className={`menu-item ${isActive('/style-context') ? 'active' : ''}`}
+            onClick={() => navigateAndClose('/style-context')}
+          >
+            <span className="menu-item-text">Style Context</span>
+            <span className="menu-item-arrow">›</span>
           </button>
 
           <button 
@@ -172,7 +185,7 @@ function HamburgerMenu() {
           {!isPremium && (
             <>
               <div className="menu-divider"></div>
-             <SimpleUpgradeButton 
+              <SimpleUpgradeButton 
                 text="Upgrade to Premium"
                 billingCycle="monthly"
                 className="btn-upgrade-small"

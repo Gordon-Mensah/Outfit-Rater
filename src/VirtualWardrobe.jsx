@@ -1,15 +1,21 @@
-// VirtualWardrobe.jsx - Enhanced with Quick Upload & Auto Location Weather
+// VirtualWardrobe.jsx - Complete with Style Memory System
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from './AuthContext'
 import { supabase } from './supabaseClient'
 import HamburgerMenu from './Hamburgermenu'
 import SimpleUpgradeButton from './SimpleUpgradeButton'
+import StyleInsights from './StyleInsights'
 import './VirtualWardrobe.css'
 import { 
   getUserWeatherTwoDays, 
   getTodayTomorrowOutfits 
 } from './weatherIntegration'
+import { 
+  createEmptyStyleProfile,
+  trackStyleAction,
+  extractStyleAttributes 
+} from './styleMemory'
 
 
 function VirtualWardrobe() {
@@ -24,6 +30,10 @@ function VirtualWardrobe() {
     accessories: [],
     outerwear: []
   })
+  
+  // ✨ Style Memory State
+  const [styleProfile, setStyleProfile] = useState(null)
+  
   const [loading, setLoading] = useState(true)
   const [generatedOutfits, setGeneratedOutfits] = useState([])
   const [uploadingCategory, setUploadingCategory] = useState(null)
@@ -41,10 +51,15 @@ function VirtualWardrobe() {
   const [weather, setWeather] = useState(null)
   const [locationPermission, setLocationPermission] = useState(null)
   const [loadingWeather, setLoadingWeather] = useState(false)
+  const [twoDayWeather, setTwoDayWeather] = useState(null)
+  const [twoDayOutfits, setTwoDayOutfits] = useState(null)
 
+  // Load wardrobe and weather on mount
   useEffect(() => {
     if (user) {
       loadWardrobe()
+      loadStyleProfile()
+      loadTwoDayWeather()
       requestLocationAndWeather()
     }
   }, [user])
@@ -83,35 +98,74 @@ function VirtualWardrobe() {
       setLoading(false)
     }
   }
-  
-    const [twoDayWeather, setTwoDayWeather] = useState(null)
-    const [twoDayOutfits, setTwoDayOutfits] = useState(null)
 
-    const loadTwoDayWeather = async () => {
+  // ✨ Load user's style profile
+  const loadStyleProfile = async () => {
+    if (!user) return
+    
     try {
-        const { weather } = await getUserWeatherTwoDays()
-        setTwoDayWeather(weather)
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('style_profile')
+        .eq('id', user.id)
+        .single()
+      
+      if (error) throw error
+      
+      if (data?.style_profile) {
+        setStyleProfile(data.style_profile)
+        console.log('✅ Style profile loaded, learning score:', data.style_profile.stats.learningScore)
+      } else {
+        // Create new empty profile
+        const newProfile = createEmptyStyleProfile()
+        setStyleProfile(newProfile)
+        
+        // Save to database
+        await supabase
+          .from('profiles')
+          .update({ style_profile: newProfile })
+          .eq('id', user.id)
+        
+        console.log('✅ New style profile created')
+      }
+    } catch (err) {
+      console.error('Error loading style profile:', err)
+    }
+  }
 
-        const outfits = getTodayTomorrowOutfits(
+  // ✨ Save style profile to database
+  const saveStyleProfile = async (updatedProfile) => {
+    if (!user) return
+    
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ style_profile: updatedProfile })
+        .eq('id', user.id)
+      
+      if (error) throw error
+      console.log('✅ Style profile saved')
+    } catch (err) {
+      console.error('Error saving style profile:', err)
+    }
+  }
+
+  const loadTwoDayWeather = async () => {
+    try {
+      const { weather } = await getUserWeatherTwoDays()
+      setTwoDayWeather(weather)
+
+      const outfits = getTodayTomorrowOutfits(
         wardrobe,
         weather.today,
         weather.tomorrow
-        )
+      )
 
-        setTwoDayOutfits(outfits)
+      setTwoDayOutfits(outfits)
     } catch (err) {
-        console.error("Two-day weather error:", err)
+      console.error("Two-day weather error:", err)
     }
-    }
-
-    useEffect(() => {
-    if (user) {
-        loadWardrobe()
-        loadTwoDayWeather()
-    }
-    }, [user])
-
-
+  }
 
   const requestLocationAndWeather = async () => {
     setLoadingWeather(true)
@@ -132,7 +186,7 @@ function VirtualWardrobe() {
       const { latitude, longitude } = position.coords
       
       // Fetch weather from OpenWeatherMap API
-      const API_KEY = '405a09c9d260cec7f7e77ed429e079b5' // You'll need to add your API key
+      const API_KEY = '405a09c9d260cec7f7e77ed429e079b5'
       const response = await fetch(
         `https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&units=metric&appid=${API_KEY}`
       )
@@ -156,7 +210,6 @@ function VirtualWardrobe() {
           icon: weatherIcons[data.weather[0].main] || '🌤️'
         })
       } else {
-        // Fallback to demo weather
         setWeather({
           temp: 22,
           condition: 'Clear',
@@ -166,7 +219,6 @@ function VirtualWardrobe() {
     } catch (error) {
       setLocationPermission('denied')
       console.log('Location permission denied or error:', error)
-      // Show demo weather
       setWeather({
         temp: 22,
         condition: 'Clear',
@@ -178,14 +230,12 @@ function VirtualWardrobe() {
   }
 
   const handleQuickUpload = () => {
-    // Trigger file input for quick upload from empty state
     const input = document.createElement('input')
     input.type = 'file'
     input.accept = 'image/*'
     input.onchange = (e) => {
       const file = e.target.files?.[0]
       if (file) {
-        // Default to 'tops' category for quick upload
         handleImageUpload({ target: { files: [file] } }, 'tops')
       }
     }
@@ -198,7 +248,7 @@ function VirtualWardrobe() {
 
     const totalItems = Object.values(wardrobe).flat().length
     if (!isPremium && totalItems >= 20) {
-      alert(' Free users can add up to 20 items. Upgrade to Premium for unlimited wardrobe!')
+      alert('⭐ Free users can add up to 20 items. Upgrade to Premium for unlimited wardrobe!')
       return
     }
 
@@ -254,6 +304,21 @@ function VirtualWardrobe() {
         [uploadingCategory]: [...prev[uploadingCategory], data]
       }))
 
+      // ✨ Track upload action in Style Memory
+      if (styleProfile) {
+        const updatedProfile = trackStyleAction(
+          styleProfile,
+          'UPLOAD',
+          data,
+          {}
+        )
+        
+        setStyleProfile(updatedProfile)
+        await saveStyleProfile(updatedProfile)
+        
+        console.log('✅ Tracked upload, learning score:', updatedProfile.stats.learningScore)
+      }
+
       // Close modal
       setShowUploadModal(false)
       setSelectedFile(null)
@@ -262,7 +327,7 @@ function VirtualWardrobe() {
       setItemColor('')
       setItemBrand('')
       
-      alert(' Item added to your wardrobe!')
+      alert('✅ Item added to your wardrobe!')
     } catch (err) {
       console.error('Error uploading:', err)
       alert('Failed to add item. Please try again.')
@@ -271,10 +336,30 @@ function VirtualWardrobe() {
       setUploadingFile(null)
     }
   }
+
   const deleteItem = async (itemId, category) => {
     if (!confirm('Remove this item from your wardrobe?')) return
 
     try {
+      // ✨ Track delete action BEFORE deleting (so we have item data)
+      if (styleProfile) {
+        const itemToDelete = wardrobe[category].find(item => item.id === itemId)
+        
+        if (itemToDelete) {
+          const updatedProfile = trackStyleAction(
+            styleProfile,
+            'DELETE',
+            itemToDelete,
+            {}
+          )
+          
+          setStyleProfile(updatedProfile)
+          await saveStyleProfile(updatedProfile)
+          
+          console.log('✅ Tracked delete, user avoids:', itemToDelete.color)
+        }
+      }
+
       const { error } = await supabase
         .from('wardrobe_items')
         .delete()
@@ -431,7 +516,7 @@ function VirtualWardrobe() {
           </div>
         </header>
 
-        {/* Weather Widget (if available) */}
+        {/* Weather Widget */}
         {weather && !loadingWeather && (
           <div className="weather-widget">
             <div className="weather-info">
@@ -470,6 +555,16 @@ function VirtualWardrobe() {
           </div>
         )}
 
+        {/* ✨ Style Insights Component */}
+        {styleProfile && (
+          <StyleInsights 
+            onGeneratePersonalized={(recommendation) => {
+              console.log('User wants personalized outfit:', recommendation)
+              generateOutfits()
+            }}
+          />
+        )}
+
         {/* Tab Navigation */}
         <div className="tab-navigation">
           <button 
@@ -493,16 +588,6 @@ function VirtualWardrobe() {
             </svg>
             Outfits ({generatedOutfits.length})
           </button>
-          <button 
-            className={`tab-btn ${activeTab === 'insights' ? 'active' : ''}`}
-            onClick={() => setActiveTab('insights')}
-          >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <circle cx="12" cy="12" r="3" strokeWidth="2"/>
-              <path d="M12 1v6m0 6v6M4.22 4.22l4.24 4.24m5.08 5.08l4.24 4.24M1 12h6m6 0h6M4.22 19.78l4.24-4.24m5.08-5.08l4.24-4.24" strokeWidth="2" strokeLinecap="round"/>
-            </svg>
-            AI Insights
-          </button>
         </div>
 
         {/* Main Content Area */}
@@ -521,12 +606,11 @@ function VirtualWardrobe() {
                   <h3>Your Wardrobe is Empty</h3>
                   <p>Start building your digital wardrobe by uploading your first clothing item</p>
                   <div className="empty-stats">
-                    <span> Upload photos of your clothes</span>
-                    <span> Get AI outfit suggestions</span>
-                    <span> Never wonder what to wear again</span>
+                    <span>✨ Upload photos of your clothes</span>
+                    <span>✨ Get AI outfit suggestions</span>
+                    <span>✨ Never wonder what to wear again</span>
                   </div>
                   
-                  {/* Add Quick Upload Button */}
                   <div style={{marginTop: '2rem', display: 'flex', flexDirection: 'column', gap: '1rem', maxWidth: '400px', margin: '2rem auto 0'}}>
                     <button className="btn-primary" onClick={handleQuickUpload}>
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -534,32 +618,29 @@ function VirtualWardrobe() {
                       </svg>
                       Upload Your First Item
                     </button>
-                    <p style={{fontSize: '0.875rem', color: 'var(--text-tertiary)', margin: 0}}>
-                      {isPremium ? 'Unlimited items' : 'Free users: 20 items max'}
-                    </p>
                   </div>
                 </div>
               ) : (
                 <>
-                  {categories.map(category => (
-                    <div key={category.id} className="category-section">
+                  {categories.map(cat => (
+                    <div key={cat.id} className="category-section">
                       <div className="category-header">
                         <div className="category-title-group">
-                          <span className="category-icon">{category.icon}</span>
-                          <h3 className="category-title">{category.name}</h3>
-                          <span className="category-count">{wardrobe[category.id].length} items</span>
+                          <span className="category-icon">{cat.icon}</span>
+                          <h3 className="category-title">{cat.name}</h3>
+                          <span className="category-count">{wardrobe[cat.id].length} items</span>
                         </div>
                         
                         <label className="upload-label">
                           <input
                             type="file"
                             accept="image/*"
-                            onChange={(e) => handleImageUpload(e, category.id)}
-                            disabled={uploadingCategory === category.id}
+                            onChange={(e) => handleImageUpload(e, cat.id)}
+                            disabled={uploadingCategory === cat.id}
                             style={{ display: 'none' }}
                           />
                           <span className="upload-btn">
-                            {uploadingCategory === category.id ? (
+                            {uploadingCategory === cat.id ? (
                               <>
                                 <div className="button-spinner"></div>
                                 Uploading...
@@ -577,25 +658,25 @@ function VirtualWardrobe() {
                       </div>
 
                       <div className="items-grid">
-                        {wardrobe[category.id].map(item => (
+                        {wardrobe[cat.id].map(item => (
                           <div key={item.id} className="item-card">
                             <div className="item-image-container">
                               <img src={item.image_data} alt={item.name} className="item-image" />
                               <button
                                 className="delete-btn"
-                                onClick={() => deleteItem(item.id, category.id)}
+                                onClick={() => deleteItem(item.id, cat.id)}
                                 title="Remove item"
                               >
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                                   <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" strokeWidth="2" strokeLinecap="round"/>
                                 </svg>
                               </button>
-                              {item.color && item.color !== 'unspecified' && (
-                                <div className="color-badge">{item.color}</div>
-                              )}
                             </div>
                             <div className="item-details">
                               <p className="item-name">{item.name}</p>
+                              {item.color && item.color !== 'unspecified' && (
+                                <p className="item-color">{item.color}</p>
+                              )}
                               {item.times_worn > 0 && (
                                 <p className="item-worn">Worn {item.times_worn}x</p>
                               )}
@@ -603,10 +684,10 @@ function VirtualWardrobe() {
                           </div>
                         ))}
 
-                        {wardrobe[category.id].length === 0 && (
+                        {wardrobe[cat.id].length === 0 && (
                           <div className="empty-category">
-                            <span className="empty-category-icon">{category.icon}</span>
-                            <p className="empty-category-text">No {category.name.toLowerCase()} yet</p>
+                            <span className="empty-category-icon">{cat.icon}</span>
+                            <p className="empty-category-text">No {cat.name.toLowerCase()} yet</p>
                             <p className="empty-category-hint">Click "Add Item" to upload</p>
                           </div>
                         )}
@@ -616,7 +697,10 @@ function VirtualWardrobe() {
 
                   {getTotalItems() >= 3 && (
                     <div className="generate-section">
-                      <button className="btn-generate" onClick={generateOutfits}>
+                      <button
+                        className="btn-generate"
+                        onClick={generateOutfits}
+                      >
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                           <circle cx="12" cy="12" r="3" strokeWidth="2"/>
                           <path d="M12 1v6m0 6v6M4.22 4.22l4.24 4.24m5.08 5.08l4.24 4.24M1 12h6m6 0h6M4.22 19.78l4.24-4.24m5.08-5.08l4.24-4.24" strokeWidth="2" strokeLinecap="round"/>
@@ -643,7 +727,10 @@ function VirtualWardrobe() {
                   </div>
                   <h3>No Outfits Yet</h3>
                   <p>Generate AI-powered outfit combinations from your wardrobe</p>
-                  <button className="btn-primary" onClick={() => setActiveTab('closet')}>
+                  <button
+                    className="btn-primary"
+                    onClick={() => setActiveTab('closet')}
+                  >
                     Go to My Closet
                   </button>
                 </div>
@@ -661,6 +748,7 @@ function VirtualWardrobe() {
                       Regenerate
                     </button>
                   </div>
+
                   <div className="outfits-grid">
                     {generatedOutfits.map((outfit, index) => (
                       <div key={outfit.id} className="outfit-card">
@@ -715,21 +803,6 @@ function VirtualWardrobe() {
               )}
             </div>
           )}
-
-          {/* AI INSIGHTS TAB */}
-          {activeTab === 'insights' && (
-            <div className="insights-view">
-              <div className="empty-state">
-                <h3>AI Style Insights</h3>
-                <p>Get personalized recommendations based on your wardrobe analytics</p>
-                {!isPremium ? (
-                  <SimpleUpgradeButton text="⭐ Upgrade to Premium" />
-                ) : (
-                  <button className="btn-primary">Coming Soon</button>
-                )}
-              </div>
-            </div>
-          )}
         </div>
       </div>
 
@@ -739,7 +812,12 @@ function VirtualWardrobe() {
           <div className="upload-modal" onClick={(e) => e.stopPropagation()}>
             <div className="upload-modal-header">
               <h2>Add {uploadingCategory?.charAt(0).toUpperCase() + uploadingCategory?.slice(1)}</h2>
-              <button className="modal-close-btn" onClick={() => setShowUploadModal(false)}>✕</button>
+              <button 
+                className="modal-close-btn"
+                onClick={() => setShowUploadModal(false)}
+              >
+                ✕
+              </button>
             </div>
 
             <div className="upload-modal-content">
@@ -786,27 +864,35 @@ function VirtualWardrobe() {
                 </div>
               </div>
 
-
-          <div className="upload-modal-actions">
-            <button className="btn-secondary" onClick={() => setShowUploadModal(false)} disabled={uploadingFile}>
-              Cancel
-            </button>
-            <button className="btn-primary" onClick={confirmUpload} disabled={!itemName.trim() || uploadingFile}>
-              {uploadingFile ? (
-                <>
-                  <div className="button-spinner"></div>
-                  Uploading...
-                </>
-              ) : (
-                'Add to Wardrobe'
-              )}
-            </button>
+              <div className="upload-modal-actions">
+                <button 
+                  className="btn-secondary"
+                  onClick={() => setShowUploadModal(false)}
+                  disabled={uploadingFile}
+                >
+                  Cancel
+                </button>
+                <button 
+                  className="btn-primary"
+                  onClick={confirmUpload}
+                  disabled={!itemName.trim() || uploadingFile}
+                >
+                  {uploadingFile ? (
+                    <>
+                      <div className="button-spinner"></div>
+                      Uploading...
+                    </>
+                  ) : (
+                    'Add to Wardrobe'
+                  )}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
-  )}
-</div>
-)
+  )
 }
+
 export default VirtualWardrobe

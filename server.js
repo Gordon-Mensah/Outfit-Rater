@@ -237,6 +237,66 @@ app.post('/api/compare-outfits', async (req, res) => {
       ...images.map(img => ({ type: 'image_url', image_url: { url: img } }))
     ];
 
+    // 2.5 Analyze Product Endpoint
+    app.post('/api/analyze-product', async (req, res) => {
+      try {
+        const { image, title, description } = req.body;
+
+        if (!image || !title) {
+          return res.status(400).json({ error: 'Missing required fields: image or title' });
+        }
+
+        console.log(`🛍️ Analyzing product: ${title}`);
+
+        const prompt = `
+    You are a professional product analyst and e‑commerce conversion expert.
+    Analyze the product based on the image and the provided details.
+
+    Provide:
+    1. A clear summary of what the product is.
+    2. The target audience.
+    3. Strengths of the product.
+    4. Weaknesses or concerns.
+    5. Suggested improvements.
+    6. A conversion‑optimized product description (SEO friendly).
+    7. A rating from 1–10 for:
+      - Marketability
+      - Aesthetic appeal
+      - Perceived quality
+      - Viral potential
+        `;
+
+        const completion = await groq.chat.completions.create({
+          messages: [
+            {
+              role: "user",
+              content: [
+                { type: "text", text: prompt },
+                { type: "text", text: `Product Title: ${title}` },
+                { type: "text", text: `Product Description: ${description || "No description provided"}` },
+                { type: "image_url", image_url: { url: image } }
+              ]
+            }
+          ],
+          model: "meta-llama/llama-4-scout-17b-16e-instruct",
+          temperature: 0.7,
+          max_tokens: 800
+        });
+
+        const aiResponse = completion.choices?.[0]?.message?.content || "No response generated";
+
+        res.json({
+          success: true,
+          analysis: aiResponse
+        });
+
+      } catch (error) {
+        console.error("❌ Product analysis error:", error);
+        res.status(500).json({ error: "Failed to analyze product" });
+      }
+    });
+
+
     const completion = await groq.chat.completions.create({
       messages: [{ role: 'user', content: content }],
       model: 'meta-llama/llama-4-scout-17b-16e-instruct',

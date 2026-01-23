@@ -26,6 +26,7 @@ import { cities, workplaces, socialScenes } from './contextData'
 //  NEW: AI Stylist imports
 import StylistSelector from './StylistSelector'
 import { getStylist } from './stylistPersonalities'
+import AIClosetSimulator from './AIClosetSimulator'
 
 
 
@@ -943,6 +944,10 @@ function App() {
       />
       <Route path="/wardrobe" element={<VirtualWardrobe />} />
       <Route path="/style-context" element={<StyleContext />} />
+      <Route 
+        path="/closet-simulator" 
+        element={user ? <AIClosetSimulator /> : <Navigate to="/login" replace />} 
+      />
 
       {/* Catch all - redirect to home */}
       <Route path="*" element={<Navigate to="/" replace />} />
