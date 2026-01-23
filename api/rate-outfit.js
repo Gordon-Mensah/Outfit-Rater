@@ -1,5 +1,6 @@
-// api/rate-outfit.js - WITH CONTEXT + WEATHER SUPPORT
+// api/rate-outfit.js - WITH CONTEXT + WEATHER + AI STYLIST SUPPORT
 import Groq from 'groq-sdk';
+import { generateStylistPrompt } from '../src/stylistPersonalities.js';
 
 const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY
@@ -21,7 +22,8 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { image, occasion, mode = 'helpful', userId, context } = req.body;
+  // ✨ NEW: Get stylist ID from request
+  const { image, occasion, mode = 'helpful', userId, context, stylistId = 'minimalist' } = req.body;
 
   if (!image) {
     return res.status(400).json({ error: 'No image provided' });
@@ -29,6 +31,7 @@ export default async function handler(req, res) {
 
   try {
     console.log('🚀 Starting outfit rating...');
+    console.log('🎨 Using stylist:', stylistId); // ✨ NEW: Log stylist
     if (context) {
       console.log('📍 Using user context:', context);
       if (context.weather) {
@@ -108,8 +111,8 @@ export default async function handler(req, res) {
       }
     }
 
-    // Build the complete prompt
-    const prompt = `You are a professional fashion consultant analyzing this outfit${occasionText}.
+    // ✨ NEW: Build the BASE prompt (without stylist personality)
+    const basePrompt = `You are a professional fashion consultant analyzing this outfit${occasionText}.
 
 RATING SCALE (use the FULL range 0-10):
 0-2 = Fashion disaster, completely wrong
@@ -148,6 +151,9 @@ Rating: X/10
 
 Remember: Your rating number and written feedback MUST be consistent!`;
 
+    // ✨ NEW: Generate stylist-specific prompt
+    const prompt = generateStylistPrompt(stylistId, basePrompt);
+
     console.log('📤 Sending to Groq API...');
 
     const completion = await groq.chat.completions.create({
@@ -170,7 +176,7 @@ Remember: Your rating number and written feedback MUST be consistent!`;
       ],
       model: 'llama-3.2-90b-vision-preview',
       temperature: 0.8,
-      max_tokens: 700, // Increased for weather-aware feedback
+      max_tokens: 700,
       top_p: 1
     });
 
@@ -208,6 +214,7 @@ Remember: Your rating number and written feedback MUST be consistent!`;
     // Log for debugging
     console.log('✅ Final rating:', rating);
     console.log('📝 Feedback preview:', feedback.substring(0, 100));
+    console.log('🎨 Stylist used:', stylistId); // ✨ NEW: Log stylist
     if (context && context.weather) {
       console.log('🌤️ Weather context used:', `${context.weather.temp}°C, ${context.weather.condition}`);
     }
@@ -216,7 +223,8 @@ Remember: Your rating number and written feedback MUST be consistent!`;
       rating,
       feedback: feedback.trim(),
       contextUsed: !!context,
-      weatherUsed: !!(context && context.weather)
+      weatherUsed: !!(context && context.weather),
+      stylistUsed: stylistId // ✨ NEW: Return stylist ID
     });
 
   } catch (error) {

@@ -7998,3 +7998,140 @@ body.menu-open {
   color: #d1d5db;
   border: 1px solid rgba(156, 163, 175, 0.3);
 }
+
+/* ===================================
+   AI STYLIST UI - ADD TO YOUR APP.CSS
+   =================================== */
+
+/* Stylist nav button in top navigation */
+.stylist-nav-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem !important;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1)) !important;
+  border: 1px solid rgba(102, 126, 234, 0.3) !important;
+  border-radius: 12px;
+  transition: all 0.3s ease;
+}
+
+.stylist-nav-btn:hover {
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.2), rgba(118, 75, 162, 0.2)) !important;
+  border-color: rgba(102, 126, 234, 0.5) !important;
+  transform: translateY(-2px);
+}
+
+/* Current stylist badge in hero section */
+.current-stylist-badge-hero {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  padding: 1.5rem 2rem;
+  margin: 2rem auto;
+  max-width: 600px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.current-stylist-badge-hero:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(102, 126, 234, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+.stylist-icon-large {
+  font-size: 3rem;
+  flex-shrink: 0;
+}
+
+.stylist-info {
+  flex: 1;
+  text-align: left;
+}
+
+.stylist-name {
+  font-size: 1.3rem;
+  font-weight: 700;
+  margin: 0 0 0.25rem 0;
+  color: var(--text-primary, #ffffff);
+}
+
+.stylist-tagline {
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.6);
+  font-style: italic;
+  margin: 0;
+}
+
+.change-stylist-btn {
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+}
+
+.change-stylist-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.4);
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+  .current-stylist-badge-hero {
+    flex-direction: column;
+    text-align: center;
+    gap: 1rem;
+    padding: 1.5rem;
+  }
+
+  .stylist-info {
+    text-align: center;
+  }
+
+  .stylist-icon-large {
+    font-size: 2.5rem;
+  }
+
+  .stylist-name {
+    font-size: 1.2rem;
+  }
+
+  .stylist-tagline {
+    font-size: 0.9rem;
+  }
+
+  .change-stylist-btn {
+    width: 100%;
+  }
+
+  .stylist-nav-btn {
+    padding: 0.6rem 1rem !important;
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .stylist-icon-large {
+    font-size: 2rem;
+  }
+
+  .stylist-name {
+    font-size: 1.1rem;
+  }
+
+  .change-stylist-btn {
+    padding: 0.6rem 1.2rem;
+    font-size: 0.9rem;
+  }
+}
