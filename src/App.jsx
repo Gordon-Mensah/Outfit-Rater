@@ -1,4 +1,4 @@
-// App.jsx - FIXED VERSION with visible action buttons
+// App.jsx - Document 1 UI + Document 2 AI Stylist Features
 import { useState, useEffect } from 'react'
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 import { useAuth } from './AuthContext'
@@ -23,8 +23,9 @@ import StyleContext from './StyleContext'
 import { fetchWeather } from './weatherIntegration'
 import { getCityCoordinates } from './cityCoordinates'
 import { cities, workplaces, socialScenes } from './contextData'
-
-
+import StylistSelector from './StylistSelector'
+import { getStylist } from './stylistPersonalities'
+import AIClosetSimulator from './AIClosetSimulator'
 
 const API_BASE_URL = import.meta.env.PROD ? '' : 'http://localhost:3000'
 
@@ -32,22 +33,15 @@ function App() {
   const { user, isPremium, canRate, dailyRatingCount, checkDailyRatings, loading: authLoading } = useAuth()
   const navigate = useNavigate()
 
-  // SINGLE MODE STATES
   const [image, setImage] = useState(null)
   const [imagePreview, setImagePreview] = useState(null)
-  
-  // COMPARISON MODE STATES
   const [comparisonImages, setComparisonImages] = useState([])
   const [comparisonPreviews, setComparisonPreviews] = useState([])
-  
-  // SHARED STATES
   const [comparisonMode, setComparisonMode] = useState(false)
   const [occasion, setOccasion] = useState('none')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [feedbackMode, setFeedbackMode] = useState('helpful')
-  
-  // MODAL STATES
   const [showHistory, setShowHistory] = useState(false)
   const [outfitHistory, setOutfitHistory] = useState([])
   const [showSavedOutfits, setShowSavedOutfits] = useState(false)
@@ -55,11 +49,13 @@ function App() {
   const [savedCount, setSavedCount] = useState(0)
   const [showLastRatingWarning, setShowLastRatingWarning] = useState(false)
   const [pendingRatingAction, setPendingRatingAction] = useState(null)
+  const [showStylistSelector, setShowStylistSelector] = useState(false)
+  const [currentStylist, setCurrentStylist] = useState('minimalist')
 
-  // ========== Load saved count on mount ==========
   useEffect(() => {
     if (user) {
       loadSavedCount()
+      loadUserStylist()
     }
   }, [user])
 
@@ -77,11 +73,45 @@ function App() {
     }
   }
 
-  // ========== KEEP-WARM PING: Prevents API cold starts ==========
+  const loadUserStylist = async () => {
+    if (!user) return
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('stylist_preference')
+        .eq('id', user.id)
+        .single()
+      
+      if (data?.stylist_preference) {
+        setCurrentStylist(data.stylist_preference)
+        console.log('✅ Loaded stylist:', data.stylist_preference)
+      }
+    } catch (err) {
+      console.error('Error loading stylist:', err)
+    }
+  }
+
+  const handleSelectStylist = async (stylistId) => {
+    setCurrentStylist(stylistId)
+    
+    if (!user) return
+    
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ stylist_preference: stylistId })
+        .eq('id', user.id)
+      
+      if (error) throw error
+      console.log('✅ Stylist saved:', stylistId)
+    } catch (err) {
+      console.error('Error saving stylist:', err)
+    }
+  }
+
   useEffect(() => {
     if (!user) return
 
-    // Ping API every 5 minutes to keep it warm
     const keepWarm = setInterval(async () => {
       try {
         await fetch(`${API_BASE_URL}/api/ping`)
@@ -89,25 +119,21 @@ function App() {
       } catch (err) {
         console.log('❌ Ping failed:', err)
       }
-    }, 5 * 60 * 1000) // 5 minutes
+    }, 5 * 60 * 1000)
 
-    // Initial ping on app load
     fetch(`${API_BASE_URL}/api/ping`)
       .then(() => console.log('🔥 Initial ping successful'))
       .catch(() => console.log('❌ Initial ping failed'))
 
     return () => clearInterval(keepWarm)
   }, [user])
-  // ========== END KEEP-WARM PING ==========
 
   useEffect(() => {
-    // Check if Stripe is already loaded
     if (window.Stripe) {
       console.log('✅ Stripe already loaded')
       return
     }
 
-    // Check if script already exists
     const existingScript = document.querySelector('script[src="https://js.stripe.com/v3/"]')
     if (existingScript) {
       console.log('✅ Stripe script already in DOM')
@@ -120,11 +146,6 @@ function App() {
     script.onload = () => console.log('✅ Stripe.js loaded')
     script.onerror = () => console.error('❌ Failed to load Stripe.js')
     document.body.appendChild(script)
-
-    return () => {
-      // Don't remove script on cleanup to avoid reloading
-      // The script can stay for the entire session
-    }
   }, [])
 
   if (authLoading) {
@@ -248,7 +269,6 @@ function App() {
   }
 
   const rateOutfit = async () => {
-    // Check if user has exceeded limit
     if (!canRate()) {
       setError('You have used your 5 free ratings today.')
       return
@@ -259,15 +279,12 @@ function App() {
       return
     }
 
-    // Check if this is the last free rating
     if (!isPremium && dailyRatingCount === 4) {
-      // Show warning modal for last rating
       setPendingRatingAction('rate')
       setShowLastRatingWarning(true)
       return
     }
 
-    // Proceed with rating
     await executeRating()
   }
 
@@ -277,7 +294,6 @@ function App() {
     try {
       const base64Image = await readFileAsBase64(image)
       
-      // 🆕 Load user's style context AND weather
       let contextToSend = null
       try {
         const { data: profile } = await supabase
@@ -293,7 +309,6 @@ function App() {
           const workData = workplaces.find(w => w.value === savedContext.workplace)
           const sceneData = socialScenes.find(s => s.value === savedContext.socialScene)
           
-          // Build base context
           contextToSend = {
             city: savedContext.city,
             cityLabel: cityData?.label,
@@ -309,9 +324,7 @@ function App() {
             ageGroup: savedContext.ageGroup
           }
           
-          // 🌤️ ADD REAL-TIME WEATHER
           try {
-            // Get coordinates for the city
             const cityCoords = getCityCoordinates(savedContext.city)
             if (cityCoords) {
               const weather = await fetchWeather(cityCoords.lat, cityCoords.lon)
@@ -335,6 +348,8 @@ function App() {
         console.log('ℹ️ Context not available, proceeding without it:', contextErr)
       }
       
+      console.log('🎨 Using stylist:', currentStylist)
+      
       const response = await fetch(`${API_BASE_URL}/api/rate-outfit`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -343,7 +358,8 @@ function App() {
           occasion, 
           mode: feedbackMode, 
           userId: user.id,
-          context: contextToSend // Now includes weather!
+          context: contextToSend,
+          stylistId: currentStylist
         })
       })
       
@@ -360,7 +376,13 @@ function App() {
       await checkDailyRatings(user.id)
       
       navigate('/result', {
-        state: { rating: data.rating, feedback: data.feedback, imagePreview: imagePreview, occasion: occasion }
+        state: { 
+          rating: data.rating, 
+          feedback: data.feedback, 
+          imagePreview: imagePreview, 
+          occasion: occasion,
+          stylistUsed: currentStylist
+        }
       })
     } catch (err) {
       console.error('Error rating outfit:', err)
@@ -383,15 +405,12 @@ function App() {
       return
     }
 
-    // Check if this is the last free rating
     if (!isPremium && dailyRatingCount === 4) {
-      // Show warning modal for last rating
       setPendingRatingAction('compare')
       setShowLastRatingWarning(true)
       return
     }
 
-    // Proceed with comparison
     await executeComparison()
   }
 
@@ -411,7 +430,6 @@ function App() {
       
       console.log('🚀 Calling API...')
       
-      // Load context with weather (same as above)
       let contextToSend = null
       try {
         const { data: profile } = await supabase
@@ -463,6 +481,8 @@ function App() {
         console.log('Context not available')
       }
       
+      console.log('🎨 Using stylist:', currentStylist)
+      
       const response = await fetch(`${API_BASE_URL}/api/compare-outfits`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -470,14 +490,24 @@ function App() {
           images: base64Images, 
           occasion, 
           userId: user.id,
-          context: contextToSend // Includes weather!
+          context: contextToSend,
+          stylistId: currentStylist
         })
       })
       
       const data = await response.json()
       if (!response.ok) throw new Error(data.error || 'Failed to compare')
       
-      // ... rest of function stays the same
+      await checkDailyRatings(user.id)
+      
+      navigate('/compare-result', {
+        state: {
+          results: data.results,
+          images: comparisonPreviews,
+          occasion: occasion,
+          stylistUsed: currentStylist
+        }
+      })
     } catch (err) {
       console.error('Error comparing outfits:', err)
       setError(err.message || 'Something went wrong.')
@@ -493,10 +523,10 @@ function App() {
     return '#ef4444'
   }
 
-  // Main App Content (Rate Outfit Interface)
+  const currentStylistInfo = getStylist(currentStylist)
+
   const MainAppContent = () => (
     <div className="app">
-      {/* Last Rating Warning Modal */}
       <LastRatingWarning
         isOpen={showLastRatingWarning}
         onClose={() => {
@@ -518,7 +548,6 @@ function App() {
       </div>
 
       <div className="container">
-        {/* ========== ACTION BUTTONS - AT THE VERY TOP ========== */}
         <div className="action-buttons">
           <button 
             onClick={loadHistory} 
@@ -548,9 +577,23 @@ function App() {
           >
              Saved Outfits ({savedCount}{!isPremium ? '/10' : ''})
           </button>
+          <button 
+            onClick={() => setShowStylistSelector(true)} 
+            className="btn-secondary"
+            style={{ 
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              color: 'white',
+              border: 'none',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}
+            title="Change AI Stylist"
+          >
+            {currentStylistInfo.icon} {currentStylistInfo.name}
+          </button>
         </div>
 
-        {/* MODE TOGGLE */}
         <div className="mode-toggle">
           <button
             className={!comparisonMode ? 'active' : ''}
@@ -574,7 +617,6 @@ function App() {
           </button>
         </div>
 
-        {/* FEEDBACK MODE (Premium only, Single mode only) */}
         {isPremium && !comparisonMode && (
           <div className="mode-selector">
             <label>Feedback Style:</label>
@@ -586,7 +628,6 @@ function App() {
           </div>
         )}
 
-        {/* SAVED OUTFITS MODAL */}
         {showSavedOutfits && (
           <div className="modal-overlay" onClick={() => setShowSavedOutfits(false)}>
             <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -616,7 +657,6 @@ function App() {
           </div>
         )}
 
-        {/* HISTORY MODAL */}
         {showHistory && (
           <div className="modal-overlay" onClick={() => setShowHistory(false)}>
             <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -646,7 +686,14 @@ function App() {
           </div>
         )}
 
-        {/* ========== SINGLE MODE ========== */}
+        {showStylistSelector && (
+          <StylistSelector
+            currentStylist={currentStylist}
+            onSelectStylist={handleSelectStylist}
+            onClose={() => setShowStylistSelector(false)}
+          />
+        )}
+
         {!comparisonMode && (
           <div>
             <div className="upload-zone">
@@ -693,7 +740,6 @@ function App() {
           </div>
         )}
 
-        {/* ========== COMPARISON MODE ========== */}
         {comparisonMode && (
           <div>
             <div className="comparison-instructions">
@@ -772,7 +818,6 @@ function App() {
 
   return (
     <Routes>
-      {/* PUBLIC ROUTES - Show to non-logged-in users */}
       <Route 
         path="/" 
         element={!user ? <LandingPage /> : <Navigate to="/rate" replace />} 
@@ -785,8 +830,6 @@ function App() {
         path="/signup" 
         element={!user ? <SignUp /> : <Navigate to="/rate" replace />} 
       />
-
-      {/* PROTECTED ROUTES - Require login */}
       <Route 
         path="/rate" 
         element={user ? <MainAppContent /> : <Navigate to="/login" replace />} 
@@ -825,8 +868,10 @@ function App() {
       />
       <Route path="/wardrobe" element={<VirtualWardrobe />} />
       <Route path="/style-context" element={<StyleContext />} />
-
-      {/* Catch all - redirect to home */}
+      <Route 
+        path="/closet-simulator" 
+        element={user ? <AIClosetSimulator /> : <Navigate to="/login" replace />} 
+      />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )
