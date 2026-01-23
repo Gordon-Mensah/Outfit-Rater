@@ -57,7 +57,7 @@ function getColdWeatherOutfits(wardrobe, condition) {
       shoes: shoe,
       outerwear: jacket,
       accessory: accessories[Math.floor(Math.random() * accessories.length)],
-      weatherTip: condition.includes('rain') ? '🌧️ Bring an umbrella!' : '🧣 Layer up!',
+      weatherTip: condition.includes('rain') ? ' Bring an umbrella!' : ' Layer up!',
       temperature: '< 10°C'
     })
   }
@@ -94,7 +94,7 @@ function getMildWeatherOutfits(wardrobe, condition) {
       shoes: shoe,
       outerwear: jacket || null,
       accessory: accessories[Math.floor(Math.random() * accessories.length)],
-      weatherTip: condition.includes('rain') ? '☔ Light rain possible' : '🌤️ Perfect weather',
+      weatherTip: condition.includes('rain') ? ' Light rain possible' : ' Perfect weather',
       temperature: '10-20°C'
     })
   }
@@ -133,7 +133,7 @@ function getWarmWeatherOutfits(wardrobe, condition) {
       shoes: shoe,
       outerwear: null,
       accessory: accessories[Math.floor(Math.random() * accessories.length)],
-      weatherTip: condition.includes('clear') ? '😎 Wear sunscreen' : '🌞 Stay cool',
+      weatherTip: condition.includes('clear') ? ' Wear sunscreen' : ' Stay cool',
       temperature: '20-30°C'
     })
   }
@@ -170,7 +170,7 @@ function getHotWeatherOutfits(wardrobe, condition) {
       shoes: shoe,
       outerwear: null,
       accessory: accessories[Math.floor(Math.random() * accessories.length)],
-      weatherTip: '🔥 Stay hydrated!',
+      weatherTip: ' Stay hydrated!',
       temperature: '30°C+'
     })
   }
