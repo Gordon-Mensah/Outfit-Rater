@@ -1,4 +1,4 @@
-// VirtualWardrobe.jsx - Enhanced with Quick Upload & Auto Location Weather
+// VirtualWardrobe.jsx - Enhanced with Quick Upload & Open-Meteo Weather
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from './AuthContext'
@@ -6,11 +6,16 @@ import { supabase } from './supabaseClient'
 import HamburgerMenu from './Hamburgermenu'
 import SimpleUpgradeButton from './SimpleUpgradeButton'
 import './VirtualWardrobe.css'
+import {
+  getUserWeatherTwoDays,
+  getTodayTomorrowOutfits,
+  getWeatherIcon
+} from './weatherIntegration'
 
 function VirtualWardrobe() {
   const { user, isPremium } = useAuth()
   const navigate = useNavigate()
-  
+
   const [activeTab, setActiveTab] = useState('closet')
   const [wardrobe, setWardrobe] = useState({
     tops: [],
@@ -23,7 +28,7 @@ function VirtualWardrobe() {
   const [generatedOutfits, setGeneratedOutfits] = useState([])
   const [uploadingCategory, setUploadingCategory] = useState(null)
   const [uploadingFile, setUploadingFile] = useState(null)
-  
+
   // Upload Modal State
   const [showUploadModal, setShowUploadModal] = useState(false)
   const [selectedFile, setSelectedFile] = useState(null)
@@ -37,26 +42,23 @@ function VirtualWardrobe() {
   const [locationPermission, setLocationPermission] = useState(null)
   const [loadingWeather, setLoadingWeather] = useState(false)
 
-  useEffect(() => {
-    if (user) {
-      loadWardrobe()
-      requestLocationAndWeather()
-    }
-  }, [user])
+  // Today vs Tomorrow weather + outfits
+  const [twoDayWeather, setTwoDayWeather] = useState(null)
+  const [twoDayOutfits, setTwoDayOutfits] = useState(null)
 
   const loadWardrobe = async () => {
     if (!user) return
     setLoading(true)
-    
+
     try {
       const { data, error } = await supabase
         .from('wardrobe_items')
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
-      
+
       if (error) throw error
-      
+
       const organized = {
         tops: [],
         bottoms: [],
@@ -64,13 +66,13 @@ function VirtualWardrobe() {
         accessories: [],
         outerwear: []
       }
-      
+
       data?.forEach(item => {
         if (organized[item.category]) {
           organized[item.category].push(item)
         }
       })
-      
+
       setWardrobe(organized)
     } catch (err) {
       console.error('Error loading wardrobe:', err)
@@ -79,60 +81,23 @@ function VirtualWardrobe() {
     }
   }
 
-  const requestLocationAndWeather = async () => {
+  const loadTwoDayWeather = async () => {
     setLoadingWeather(true)
-    
-    if (!navigator.geolocation) {
-      console.log('Geolocation not supported')
-      setLoadingWeather(false)
-      return
-    }
-
     try {
-      const position = await new Promise((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject)
-      })
-
+      const { weather: w } = await getUserWeatherTwoDays()
       setLocationPermission('granted')
-      
-      const { latitude, longitude } = position.coords
-      
-      // Fetch weather from OpenWeatherMap API
-      const API_KEY = 'YOUR_API_KEY' // You'll need to add your API key
-      const response = await fetch(
-        `https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&units=metric&appid=${API_KEY}`
-      )
-      
-      if (response.ok) {
-        const data = await response.json()
-        const weatherIcons = {
-          'Clear': '☀️',
-          'Clouds': '☁️',
-          'Rain': '🌧️',
-          'Drizzle': '🌦️',
-          'Thunderstorm': '⛈️',
-          'Snow': '❄️',
-          'Mist': '🌫️',
-          'Fog': '🌫️'
-        }
-        
-        setWeather({
-          temp: Math.round(data.main.temp),
-          condition: data.weather[0].main,
-          icon: weatherIcons[data.weather[0].main] || '🌤️'
-        })
-      } else {
-        // Fallback to demo weather
-        setWeather({
-          temp: 22,
-          condition: 'Clear',
-          icon: '☀️'
-        })
-      }
-    } catch (error) {
+      setTwoDayWeather(w)
+
+      // Use today's weather for the main widget
+      setWeather({
+        temp: w.today.temp,
+        condition: w.today.condition,
+        icon: getWeatherIcon(w.today.icon)
+      })
+    } catch (err) {
+      console.error('Two-day weather error:', err)
       setLocationPermission('denied')
-      console.log('Location permission denied or error:', error)
-      // Show demo weather
+      // Fallback demo weather
       setWeather({
         temp: 22,
         condition: 'Clear',
@@ -143,15 +108,39 @@ function VirtualWardrobe() {
     }
   }
 
+  // Load wardrobe + weather when user is available
+  useEffect(() => {
+    if (user) {
+      loadWardrobe()
+      loadTwoDayWeather()
+    }
+  }, [user])
+
+  // Generate today vs tomorrow outfits once wardrobe + weather are ready
+  useEffect(() => {
+    if (!twoDayWeather) return
+
+    const totalItems = Object.values(wardrobe).flat().length
+    if (totalItems < 3) {
+      setTwoDayOutfits(null)
+      return
+    }
+
+    const outfits = getTodayTomorrowOutfits(
+      wardrobe,
+      twoDayWeather.today,
+      twoDayWeather.tomorrow
+    )
+    setTwoDayOutfits(outfits)
+  }, [twoDayWeather, wardrobe])
+
   const handleQuickUpload = () => {
-    // Trigger file input for quick upload from empty state
     const input = document.createElement('input')
     input.type = 'file'
     input.accept = 'image/*'
     input.onchange = (e) => {
       const file = e.target.files?.[0]
       if (file) {
-        // Default to 'tops' category for quick upload
         handleImageUpload({ target: { files: [file] } }, 'tops')
       }
     }
@@ -168,18 +157,16 @@ function VirtualWardrobe() {
       return
     }
 
-    // Open modal
     setUploadingCategory(category)
     setSelectedFile(file)
     setItemName(file.name.replace(/\.[^/.]+$/, ''))
     setItemColor('')
     setItemBrand('')
-    
-    // Create preview
+
     const reader = new FileReader()
     reader.onloadend = () => setPreviewUrl(reader.result)
     reader.readAsDataURL(file)
-    
+
     setShowUploadModal(true)
   }
 
@@ -220,15 +207,14 @@ function VirtualWardrobe() {
         [uploadingCategory]: [...prev[uploadingCategory], data]
       }))
 
-      // Close modal
       setShowUploadModal(false)
       setSelectedFile(null)
       setPreviewUrl(null)
       setItemName('')
       setItemColor('')
       setItemBrand('')
-      
-      alert('✅ Item added to your wardrobe!')
+
+      alert('Item added to your wardrobe!')
     } catch (err) {
       console.error('Error uploading:', err)
       alert('Failed to add item. Please try again.')
@@ -262,7 +248,7 @@ function VirtualWardrobe() {
 
   const generateOutfits = async () => {
     const totalItems = Object.values(wardrobe).flat().length
-    
+
     if (totalItems < 3) {
       alert('Add at least 3 items to your wardrobe to generate outfits!')
       return
@@ -352,15 +338,15 @@ function VirtualWardrobe() {
         <nav className="wardrobe-nav">
           <button onClick={() => navigate('/rate')} className="nav-back-btn">
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-              <path d="M12.5 15l-5-5 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M12.5 15l-5-5 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
             Dashboard
           </button>
-          
+
           <div className="nav-actions">
             {!isPremium && (
-              <SimpleUpgradeButton 
-                text="⭐ Upgrade"
+              <SimpleUpgradeButton
+                text="Upgrade"
                 className="nav-upgrade-btn"
               />
             )}
@@ -424,50 +410,91 @@ function VirtualWardrobe() {
         )}
 
         {locationPermission === 'denied' && (
-          <div className="weather-widget" style={{background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(220, 38, 38, 0.15) 100%)', borderColor: 'rgba(239, 68, 68, 0.3)'}}>
+          <div
+            className="weather-widget"
+            style={{
+              background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(220, 38, 38, 0.15) 100%)',
+              borderColor: 'rgba(239, 68, 68, 0.3)'
+            }}
+          >
             <div className="weather-info">
-              <span style={{fontSize: '2rem'}}>📍</span>
+              <span style={{ fontSize: '2rem' }}>📍</span>
               <div className="weather-details">
-                <div style={{fontSize: '1rem', color: 'rgba(255, 255, 255, 0.9)'}}>Location Access Denied</div>
-                <div style={{fontSize: '0.875rem', color: 'rgba(255, 255, 255, 0.7)'}}>Enable location to get weather-based outfit suggestions</div>
+                <div style={{ fontSize: '1rem', color: 'rgba(255, 255, 255, 0.9)' }}>Location Access Denied</div>
+                <div style={{ fontSize: '0.875rem', color: 'rgba(255, 255, 255, 0.7)' }}>
+                  Enable location to get weather-based outfit suggestions
+                </div>
               </div>
             </div>
-            <button className="btn-weather-outfits" onClick={requestLocationAndWeather}>
+            <button className="btn-weather-outfits" onClick={loadTwoDayWeather}>
               Try Again
             </button>
           </div>
         )}
 
+        {/* Today vs Tomorrow Outfits (if available) */}
+        {twoDayWeather && twoDayOutfits && (
+          <div className="two-day-outfits-widget">
+            <h2 className="two-day-title">Today vs Tomorrow</h2>
+            <div className="two-day-cards">
+              <div className="day-card">
+                <h3>Today</h3>
+                <p>
+                  {getWeatherIcon(twoDayWeather.today.icon)} {twoDayWeather.today.temp}°C
+                </p>
+                <p>{twoDayWeather.today.condition}</p>
+                {twoDayOutfits.today.map((o, i) => (
+                  <div key={o.id || `today-${i}`} className="mini-outfit">
+                    <span>• {o.top?.name} + {o.bottom?.name}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="day-card">
+                <h3>Tomorrow</h3>
+                <p>
+                  {getWeatherIcon(twoDayWeather.tomorrow.icon)} {twoDayWeather.tomorrow.temp}°C
+                </p>
+                <p>{twoDayWeather.tomorrow.condition}</p>
+                {twoDayOutfits.tomorrow.map((o, i) => (
+                  <div key={o.id || `tomorrow-${i}`} className="mini-outfit">
+                    <span>• {o.top?.name} + {o.bottom?.name}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Tab Navigation */}
         <div className="tab-navigation">
-          <button 
+          <button
             className={`tab-btn ${activeTab === 'closet' ? 'active' : ''}`}
             onClick={() => setActiveTab('closet')}
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <rect x="3" y="3" width="18" height="18" rx="2" strokeWidth="2"/>
-              <line x1="12" y1="3" x2="12" y2="21" strokeWidth="2"/>
+              <rect x="3" y="3" width="18" height="18" rx="2" strokeWidth="2" />
+              <line x1="12" y1="3" x2="12" y2="21" strokeWidth="2" />
             </svg>
             My Closet
           </button>
-          <button 
+          <button
             className={`tab-btn ${activeTab === 'outfits' ? 'active' : ''}`}
             onClick={() => setActiveTab('outfits')}
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <path d="M12 2L2 7l10 5 10-5-10-5z" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M2 17l10 5 10-5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M2 12l10 5 10-5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M12 2L2 7l10 5 10-5-10-5z" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M2 17l10 5 10-5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M2 12l10 5 10-5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
             Outfits ({generatedOutfits.length})
           </button>
-          <button 
+          <button
             className={`tab-btn ${activeTab === 'insights' ? 'active' : ''}`}
             onClick={() => setActiveTab('insights')}
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <circle cx="12" cy="12" r="3" strokeWidth="2"/>
-              <path d="M12 1v6m0 6v6M4.22 4.22l4.24 4.24m5.08 5.08l4.24 4.24M1 12h6m6 0h6M4.22 19.78l4.24-4.24m5.08-5.08l4.24-4.24" strokeWidth="2" strokeLinecap="round"/>
+              <circle cx="12" cy="12" r="3" strokeWidth="2" />
+              <path d="M12 1v6m0 6v6M4.22 4.22l4.24 4.24m5.08 5.08l4.24 4.24M1 12h6m6 0h6M4.22 19.78l4.24-4.24m5.08-5.08l4.24-4.24" strokeWidth="2" strokeLinecap="round" />
             </svg>
             AI Insights
           </button>
@@ -482,27 +509,40 @@ function VirtualWardrobe() {
                 <div className="empty-wardrobe">
                   <div className="empty-icon">
                     <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                      <rect x="3" y="3" width="18" height="18" rx="2" strokeWidth="2"/>
-                      <line x1="12" y1="3" x2="12" y2="21" strokeWidth="2"/>
+                      <rect x="3" y="3" width="18" height="18" rx="2" strokeWidth="2" />
+                      <line x1="12" y1="3" x2="12" y2="21" strokeWidth="2" />
                     </svg>
                   </div>
                   <h3>Your Wardrobe is Empty</h3>
                   <p>Start building your digital wardrobe by uploading your first clothing item</p>
                   <div className="empty-stats">
-                    <span>📸 Upload photos of your clothes</span>
-                    <span>🤖 Get AI outfit suggestions</span>
-                    <span>👔 Never wonder what to wear again</span>
+                    <span> Upload photos of your clothes</span>
+                    <span> Get AI outfit suggestions</span>
+                    <span> Never wonder what to wear again</span>
                   </div>
-                  
-                  {/* Add Quick Upload Button */}
-                  <div style={{marginTop: '2rem', display: 'flex', flexDirection: 'column', gap: '1rem', maxWidth: '400px', margin: '2rem auto 0'}}>
+
+                  <div
+                    style={{
+                      marginTop: '2rem',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '1rem',
+                      maxWidth: '400px',
+                      margin: '2rem auto 0'
+                    }}
+                  >
                     <button className="btn-primary" onClick={handleQuickUpload}>
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path
+                          d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
                       </svg>
                       Upload Your First Item
                     </button>
-                    <p style={{fontSize: '0.875rem', color: 'var(--text-tertiary)', margin: 0}}>
+                    <p style={{ fontSize: '0.875rem', color: 'var(--text-tertiary)', margin: 0 }}>
                       {isPremium ? 'Unlimited items' : 'Free users: 20 items max'}
                     </p>
                   </div>
@@ -517,7 +557,7 @@ function VirtualWardrobe() {
                           <h3 className="category-title">{category.name}</h3>
                           <span className="category-count">{wardrobe[category.id].length} items</span>
                         </div>
-                        
+
                         <label className="upload-label">
                           <input
                             type="file"
@@ -535,7 +575,7 @@ function VirtualWardrobe() {
                             ) : (
                               <>
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                  <path d="M12 5v14m-7-7h14" strokeWidth="2" strokeLinecap="round"/>
+                                  <path d="M12 5v14m-7-7h14" strokeWidth="2" strokeLinecap="round" />
                                 </svg>
                                 Add Item
                               </>
@@ -555,7 +595,11 @@ function VirtualWardrobe() {
                                 title="Remove item"
                               >
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                  <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" strokeWidth="2" strokeLinecap="round"/>
+                                  <path
+                                    d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                  />
                                 </svg>
                               </button>
                               {item.color && item.color !== 'unspecified' && (
@@ -586,8 +630,12 @@ function VirtualWardrobe() {
                     <div className="generate-section">
                       <button className="btn-generate" onClick={generateOutfits}>
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                          <circle cx="12" cy="12" r="3" strokeWidth="2"/>
-                          <path d="M12 1v6m0 6v6M4.22 4.22l4.24 4.24m5.08 5.08l4.24 4.24M1 12h6m6 0h6M4.22 19.78l4.24-4.24m5.08-5.08l4.24-4.24" strokeWidth="2" strokeLinecap="round"/>
+                          <circle cx="12" cy="12" r="3" strokeWidth="2" />
+                          <path
+                            d="M12 1v6m0 6v6M4.22 4.22l4.24 4.24m5.08 5.08l4.24 4.24M1 12h6m6 0h6M4.22 19.78l4.24-4.24m5.08-5.08l4.24-4.24"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                          />
                         </svg>
                         Generate AI Outfit Combinations
                       </button>
@@ -605,8 +653,12 @@ function VirtualWardrobe() {
                 <div className="empty-state">
                   <div className="empty-icon">
                     <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                      <circle cx="12" cy="12" r="3" strokeWidth="2"/>
-                      <path d="M12 1v6m0 6v6M4.22 4.22l4.24 4.24m5.08 5.08l4.24 4.24M1 12h6m6 0h6M4.22 19.78l4.24-4.24m5.08-5.08l4.24-4.24" strokeWidth="2" strokeLinecap="round"/>
+                      <circle cx="12" cy="12" r="3" strokeWidth="2" />
+                      <path
+                        d="M12 1v6m0 6v6M4.22 4.22l4.24 4.24m5.08 5.08l4.24 4.24M1 12h6m6 0h6M4.22 19.78l4.24-4.24m5.08-5.08l4.24-4.24"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                      />
                     </svg>
                   </div>
                   <h3>No Outfits Yet</h3>
@@ -624,7 +676,12 @@ function VirtualWardrobe() {
                     </div>
                     <button className="btn-refresh" onClick={generateOutfits}>
                       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0118.8-4.3M22 12.5a10 10 0 01-18.8 4.2" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path
+                          d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0118.8-4.3M22 12.5a10 10 0 01-18.8 4.2"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
                       </svg>
                       Regenerate
                     </button>
@@ -637,7 +694,7 @@ function VirtualWardrobe() {
                           <span className="outfit-number">#{index + 1}</span>
                           <span className="outfit-occasion">{outfit.occasion}</span>
                         </div>
-                        
+
                         <div className="outfit-items">
                           {outfit.top && (
                             <div className="outfit-item">
@@ -674,7 +731,7 @@ function VirtualWardrobe() {
                         <button className="btn-rate-outfit" onClick={() => navigate('/rate')}>
                           Rate This Outfit
                           <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor">
-                            <path d="M4 10h12m0 0l-4-4m4 4l-4 4" strokeWidth="2" strokeLinecap="round"/>
+                            <path d="M4 10h12m0 0l-4-4m4 4l-4 4" strokeWidth="2" strokeLinecap="round" />
                           </svg>
                         </button>
                       </div>
@@ -689,11 +746,10 @@ function VirtualWardrobe() {
           {activeTab === 'insights' && (
             <div className="insights-view">
               <div className="empty-state">
-                <div className="empty-icon">💡</div>
                 <h3>AI Style Insights</h3>
                 <p>Get personalized recommendations based on your wardrobe analytics</p>
                 {!isPremium ? (
-                  <SimpleUpgradeButton text="⭐ Upgrade to Premium" />
+                  <SimpleUpgradeButton text=" Upgrade to Premium" />
                 ) : (
                   <button className="btn-primary">Coming Soon</button>
                 )}
@@ -708,8 +764,12 @@ function VirtualWardrobe() {
         <div className="modal-overlay" onClick={() => setShowUploadModal(false)}>
           <div className="upload-modal" onClick={(e) => e.stopPropagation()}>
             <div className="upload-modal-header">
-              <h2>Add {uploadingCategory?.charAt(0).toUpperCase() + uploadingCategory?.slice(1)}</h2>
-              <button className="modal-close-btn" onClick={() => setShowUploadModal(false)}>✕</button>
+              <h2>
+                Add {uploadingCategory?.charAt(0).toUpperCase() + uploadingCategory?.slice(1)}
+              </h2>
+              <button className="modal-close-btn" onClick={() => setShowUploadModal(false)}>
+                ✕
+              </button>
             </div>
 
             <div className="upload-modal-content">
@@ -756,27 +816,35 @@ function VirtualWardrobe() {
                 </div>
               </div>
 
-
-          <div className="upload-modal-actions">
-            <button className="btn-secondary" onClick={() => setShowUploadModal(false)} disabled={uploadingFile}>
-              Cancel
-            </button>
-            <button className="btn-primary" onClick={confirmUpload} disabled={!itemName.trim() || uploadingFile}>
-              {uploadingFile ? (
-                <>
-                  <div className="button-spinner"></div>
-                  Uploading...
-                </>
-              ) : (
-                'Add to Wardrobe'
-              )}
-            </button>
+              <div className="upload-modal-actions">
+                <button
+                  className="btn-secondary"
+                  onClick={() => setShowUploadModal(false)}
+                  disabled={uploadingFile}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="btn-primary"
+                  onClick={confirmUpload}
+                  disabled={!itemName.trim() || uploadingFile}
+                >
+                  {uploadingFile ? (
+                    <>
+                      <div className="button-spinner"></div>
+                      Uploading...
+                    </>
+                  ) : (
+                    'Add to Wardrobe'
+                  )}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
-  )}
-</div>
-)
+  )
 }
+
 export default VirtualWardrobe
