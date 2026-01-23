@@ -1,4 +1,4 @@
-// VirtualWardrobe.jsx - Modern Redesign with Premium Features
+// VirtualWardrobe.jsx - Enhanced with Quick Upload & Auto Location Weather
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from './AuthContext'
@@ -34,11 +34,13 @@ function VirtualWardrobe() {
 
   // Weather State
   const [weather, setWeather] = useState(null)
+  const [locationPermission, setLocationPermission] = useState(null)
+  const [loadingWeather, setLoadingWeather] = useState(false)
 
   useEffect(() => {
     if (user) {
       loadWardrobe()
-      loadWeather()
+      requestLocationAndWeather()
     }
   }, [user])
 
@@ -77,13 +79,83 @@ function VirtualWardrobe() {
     }
   }
 
-  const loadWeather = async () => {
-    // Simple weather demo - you can integrate OpenWeatherMap API here
-    setWeather({
-      temp: 22,
-      condition: 'Clear',
-      icon: '☀️'
-    })
+  const requestLocationAndWeather = async () => {
+    setLoadingWeather(true)
+    
+    if (!navigator.geolocation) {
+      console.log('Geolocation not supported')
+      setLoadingWeather(false)
+      return
+    }
+
+    try {
+      const position = await new Promise((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject)
+      })
+
+      setLocationPermission('granted')
+      
+      const { latitude, longitude } = position.coords
+      
+      // Fetch weather from OpenWeatherMap API
+      const API_KEY = 'YOUR_API_KEY' // You'll need to add your API key
+      const response = await fetch(
+        `https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&units=metric&appid=${API_KEY}`
+      )
+      
+      if (response.ok) {
+        const data = await response.json()
+        const weatherIcons = {
+          'Clear': '☀️',
+          'Clouds': '☁️',
+          'Rain': '🌧️',
+          'Drizzle': '🌦️',
+          'Thunderstorm': '⛈️',
+          'Snow': '❄️',
+          'Mist': '🌫️',
+          'Fog': '🌫️'
+        }
+        
+        setWeather({
+          temp: Math.round(data.main.temp),
+          condition: data.weather[0].main,
+          icon: weatherIcons[data.weather[0].main] || '🌤️'
+        })
+      } else {
+        // Fallback to demo weather
+        setWeather({
+          temp: 22,
+          condition: 'Clear',
+          icon: '☀️'
+        })
+      }
+    } catch (error) {
+      setLocationPermission('denied')
+      console.log('Location permission denied or error:', error)
+      // Show demo weather
+      setWeather({
+        temp: 22,
+        condition: 'Clear',
+        icon: '☀️'
+      })
+    } finally {
+      setLoadingWeather(false)
+    }
+  }
+
+  const handleQuickUpload = () => {
+    // Trigger file input for quick upload from empty state
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = 'image/*'
+    input.onchange = (e) => {
+      const file = e.target.files?.[0]
+      if (file) {
+        // Default to 'tops' category for quick upload
+        handleImageUpload({ target: { files: [file] } }, 'tops')
+      }
+    }
+    input.click()
   }
 
   const handleImageUpload = async (e, category) => {
@@ -327,7 +399,7 @@ function VirtualWardrobe() {
         </header>
 
         {/* Weather Widget (if available) */}
-        {weather && (
+        {weather && !loadingWeather && (
           <div className="weather-widget">
             <div className="weather-info">
               <span className="weather-icon">{weather.icon}</span>
@@ -338,6 +410,30 @@ function VirtualWardrobe() {
             </div>
             <button className="btn-weather-outfits" onClick={generateOutfits}>
               Generate Weather Outfits
+            </button>
+          </div>
+        )}
+
+        {loadingWeather && (
+          <div className="weather-widget">
+            <div className="weather-loading">
+              <div className="spinner"></div>
+              <p>Getting your local weather...</p>
+            </div>
+          </div>
+        )}
+
+        {locationPermission === 'denied' && (
+          <div className="weather-widget" style={{background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(220, 38, 38, 0.15) 100%)', borderColor: 'rgba(239, 68, 68, 0.3)'}}>
+            <div className="weather-info">
+              <span style={{fontSize: '2rem'}}>📍</span>
+              <div className="weather-details">
+                <div style={{fontSize: '1rem', color: 'rgba(255, 255, 255, 0.9)'}}>Location Access Denied</div>
+                <div style={{fontSize: '0.875rem', color: 'rgba(255, 255, 255, 0.7)'}}>Enable location to get weather-based outfit suggestions</div>
+              </div>
+            </div>
+            <button className="btn-weather-outfits" onClick={requestLocationAndWeather}>
+              Try Again
             </button>
           </div>
         )}
@@ -396,6 +492,19 @@ function VirtualWardrobe() {
                     <span>📸 Upload photos of your clothes</span>
                     <span>🤖 Get AI outfit suggestions</span>
                     <span>👔 Never wonder what to wear again</span>
+                  </div>
+                  
+                  {/* Add Quick Upload Button */}
+                  <div style={{marginTop: '2rem', display: 'flex', flexDirection: 'column', gap: '1rem', maxWidth: '400px', margin: '2rem auto 0'}}>
+                    <button className="btn-primary" onClick={handleQuickUpload}>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                      Upload Your First Item
+                    </button>
+                    <p style={{fontSize: '0.875rem', color: 'var(--text-tertiary)', margin: 0}}>
+                      {isPremium ? 'Unlimited items' : 'Free users: 20 items max'}
+                    </p>
                   </div>
                 </div>
               ) : (
@@ -647,27 +756,27 @@ function VirtualWardrobe() {
                 </div>
               </div>
 
-              <div className="upload-modal-actions">
-                <button className="btn-secondary" onClick={() => setShowUploadModal(false)} disabled={uploadingFile}>
-                  Cancel
-                </button>
-                <button className="btn-primary" onClick={confirmUpload} disabled={!itemName.trim() || uploadingFile}>
-                  {uploadingFile ? (
-                    <>
-                      <div className="button-spinner"></div>
-                      Uploading...
-                    </>
-                  ) : (
-                    'Add to Wardrobe'
-                  )}
-                </button>
-              </div>
-            </div>
+
+          <div className="upload-modal-actions">
+            <button className="btn-secondary" onClick={() => setShowUploadModal(false)} disabled={uploadingFile}>
+              Cancel
+            </button>
+            <button className="btn-primary" onClick={confirmUpload} disabled={!itemName.trim() || uploadingFile}>
+              {uploadingFile ? (
+                <>
+                  <div className="button-spinner"></div>
+                  Uploading...
+                </>
+              ) : (
+                'Add to Wardrobe'
+              )}
+            </button>
           </div>
         </div>
-      )}
+      </div>
     </div>
-  )
+  )}
+</div>
+)
 }
-
 export default VirtualWardrobe
