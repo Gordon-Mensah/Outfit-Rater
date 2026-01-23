@@ -1,4 +1,4 @@
-// VirtualWardrobe.jsx - Enhanced Virtual Wardrobe with Premium Design + Upload Modal
+// VirtualWardrobe.jsx - Modern Redesign with Premium Features
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from './AuthContext'
@@ -24,7 +24,7 @@ function VirtualWardrobe() {
   const [uploadingCategory, setUploadingCategory] = useState(null)
   const [uploadingFile, setUploadingFile] = useState(null)
   
-  // MODAL STATE - ONLY ADDITION
+  // Upload Modal State
   const [showUploadModal, setShowUploadModal] = useState(false)
   const [selectedFile, setSelectedFile] = useState(null)
   const [previewUrl, setPreviewUrl] = useState(null)
@@ -32,9 +32,13 @@ function VirtualWardrobe() {
   const [itemColor, setItemColor] = useState('')
   const [itemBrand, setItemBrand] = useState('')
 
+  // Weather State
+  const [weather, setWeather] = useState(null)
+
   useEffect(() => {
     if (user) {
       loadWardrobe()
+      loadWeather()
     }
   }, [user])
 
@@ -73,7 +77,15 @@ function VirtualWardrobe() {
     }
   }
 
-  // MODIFIED - Opens modal instead of uploading immediately
+  const loadWeather = async () => {
+    // Simple weather demo - you can integrate OpenWeatherMap API here
+    setWeather({
+      temp: 22,
+      condition: 'Clear',
+      icon: '☀️'
+    })
+  }
+
   const handleImageUpload = async (e, category) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -84,10 +96,10 @@ function VirtualWardrobe() {
       return
     }
 
-    // Open modal instead of uploading
+    // Open modal
     setUploadingCategory(category)
     setSelectedFile(file)
-    setItemName(file.name.replace(/\.[^/.]+$/, '')) // Auto-fill name
+    setItemName(file.name.replace(/\.[^/.]+$/, ''))
     setItemColor('')
     setItemBrand('')
     
@@ -99,7 +111,6 @@ function VirtualWardrobe() {
     setShowUploadModal(true)
   }
 
-  // NEW - Confirm upload from modal
   const confirmUpload = async () => {
     if (!itemName.trim()) {
       alert('Please enter an item name')
@@ -220,13 +231,38 @@ function VirtualWardrobe() {
 
   const getCategoryIcon = (category) => {
     const icons = {
-      tops: 'T',
-      bottoms: 'P',
-      shoes: 'S',
-      accessories: 'A',
-      outerwear: 'J'
+      tops: '👕',
+      bottoms: '👖',
+      shoes: '👟',
+      accessories: '🎒',
+      outerwear: '🧥'
     }
-    return icons[category] || 'I'
+    return icons[category] || '👔'
+  }
+
+  const categories = [
+    { id: 'tops', name: 'Tops', icon: getCategoryIcon('tops') },
+    { id: 'bottoms', name: 'Bottoms', icon: getCategoryIcon('bottoms') },
+    { id: 'shoes', name: 'Shoes', icon: getCategoryIcon('shoes') },
+    { id: 'outerwear', name: 'Outerwear', icon: getCategoryIcon('outerwear') },
+    { id: 'accessories', name: 'Accessories', icon: getCategoryIcon('accessories') }
+  ]
+
+  if (loading) {
+    return (
+      <div className="wardrobe-page">
+        <div className="wardrobe-bg">
+          <div className="gradient-orb orb-1"></div>
+          <div className="gradient-orb orb-2"></div>
+          <div className="gradient-orb orb-3"></div>
+          <div className="grid-overlay"></div>
+        </div>
+        <div className="loading-container">
+          <div className="spinner"></div>
+          <p>Loading your wardrobe...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -246,13 +282,13 @@ function VirtualWardrobe() {
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
               <path d="M12.5 15l-5-5 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
-            Back to Dashboard
+            Dashboard
           </button>
           
           <div className="nav-actions">
             {!isPremium && (
               <SimpleUpgradeButton 
-                text="Upgrade to Premium"
+                text="⭐ Upgrade"
                 className="nav-upgrade-btn"
               />
             )}
@@ -265,14 +301,10 @@ function VirtualWardrobe() {
           <div className="header-content">
             <div className="header-badge">
               <span className="badge-dot"></span>
-              {isPremium ? 'Premium Member' : 'Free Plan'}
+              {isPremium ? 'Premium Wardrobe' : 'Free Wardrobe'}
             </div>
-            <h1 className="header-title">
-              Virtual Wardrobe
-            </h1>
-            <p className="header-subtitle">
-              Upload your clothes and get AI-powered outfit combinations
-            </p>
+            <h1 className="header-title">Virtual Wardrobe</h1>
+            <p className="header-subtitle">Your digital closet powered by AI</p>
 
             {/* Stats */}
             <div className="wardrobe-stats">
@@ -293,6 +325,22 @@ function VirtualWardrobe() {
             </div>
           </div>
         </header>
+
+        {/* Weather Widget (if available) */}
+        {weather && (
+          <div className="weather-widget">
+            <div className="weather-info">
+              <span className="weather-icon">{weather.icon}</span>
+              <div className="weather-details">
+                <div className="weather-temp">{weather.temp}°C</div>
+                <div className="weather-desc">{weather.condition}</div>
+              </div>
+            </div>
+            <button className="btn-weather-outfits" onClick={generateOutfits}>
+              Generate Weather Outfits
+            </button>
+          </div>
+        )}
 
         {/* Tab Navigation */}
         <div className="tab-navigation">
@@ -318,28 +366,21 @@ function VirtualWardrobe() {
             Outfits ({generatedOutfits.length})
           </button>
           <button 
-            className={`tab-btn ${activeTab === 'suggestions' ? 'active' : ''}`}
-            onClick={() => setActiveTab('suggestions')}
+            className={`tab-btn ${activeTab === 'insights' ? 'active' : ''}`}
+            onClick={() => setActiveTab('insights')}
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <circle cx="12" cy="12" r="3" strokeWidth="2"/>
               <path d="M12 1v6m0 6v6M4.22 4.22l4.24 4.24m5.08 5.08l4.24 4.24M1 12h6m6 0h6M4.22 19.78l4.24-4.24m5.08-5.08l4.24-4.24" strokeWidth="2" strokeLinecap="round"/>
             </svg>
-            AI Suggestions
+            AI Insights
           </button>
         </div>
 
         {/* Main Content Area */}
         <div className="content-area">
-          {loading && (
-            <div className="loading-state">
-              <div className="spinner"></div>
-              <p>Loading your wardrobe...</p>
-            </div>
-          )}
-
           {/* MY CLOSET TAB */}
-          {!loading && activeTab === 'closet' && (
+          {activeTab === 'closet' && (
             <div className="closet-view">
               {getTotalItems() === 0 ? (
                 <div className="empty-wardrobe">
@@ -352,34 +393,32 @@ function VirtualWardrobe() {
                   <h3>Your Wardrobe is Empty</h3>
                   <p>Start building your digital wardrobe by uploading your first clothing item</p>
                   <div className="empty-stats">
-                    <span>Upload photos of your clothes</span>
-                    <span>Get AI outfit suggestions</span>
-                    <span>Never wonder what to wear again</span>
+                    <span>📸 Upload photos of your clothes</span>
+                    <span>🤖 Get AI outfit suggestions</span>
+                    <span>👔 Never wonder what to wear again</span>
                   </div>
                 </div>
               ) : (
                 <>
-                  {Object.keys(wardrobe).map(category => (
-                    <div key={category} className="category-section">
+                  {categories.map(category => (
+                    <div key={category.id} className="category-section">
                       <div className="category-header">
                         <div className="category-title-group">
-                          <span className="category-icon">{getCategoryIcon(category)}</span>
-                          <h3 className="category-title">
-                            {category.charAt(0).toUpperCase() + category.slice(1)}
-                          </h3>
-                          <span className="category-count">{wardrobe[category].length} items</span>
+                          <span className="category-icon">{category.icon}</span>
+                          <h3 className="category-title">{category.name}</h3>
+                          <span className="category-count">{wardrobe[category.id].length} items</span>
                         </div>
                         
                         <label className="upload-label">
                           <input
                             type="file"
                             accept="image/*"
-                            onChange={(e) => handleImageUpload(e, category)}
-                            disabled={uploadingCategory === category}
+                            onChange={(e) => handleImageUpload(e, category.id)}
+                            disabled={uploadingCategory === category.id}
                             style={{ display: 'none' }}
                           />
                           <span className="upload-btn">
-                            {uploadingCategory === category ? (
+                            {uploadingCategory === category.id ? (
                               <>
                                 <div className="button-spinner"></div>
                                 Uploading...
@@ -397,19 +436,22 @@ function VirtualWardrobe() {
                       </div>
 
                       <div className="items-grid">
-                        {wardrobe[category].map(item => (
+                        {wardrobe[category.id].map(item => (
                           <div key={item.id} className="item-card">
                             <div className="item-image-container">
                               <img src={item.image_data} alt={item.name} className="item-image" />
                               <button
                                 className="delete-btn"
-                                onClick={() => deleteItem(item.id, category)}
+                                onClick={() => deleteItem(item.id, category.id)}
                                 title="Remove item"
                               >
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                                   <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" strokeWidth="2" strokeLinecap="round"/>
                                 </svg>
                               </button>
+                              {item.color && item.color !== 'unspecified' && (
+                                <div className="color-badge">{item.color}</div>
+                              )}
                             </div>
                             <div className="item-details">
                               <p className="item-name">{item.name}</p>
@@ -420,10 +462,10 @@ function VirtualWardrobe() {
                           </div>
                         ))}
 
-                        {wardrobe[category].length === 0 && (
+                        {wardrobe[category.id].length === 0 && (
                           <div className="empty-category">
-                            <span className="empty-category-icon">{getCategoryIcon(category)}</span>
-                            <p className="empty-category-text">No {category} yet</p>
+                            <span className="empty-category-icon">{category.icon}</span>
+                            <p className="empty-category-text">No {category.name.toLowerCase()} yet</p>
                             <p className="empty-category-hint">Click "Add Item" to upload</p>
                           </div>
                         )}
@@ -433,10 +475,7 @@ function VirtualWardrobe() {
 
                   {getTotalItems() >= 3 && (
                     <div className="generate-section">
-                      <button
-                        className="btn-generate"
-                        onClick={generateOutfits}
-                      >
+                      <button className="btn-generate" onClick={generateOutfits}>
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                           <circle cx="12" cy="12" r="3" strokeWidth="2"/>
                           <path d="M12 1v6m0 6v6M4.22 4.22l4.24 4.24m5.08 5.08l4.24 4.24M1 12h6m6 0h6M4.22 19.78l4.24-4.24m5.08-5.08l4.24-4.24" strokeWidth="2" strokeLinecap="round"/>
@@ -450,7 +489,7 @@ function VirtualWardrobe() {
             </div>
           )}
 
-          {/* OUTFITS TAB - EXACT SAME AS YOUR VERSION */}
+          {/* OUTFITS TAB */}
           {activeTab === 'outfits' && (
             <div className="outfits-view">
               {generatedOutfits.length === 0 ? (
@@ -463,10 +502,7 @@ function VirtualWardrobe() {
                   </div>
                   <h3>No Outfits Yet</h3>
                   <p>Generate AI-powered outfit combinations from your wardrobe</p>
-                  <button
-                    className="btn-primary"
-                    onClick={() => setActiveTab('closet')}
-                  >
+                  <button className="btn-primary" onClick={() => setActiveTab('closet')}>
                     Go to My Closet
                   </button>
                 </div>
@@ -540,118 +576,31 @@ function VirtualWardrobe() {
             </div>
           )}
 
-          {/* AI SUGGESTIONS TAB - EXACT SAME AS YOUR VERSION */}
-          {activeTab === 'suggestions' && (
-            <div className="suggestions-view">
-              <div className="suggestions-header">
-                <h2 className="suggestions-title">AI Shopping Suggestions</h2>
-                <p className="suggestions-subtitle">Complete your wardrobe with these recommendations</p>
-              </div>
-
-              <div className="suggestions-grid">
-                <div className="suggestion-card">
-                  <div className="suggestion-header">
-                    <span className="suggestion-icon">
-                      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path d="M12 2L2 7l10 5 10-5-10-5z" strokeWidth="2"/>
-                        <path d="M2 12l10 5 10-5M2 17l10 5 10-5" strokeWidth="2"/>
-                      </svg>
-                    </span>
-                    <h3>Missing Basics</h3>
-                  </div>
-                  <p>You could use more neutral-colored tops. Consider adding:</p>
-                  <ul className="suggestion-list">
-                    <li>White button-down shirt</li>
-                    <li>Black t-shirt</li>
-                    <li>Navy sweater</li>
-                  </ul>
-                  <span className="priority-badge high">High Priority</span>
-                </div>
-
-                <div className="suggestion-card">
-                  <div className="suggestion-header">
-                    <span className="suggestion-icon">
-                      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path d="M4 8l8-4 8 4" strokeWidth="2"/>
-                        <path d="M4 12l8 4 8-4M4 16l8 4 8-4" strokeWidth="2"/>
-                      </svg>
-                    </span>
-                    <h3>Shoe Gap</h3>
-                  </div>
-                  <p>Expand your footwear options with:</p>
-                  <ul className="suggestion-list">
-                    <li>Casual white sneakers</li>
-                    <li>Dress shoes for formal events</li>
-                  </ul>
-                  <span className="priority-badge medium">Medium Priority</span>
-                </div>
-
-                <div className="suggestion-card">
-                  <div className="suggestion-header">
-                    <span className="suggestion-icon">
-                      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path d="M12 2a4 4 0 00-4 4v4H4v12h16V10h-4V6a4 4 0 00-4-4z" strokeWidth="2"/>
-                        <path d="M8 10v3m8-3v3" strokeWidth="2"/>
-                      </svg>
-                    </span>
-                    <h3>Weather Protection</h3>
-                  </div>
-                  <p>Don't forget seasonal essentials:</p>
-                  <ul className="suggestion-list">
-                    <li>Light rain jacket</li>
-                    <li>Winter coat</li>
-                  </ul>
-                  <span className="priority-badge low">Low Priority</span>
-                </div>
-
-                <div className="suggestion-card premium-card">
-                  <div className="premium-overlay">
-                    <svg className="lock-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" strokeWidth="2"/>
-                      <path d="M7 11V7a5 5 0 0110 0v4" strokeWidth="2" strokeLinecap="round"/>
-                    </svg>
-                  </div>
-                  <div className="suggestion-header">
-                    <span className="suggestion-icon">
-                      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <circle cx="12" cy="12" r="3" strokeWidth="2"/>
-                        <path d="M12 1v6m0 6v6M4.22 4.22l4.24 4.24m5.08 5.08l4.24 4.24M1 12h6m6 0h6M4.22 19.78l4.24-4.24m5.08-5.08l4.24-4.24" strokeWidth="2" strokeLinecap="round"/>
-                      </svg>
-                    </span>
-                    <h3>Premium AI Analysis</h3>
-                  </div>
-                  <p>Unlock advanced AI wardrobe analysis:</p>
-                  <ul className="suggestion-list">
-                    <li>Color palette analysis</li>
-                    <li>Style consistency scoring</li>
-                    <li>Seasonal wardrobe planning</li>
-                    <li>Budget shopping recommendations</li>
-                  </ul>
-                  {!isPremium && (
-                    <SimpleUpgradeButton 
-                      text="Upgrade to Premium"
-                      className="suggestion-upgrade-btn"
-                    />
-                  )}
-                </div>
+          {/* AI INSIGHTS TAB */}
+          {activeTab === 'insights' && (
+            <div className="insights-view">
+              <div className="empty-state">
+                <div className="empty-icon">💡</div>
+                <h3>AI Style Insights</h3>
+                <p>Get personalized recommendations based on your wardrobe analytics</p>
+                {!isPremium ? (
+                  <SimpleUpgradeButton text="⭐ Upgrade to Premium" />
+                ) : (
+                  <button className="btn-primary">Coming Soon</button>
+                )}
               </div>
             </div>
           )}
         </div>
       </div>
 
-      {/* UPLOAD MODAL - ONLY NEW ADDITION */}
+      {/* UPLOAD MODAL */}
       {showUploadModal && (
         <div className="modal-overlay" onClick={() => setShowUploadModal(false)}>
           <div className="upload-modal" onClick={(e) => e.stopPropagation()}>
             <div className="upload-modal-header">
               <h2>Add {uploadingCategory?.charAt(0).toUpperCase() + uploadingCategory?.slice(1)}</h2>
-              <button 
-                className="modal-close-btn"
-                onClick={() => setShowUploadModal(false)}
-              >
-                ✕
-              </button>
+              <button className="modal-close-btn" onClick={() => setShowUploadModal(false)}>✕</button>
             </div>
 
             <div className="upload-modal-content">
@@ -699,18 +648,10 @@ function VirtualWardrobe() {
               </div>
 
               <div className="upload-modal-actions">
-                <button 
-                  className="btn-secondary"
-                  onClick={() => setShowUploadModal(false)}
-                  disabled={uploadingFile}
-                >
+                <button className="btn-secondary" onClick={() => setShowUploadModal(false)} disabled={uploadingFile}>
                   Cancel
                 </button>
-                <button 
-                  className="btn-primary"
-                  onClick={confirmUpload}
-                  disabled={!itemName.trim() || uploadingFile}
-                >
+                <button className="btn-primary" onClick={confirmUpload} disabled={!itemName.trim() || uploadingFile}>
                   {uploadingFile ? (
                     <>
                       <div className="button-spinner"></div>
