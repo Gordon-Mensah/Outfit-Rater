@@ -142,11 +142,7 @@ function HamburgerMenu() {
             onClick={() => navigateAndClose('/closet-simulator')}
           >
             <span className="menu-item-text">AI Closet Simulator</span>
-            {isPremium ? (
-              <span className="menu-item-badge premium-badge-mini">⭐</span>
-            ) : (
               <span className="menu-item-badge new-badge">New</span>
-            )}
             <span className="menu-item-arrow">›</span>
           </button>
 

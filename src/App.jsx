@@ -1,4 +1,4 @@
-// App.jsx - Document 1 UI + Document 2 AI Stylist Features
+// App.jsx - Modern Redesign
 import { useState, useEffect } from 'react'
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 import { useAuth } from './AuthContext'
@@ -26,6 +26,7 @@ import { cities, workplaces, socialScenes } from './contextData'
 import StylistSelector from './StylistSelector'
 import { getStylist } from './stylistPersonalities'
 import AIClosetSimulator from './AIClosetSimulator'
+import './App.css'
 
 const API_BASE_URL = import.meta.env.PROD ? '' : 'http://localhost:3000'
 
@@ -42,11 +43,6 @@ function App() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [feedbackMode, setFeedbackMode] = useState('helpful')
-  const [showHistory, setShowHistory] = useState(false)
-  const [outfitHistory, setOutfitHistory] = useState([])
-  const [showSavedOutfits, setShowSavedOutfits] = useState(false)
-  const [savedOutfits, setSavedOutfits] = useState([])
-  const [savedCount, setSavedCount] = useState(0)
   const [showLastRatingWarning, setShowLastRatingWarning] = useState(false)
   const [pendingRatingAction, setPendingRatingAction] = useState(null)
   const [showStylistSelector, setShowStylistSelector] = useState(false)
@@ -54,24 +50,9 @@ function App() {
 
   useEffect(() => {
     if (user) {
-      loadSavedCount()
       loadUserStylist()
     }
   }, [user])
-
-  const loadSavedCount = async () => {
-    if (!user) return
-    try {
-      const { data, error } = await supabase
-        .from('saved_outfits')
-        .select('id', { count: 'exact' })
-        .eq('user_id', user.id)
-      if (error) throw error
-      setSavedCount(data?.length || 0)
-    } catch (err) {
-      console.error('Error loading saved count:', err)
-    }
-  }
 
   const loadUserStylist = async () => {
     if (!user) return
@@ -84,7 +65,6 @@ function App() {
       
       if (data?.stylist_preference) {
         setCurrentStylist(data.stylist_preference)
-        console.log('✅ Loaded stylist:', data.stylist_preference)
       }
     } catch (err) {
       console.error('Error loading stylist:', err)
@@ -103,7 +83,6 @@ function App() {
         .eq('id', user.id)
       
       if (error) throw error
-      console.log('✅ Stylist saved:', stylistId)
     } catch (err) {
       console.error('Error saving stylist:', err)
     }
@@ -115,36 +94,26 @@ function App() {
     const keepWarm = setInterval(async () => {
       try {
         await fetch(`${API_BASE_URL}/api/ping`)
-        console.log('🔥 API kept warm')
       } catch (err) {
-        console.log('❌ Ping failed:', err)
+        console.log('Ping failed:', err)
       }
     }, 5 * 60 * 1000)
 
     fetch(`${API_BASE_URL}/api/ping`)
-      .then(() => console.log('🔥 Initial ping successful'))
-      .catch(() => console.log('❌ Initial ping failed'))
+      .catch(() => console.log('Initial ping failed'))
 
     return () => clearInterval(keepWarm)
   }, [user])
 
   useEffect(() => {
-    if (window.Stripe) {
-      console.log('✅ Stripe already loaded')
-      return
-    }
+    if (window.Stripe) return
 
     const existingScript = document.querySelector('script[src="https://js.stripe.com/v3/"]')
-    if (existingScript) {
-      console.log('✅ Stripe script already in DOM')
-      return
-    }
+    if (existingScript) return
 
     const script = document.createElement('script')
     script.src = 'https://js.stripe.com/v3/'
     script.async = true
-    script.onload = () => console.log('✅ Stripe.js loaded')
-    script.onerror = () => console.error('❌ Failed to load Stripe.js')
     document.body.appendChild(script)
   }, [])
 
@@ -152,57 +121,8 @@ function App() {
     return (
       <div className="loading-screen">
         <div className="spinner"></div>
-        <p>Loading...</p>
       </div>
     )
-  }
-
-  const loadHistory = async () => {
-    if (!user) return
-    try {
-      const { data, error } = await supabase
-        .from('outfit_history')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(10)
-      if (error) throw error
-      setOutfitHistory(data || [])
-      setShowHistory(true)
-    } catch (err) {
-      console.error('Error loading history:', err)
-    }
-  }
-
-  const loadSavedOutfits = async () => {
-    if (!user) return
-    try {
-      const { data, error } = await supabase
-        .from('saved_outfits')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-      if (error) throw error
-      setSavedOutfits(data || [])
-      setSavedCount(data?.length || 0)
-      setShowSavedOutfits(true)
-    } catch (err) {
-      console.error('Error loading saved outfits:', err)
-    }
-  }
-
-  const deleteSavedOutfit = async (outfitId) => {
-    try {
-      const { error } = await supabase
-        .from('saved_outfits')
-        .delete()
-        .eq('id', outfitId)
-        .eq('user_id', user.id)
-      if (error) throw error
-      loadSavedOutfits()
-    } catch (err) {
-      console.error('Error deleting outfit:', err)
-    }
   }
 
   const handleImageChange = async (e) => {
@@ -224,595 +144,630 @@ function App() {
 
   const handleComparisonImages = async (e) => {
     const files = Array.from(e.target.files)
-    console.log('📸 Files selected:', files.length)
     
     if (files.length < 2) {
       setError('Please select at least 2 images')
       return
     }
     if (files.length > 5) {
-      setError('Maximum 5 images')
+      setError('Maximum 5 images allowed')
+      return
+    }
+
+    if (!isPremium && files.length > 2) {
+      setError('Free users can compare up to 2 outfits. Upgrade to Premium for up to 5.')
       return
     }
 
     try {
-      const compressedFiles = []
-      const previews = []
-      for (const file of files) {
-        const options = { maxSizeMB: 1, maxWidthOrHeight: 1920, useWebWorker: true }
-        const compressedFile = await imageCompression(file, options)
-        compressedFiles.push(compressedFile)
-        const reader = new FileReader()
-        const preview = await new Promise((resolve) => {
-          reader.onloadend = () => resolve(reader.result)
-          reader.readAsDataURL(compressedFile)
-        })
-        previews.push(preview)
-      }
-      console.log('✅ Images processed:', compressedFiles.length)
+      const options = { maxSizeMB: 1, maxWidthOrHeight: 1920, useWebWorker: true }
+      const compressedFiles = await Promise.all(
+        files.map(file => imageCompression(file, options))
+      )
+      
       setComparisonImages(compressedFiles)
+      
+      const previews = await Promise.all(
+        compressedFiles.map(file => {
+          return new Promise((resolve) => {
+            const reader = new FileReader()
+            reader.onloadend = () => resolve(reader.result)
+            reader.readAsDataURL(file)
+          })
+        })
+      )
+      
       setComparisonPreviews(previews)
       setError(null)
     } catch (err) {
       console.error('Error processing images:', err)
-      setError('Failed to process images.')
+      setError('Failed to process images')
     }
-  }
-
-  const readFileAsBase64 = (file) => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader()
-      reader.onloadend = () => resolve(reader.result)
-      reader.onerror = reject
-      reader.readAsDataURL(file)
-    })
   }
 
   const rateOutfit = async () => {
-    if (!canRate()) {
-      setError('You have used your 5 free ratings today.')
-      return
-    }
-    
-    if (!image) {
-      setError('Please upload an image first')
+    if (!user) {
+      navigate('/login')
       return
     }
 
-    if (!isPremium && dailyRatingCount === 4) {
-      setPendingRatingAction('rate')
+    if (!canRate) {
+      setError('Daily rating limit reached. Upgrade to Premium for unlimited ratings.')
+      return
+    }
+
+    if (dailyRatingCount >= 4 && !isPremium) {
+      setPendingRatingAction(() => rateOutfit)
       setShowLastRatingWarning(true)
       return
     }
 
-    await executeRating()
-  }
-
-  const executeRating = async () => {
     setLoading(true)
     setError(null)
+
     try {
-      const base64Image = await readFileAsBase64(image)
-      
-      let contextToSend = null
-      try {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('style_context')
-          .eq('id', user.id)
-          .single()
-        
-        const savedContext = profile?.style_context || null
-        
-        if (savedContext && savedContext.city) {
-          const cityData = cities.find(c => c.value === savedContext.city)
-          const workData = workplaces.find(w => w.value === savedContext.workplace)
-          const sceneData = socialScenes.find(s => s.value === savedContext.socialScene)
-          
-          contextToSend = {
-            city: savedContext.city,
-            cityLabel: cityData?.label,
-            climate: cityData?.climate,
-            culture: cityData?.culture,
-            workplace: savedContext.workplace,
-            workplaceLabel: workData?.label,
-            formality: workData?.formality,
-            workplaceDescription: workData?.description,
-            socialScene: savedContext.socialScene,
-            socialSceneLabel: sceneData?.label,
-            sceneDescription: sceneData?.description,
-            ageGroup: savedContext.ageGroup
-          }
-          
-          try {
-            const cityCoords = getCityCoordinates(savedContext.city)
-            if (cityCoords) {
-              const weather = await fetchWeather(cityCoords.lat, cityCoords.lon)
-              if (weather) {
-                contextToSend.weather = {
-                  temp: weather.temp,
-                  condition: weather.condition,
-                  description: weather.description,
-                  humidity: weather.humidity
-                }
-                console.log('✅ Weather data added:', weather)
-              }
-            }
-          } catch (weatherErr) {
-            console.log('ℹ️ Weather data unavailable, using general climate info')
-          }
-          
-          console.log('✅ Full context loaded:', contextToSend)
+      const base64Image = imagePreview
+
+      let context = null
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('style_context')
+        .eq('id', user.id)
+        .single()
+
+      if (profileData?.style_context) {
+        const sc = profileData.style_context
+        context = {
+          city: sc.city,
+          cityLabel: cities.find(c => c.value === sc.city)?.label,
+          climate: cities.find(c => c.value === sc.city)?.climate,
+          culture: cities.find(c => c.value === sc.city)?.culture,
+          workplace: sc.workplace,
+          workplaceLabel: workplaces.find(w => w.value === sc.workplace)?.label,
+          formality: workplaces.find(w => w.value === sc.workplace)?.formality,
+          socialScene: sc.socialScene,
+          socialSceneLabel: socialScenes.find(s => s.value === sc.socialScene)?.label,
+          ageGroup: sc.ageGroup
         }
-      } catch (contextErr) {
-        console.log('ℹ️ Context not available, proceeding without it:', contextErr)
+
+        if (sc.city) {
+          const coords = getCityCoordinates(sc.city)
+          if (coords) {
+            const weather = await fetchWeather(coords.lat, coords.lon)
+            if (weather) {
+              context.weather = weather
+            }
+          }
+        }
       }
-      
-      console.log('🎨 Using stylist:', currentStylist)
-      
+
       const response = await fetch(`${API_BASE_URL}/api/rate-outfit`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          image: base64Image, 
-          occasion, 
-          mode: feedbackMode, 
+        body: JSON.stringify({
+          image: base64Image,
+          occasion,
+          mode: feedbackMode,
           userId: user.id,
-          context: contextToSend,
+          context,
           stylistId: currentStylist
         })
       })
-      
+
+      if (!response.ok) {
+        throw new Error('Failed to get rating')
+      }
+
       const data = await response.json()
-      if (!response.ok) throw new Error(data.error || 'Failed to rate outfit')
-      
+
       await supabase.from('outfit_history').insert({
         user_id: user.id,
         rating: data.rating,
         feedback: data.feedback,
-        occasion: occasion,
-        created_at: new Date().toISOString()
+        occasion
       })
-      await checkDailyRatings(user.id)
-      
+
+      await checkDailyRatings()
+
       navigate('/result', {
-        state: { 
-          rating: data.rating, 
-          feedback: data.feedback, 
-          imagePreview: imagePreview, 
-          occasion: occasion,
-          stylistUsed: currentStylist
+        state: {
+          rating: data.rating,
+          feedback: data.feedback,
+          imagePreview,
+          occasion
         }
       })
+
     } catch (err) {
-      console.error('Error rating outfit:', err)
-      setError(err.message || 'Something went wrong.')
+      console.error('Error:', err)
+      setError('Failed to rate outfit. Please try again.')
     } finally {
       setLoading(false)
     }
   }
 
   const compareOutfits = async () => {
-    console.log('🔍 Compare button clicked')
-    
-    if (!canRate()) {
-      setError('You have used your 5 free ratings today.')
+    if (!user) {
+      navigate('/login')
       return
     }
-    
+
     if (comparisonImages.length < 2) {
       setError('Please upload at least 2 images')
       return
     }
 
-    if (!isPremium && dailyRatingCount === 4) {
-      setPendingRatingAction('compare')
-      setShowLastRatingWarning(true)
-      return
-    }
-
-    await executeComparison()
-  }
-
-  const executeComparison = async () => {
     setLoading(true)
     setError(null)
+
     try {
-      const base64Images = await Promise.all(
-        comparisonImages.map(img => {
-          return new Promise((resolve) => {
-            const reader = new FileReader()
-            reader.onloadend = () => resolve(reader.result)
-            reader.readAsDataURL(img)
-          })
-        })
-      )
-      
-      console.log('🚀 Calling API...')
-      
-      let contextToSend = null
-      try {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('style_context')
-          .eq('id', user.id)
-          .single()
-        
-        const savedContext = profile?.style_context || null
-        
-        if (savedContext && savedContext.city) {
-          const cityData = cities.find(c => c.value === savedContext.city)
-          const workData = workplaces.find(w => w.value === savedContext.workplace)
-          const sceneData = socialScenes.find(s => s.value === savedContext.socialScene)
-          
-          contextToSend = {
-            city: savedContext.city,
-            cityLabel: cityData?.label,
-            climate: cityData?.climate,
-            culture: cityData?.culture,
-            workplace: savedContext.workplace,
-            workplaceLabel: workData?.label,
-            formality: workData?.formality,
-            workplaceDescription: workData?.description,
-            socialScene: savedContext.socialScene,
-            socialSceneLabel: sceneData?.label,
-            sceneDescription: sceneData?.description,
-            ageGroup: savedContext.ageGroup
-          }
-          
-          try {
-            const cityCoords = getCityCoordinates(savedContext.city)
-            if (cityCoords) {
-              const weather = await fetchWeather(cityCoords.lat, cityCoords.lon)
-              if (weather) {
-                contextToSend.weather = {
-                  temp: weather.temp,
-                  condition: weather.condition,
-                  description: weather.description,
-                  humidity: weather.humidity
-                }
-              }
+      let context = null
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('style_context')
+        .eq('id', user.id)
+        .single()
+
+      if (profileData?.style_context) {
+        const sc = profileData.style_context
+        context = {
+          city: sc.city,
+          cityLabel: cities.find(c => c.value === sc.city)?.label,
+          climate: cities.find(c => c.value === sc.city)?.climate,
+          culture: cities.find(c => c.value === sc.city)?.culture,
+          workplace: sc.workplace,
+          workplaceLabel: workplaces.find(w => w.value === sc.workplace)?.label,
+          formality: workplaces.find(w => w.value === sc.workplace)?.formality,
+          socialScene: sc.socialScene,
+          socialSceneLabel: socialScenes.find(s => s.value === sc.socialScene)?.label
+        }
+
+        if (sc.city) {
+          const coords = getCityCoordinates(sc.city)
+          if (coords) {
+            const weather = await fetchWeather(coords.lat, coords.lon)
+            if (weather) {
+              context.weather = weather
             }
-          } catch (weatherErr) {
-            console.log('Weather unavailable')
           }
         }
-      } catch (contextErr) {
-        console.log('Context not available')
       }
-      
-      console.log('🎨 Using stylist:', currentStylist)
-      
+
       const response = await fetch(`${API_BASE_URL}/api/compare-outfits`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          images: base64Images, 
-          occasion, 
+        body: JSON.stringify({
+          images: comparisonPreviews,
+          occasion,
           userId: user.id,
-          context: contextToSend,
-          stylistId: currentStylist
+          context
         })
       })
-      
+
+      if (!response.ok) {
+        throw new Error('Failed to compare outfits')
+      }
+
       const data = await response.json()
-      if (!response.ok) throw new Error(data.error || 'Failed to compare')
-      
-      await checkDailyRatings(user.id)
-      
+
       navigate('/compare-result', {
         state: {
-          results: data.results,
+          ratings: data.ratings,
+          bestIndex: data.bestIndex,
+          analysis: data.analysis,
+          mixSuggestion: data.mixSuggestion,
           images: comparisonPreviews,
-          occasion: occasion,
-          stylistUsed: currentStylist
+          occasion
         }
       })
+
     } catch (err) {
-      console.error('Error comparing outfits:', err)
-      setError(err.message || 'Something went wrong.')
+      console.error('Error:', err)
+      setError('Failed to compare outfits. Please try again.')
     } finally {
       setLoading(false)
     }
   }
 
-  const getRatingColor = (rating) => {
-    if (rating >= 9) return '#8b5cf6'
-    if (rating >= 7) return '#10b981'
-    if (rating >= 4) return '#f59e0b'
-    return '#ef4444'
-  }
-
-  const currentStylistInfo = getStylist(currentStylist)
-
   const MainAppContent = () => (
-    <div className="app">
-      <LastRatingWarning
-        isOpen={showLastRatingWarning}
-        onClose={() => {
-          setShowLastRatingWarning(false)
-          setPendingRatingAction(null)
-        }}
-        onContinue={() => {
-          if (pendingRatingAction === 'rate') {
-            executeRating()
-          } else if (pendingRatingAction === 'compare') {
-            executeComparison()
-          }
-        }}
-      />
-
-      <div className="header">
-        <h1>AI Outfit Rater</h1>
-        <HamburgerMenu />
+    <div className="rate-page">
+      {/* Background */}
+      <div className="rate-bg">
+        <div className="gradient-orb orb-1"></div>
+        <div className="gradient-orb orb-2"></div>
+        <div className="gradient-orb orb-3"></div>
+        <div className="grid-overlay"></div>
       </div>
 
-      <div className="container">
-        <div className="action-buttons">
-          <button 
-            onClick={loadHistory} 
-            className="btn-secondary"
-            style={{ 
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              color: 'white',
-              border: 'none',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px'
-            }}
-          >
-            View History
-          </button>
-          <button 
-            onClick={loadSavedOutfits} 
-            className="btn-secondary"
-            style={{ 
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              color: 'white',
-              border: 'none',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px'
-            }}
-          >
-             Saved Outfits ({savedCount}{!isPremium ? '/10' : ''})
-          </button>
-          <button 
-            onClick={() => setShowStylistSelector(true)} 
-            className="btn-secondary"
-            style={{ 
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              color: 'white',
-              border: 'none',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px'
-            }}
-            title="Change AI Stylist"
-          >
-            {currentStylistInfo.icon} {currentStylistInfo.name}
-          </button>
+      {/* Content */}
+      <div className="rate-content">
+        {/* Header */}
+        <header className="rate-header">
+          <div className="header-left">
+            <div className="app-logo">
+              <div className="logo-circle">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <rect x="3" y="3" width="18" height="18" rx="2" strokeWidth="2"/>
+                  <circle cx="8.5" cy="8.5" r="1.5" fill="currentColor"/>
+                  <path d="M21 15l-5-5L5 21" strokeWidth="2" strokeLinecap="round"/>
+                </svg>
+              </div>
+              <span className="logo-text">AI Outfit Rater</span>
+            </div>
+          </div>
+          <div className="header-right">
+            <HamburgerMenu />
+          </div>
+        </header>
+
+        {/* Welcome Section */}
+        <section className="welcome-section">
+          <h1 className="welcome-heading">Rate Your Outfit</h1>
+          <p className="welcome-subtitle">
+            Upload a photo and get instant AI-powered feedback
+          </p>
+        </section>
+
+        {/* Stats Bar */}
+        <div className="stats-bar">
+          <div className="stat-item">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <circle cx="12" cy="12" r="10" strokeWidth="2"/>
+              <polyline points="12 6 12 12 16 14" strokeWidth="2"/>
+            </svg>
+            <span>{isPremium ? 'Unlimited' : `${dailyRatingCount}/5`} ratings today</span>
+          </div>
+          {!isPremium && (
+            <div className="stat-item premium-cta">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" strokeWidth="2"/>
+              </svg>
+              <span>Upgrade for unlimited</span>
+            </div>
+          )}
         </div>
 
+        {/* Mode Toggle */}
         <div className="mode-toggle">
           <button
-            className={!comparisonMode ? 'active' : ''}
+            className={`mode-btn ${!comparisonMode ? 'active' : ''}`}
             onClick={() => {
-              console.log('→ Switching to SINGLE mode')
               setComparisonMode(false)
+              setComparisonImages([])
+              setComparisonPreviews([])
               setError(null)
             }}
           >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <rect x="3" y="3" width="18" height="18" rx="2" strokeWidth="2"/>
+              <circle cx="8.5" cy="8.5" r="1.5" fill="currentColor"/>
+              <path d="M21 15l-5-5L5 21" strokeWidth="2"/>
+            </svg>
             Single Outfit
           </button>
           <button
-            className={comparisonMode ? 'active' : ''}
+            className={`mode-btn ${comparisonMode ? 'active' : ''}`}
             onClick={() => {
-              console.log('→ Switching to COMPARE mode')
               setComparisonMode(true)
+              setImage(null)
+              setImagePreview(null)
               setError(null)
             }}
           >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <rect x="3" y="3" width="7" height="18" rx="1" strokeWidth="2"/>
+              <rect x="14" y="3" width="7" height="18" rx="1" strokeWidth="2"/>
+            </svg>
             Compare Outfits
           </button>
         </div>
 
-        {isPremium && !comparisonMode && (
-          <div className="mode-selector">
-            <label>Feedback Style:</label>
-            <div className="mode-buttons">
-              <button className={feedbackMode === 'helpful' ? 'active' : ''} onClick={() => setFeedbackMode('helpful')}>Helpful</button>
-              <button className={feedbackMode === 'honest' ? 'active' : ''} onClick={() => setFeedbackMode('honest')}>Honest</button>
-              <button className={feedbackMode === 'roast' ? 'active' : ''} onClick={() => setFeedbackMode('roast')}>Roast Mode</button>
-            </div>
-          </div>
-        )}
-
-        {showSavedOutfits && (
-          <div className="modal-overlay" onClick={() => setShowSavedOutfits(false)}>
-            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-              <div className="modal-header">
-                <h2>Saved Outfits</h2>
-                <button onClick={() => setShowSavedOutfits(false)} className="btn-close">×</button>
-              </div>
-              <div className="saved-outfits-grid">
-                {savedOutfits.length === 0 ? (
-                  <p className="empty-message">No saved outfits yet.</p>
-                ) : (
-                  savedOutfits.map((outfit) => (
-                    <div key={outfit.id} className="saved-outfit-card">
-                      <img src={outfit.image_data} alt={outfit.name} />
-                      <div className="saved-outfit-info">
-                        <h3>{outfit.name}</h3>
-                        <p className="rating" style={{ color: getRatingColor(outfit.rating) }}>{outfit.rating}/10</p>
-                        <p className="occasion">{outfit.occasion}</p>
-                        <p className="date">{new Date(outfit.created_at).toLocaleDateString()}</p>
-                        <button onClick={() => deleteSavedOutfit(outfit.id)} className="btn-delete">Delete</button>
+        {/* Main Content Area */}
+        <div className="main-content">
+          {!comparisonMode ? (
+            /* Single Outfit Mode */
+            <>
+              <div className="upload-section">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  id="file-upload"
+                  style={{ display: 'none' }}
+                />
+                <label htmlFor="file-upload" className="upload-area">
+                  {imagePreview ? (
+                    <div className="preview-container">
+                      <img src={imagePreview} alt="Outfit preview" className="preview-image" />
+                      <div className="change-image-overlay">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                          <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" strokeWidth="2"/>
+                          <circle cx="12" cy="13" r="4" strokeWidth="2"/>
+                        </svg>
+                        <span>Change Photo</span>
                       </div>
                     </div>
-                  ))
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {showHistory && (
-          <div className="modal-overlay" onClick={() => setShowHistory(false)}>
-            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-              <div className="modal-header">
-                <h2>Rating History</h2>
-                <button onClick={() => setShowHistory(false)} className="btn-close">×</button>
-              </div>
-              <div className="history-list">
-                {outfitHistory.length === 0 ? (
-                  <p className="empty-message">No ratings yet.</p>
-                ) : (
-                  outfitHistory.map((item) => (
-                    <div key={item.id} className="history-item">
-                      <div className="history-rating">
-                        <span style={{ color: getRatingColor(item.rating) }}>{item.rating}/10</span>
-                      </div>
-                      <div className="history-details">
-                        <p className="history-occasion">{item.occasion}</p>
-                        <p className="history-date">{new Date(item.created_at).toLocaleDateString()}</p>
-                        <p className="history-feedback">{item.feedback.substring(0, 100)}...</p>
-                      </div>
+                  ) : (
+                    <div className="upload-placeholder">
+                      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" strokeWidth="2"/>
+                        <circle cx="12" cy="13" r="4" strokeWidth="2"/>
+                      </svg>
+                      <p className="upload-title">Upload Your Outfit</p>
+                      <p className="upload-subtitle">Click to select a photo</p>
                     </div>
-                  ))
-                )}
+                  )}
+                </label>
               </div>
-            </div>
-          </div>
-        )}
 
-        {showStylistSelector && (
-          <StylistSelector
-            currentStylist={currentStylist}
-            onSelectStylist={handleSelectStylist}
-            onClose={() => setShowStylistSelector(false)}
-          />
-        )}
+              <div className="options-section">
+                <div className="form-group">
+                  <label htmlFor="occasion" className="form-label">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                      <circle cx="12" cy="12" r="10" strokeWidth="2"/>
+                      <polyline points="12 6 12 12 16 14" strokeWidth="2"/>
+                    </svg>
+                    Occasion
+                  </label>
+                  <select
+                    id="occasion"
+                    value={occasion}
+                    onChange={(e) => setOccasion(e.target.value)}
+                    className="form-select"
+                  >
+                    <option value="none">General / No specific occasion</option>
+                    <option value="casual">Casual hangout</option>
+                    <option value="date">First date</option>
+                    <option value="interview">Job interview</option>
+                    <option value="wedding">Wedding</option>
+                    <option value="gym">Gym / Workout</option>
+                    <option value="night">Night out</option>
+                    <option value="work">Work / Office</option>
+                    <option value="beach">Beach / Vacation</option>
+                  </select>
+                </div>
 
-        {!comparisonMode && (
-          <div>
-            <div className="upload-zone">
-              <input type="file" accept="image/*" onChange={handleImageChange} id="file-upload" style={{ display: 'none' }} />
-              <label htmlFor="file-upload" className="upload-label">
-                {imagePreview ? (
-                  <img src={imagePreview} alt="Preview" className="image-preview" />
+                <div className="form-group">
+                  <label htmlFor="feedback-mode" className="form-label">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" strokeWidth="2"/>
+                    </svg>
+                    Feedback Style
+                  </label>
+                  <select
+                    id="feedback-mode"
+                    value={feedbackMode}
+                    onChange={(e) => setFeedbackMode(e.target.value)}
+                    className="form-select"
+                  >
+                    <option value="helpful">Helpful - Encouraging & constructive</option>
+                    <option value="honest">Honest - Balanced & realistic</option>
+                    {isPremium && <option value="roast">Roast - Brutally honest</option>}
+                  </select>
+                  {!isPremium && feedbackMode === 'roast' && (
+                    <p className="premium-note">Roast mode requires Premium</p>
+                  )}
+                </div>
+
+                <button
+                  className="stylist-selector-btn"
+                  onClick={() => setShowStylistSelector(true)}
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" strokeWidth="2"/>
+                    <circle cx="12" cy="7" r="4" strokeWidth="2"/>
+                  </svg>
+                  AI Stylist: {getStylist(currentStylist)?.name || 'Minimalist'}
+                </button>
+              </div>
+
+              {error && (
+                <div className="error-message">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <circle cx="12" cy="12" r="10" strokeWidth="2"/>
+                    <line x1="12" y1="8" x2="12" y2="12" strokeWidth="2"/>
+                    <line x1="12" y1="16" x2="12.01" y2="16" strokeWidth="2"/>
+                  </svg>
+                  <span>{error}</span>
+                </div>
+              )}
+
+              <button
+                onClick={rateOutfit}
+                disabled={!image || loading}
+                className="btn-primary"
+              >
+                {loading ? (
+                  <>
+                    <span className="btn-spinner"></span>
+                    Analyzing...
+                  </>
                 ) : (
                   <>
-                    <div className="upload-icon">+</div>
-                    <p>Click to upload outfit photo</p>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" strokeWidth="2"/>
+                    </svg>
+                    Rate My Outfit
                   </>
                 )}
-              </label>
-            </div>
-
-            <div className="occasion-selector">
-              <label htmlFor="occasion">Occasion:</label>
-              <select id="occasion" value={occasion} onChange={(e) => setOccasion(e.target.value)}>
-                <option value="none">No specific occasion</option>
-                <option value="casual">Casual hangout</option>
-                <option value="date">First date</option>
-                <option value="interview">Job interview</option>
-                <option value="wedding">Wedding</option>
-                <option value="gym">Gym/Workout</option>
-                <option value="night">Night out</option>
-                <option value="work">Work/Office</option>
-                <option value="beach">Beach/Vacation</option>
-              </select>
-            </div>
-
-            {error && <div className="error">{error}</div>}
-
-            <button onClick={rateOutfit} disabled={!image || loading} className="btn-rate">
-              {loading ? (
-                <>
-                  <span className="spinner"></span>
-                  Rating...
-                </>
-              ) : (
-                'Rate My Outfit'
-              )}
-            </button>
-          </div>
-        )}
-
-        {comparisonMode && (
-          <div>
-            <div className="comparison-instructions">
-              <h4>How to Compare Outfits:</h4>
-              <ul>
-                <li>Click the upload area below</li>
-                <li>Select 2-5 outfit photos</li>
-                <li>Wait for upload</li>
-                <li>Click Compare button</li>
-              </ul>
-            </div>
-
-            <div className="comparison-upload">
-              <input
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={handleComparisonImages}
-                id="comparison-upload"
-                style={{ display: 'none' }}
-              />
-              <label htmlFor="comparison-upload" className="upload-label">
-                <div className="upload-icon">+</div>
-                <p>Upload 2-5 outfits to compare</p>
-                <small>💡 Hold Ctrl/Cmd to select multiple</small>
-              </label>
-            </div>
-
-            {comparisonPreviews.length > 0 && (
-              <div className="comparison-preview-grid">
-                {comparisonPreviews.map((preview, index) => (
-                  <div key={index} className="comparison-preview-item" data-index={index + 1}>
-                    <img src={preview} alt={`Outfit ${index + 1}`} />
-                    <p>Outfit {index + 1}</p>
-                  </div>
-                ))}
+              </button>
+            </>
+          ) : (
+            /* Comparison Mode */
+            <>
+              <div className="comparison-info">
+                <h3 className="comparison-title">Compare Multiple Outfits</h3>
+                <p className="comparison-subtitle">
+                  Upload 2-5 photos to compare side-by-side
+                </p>
               </div>
-            )}
 
-            <div className="occasion-selector">
-              <label htmlFor="occasion">Occasion:</label>
-              <select id="occasion" value={occasion} onChange={(e) => setOccasion(e.target.value)}>
-                <option value="none">No specific occasion</option>
-                <option value="casual">Casual hangout</option>
-                <option value="date">First date</option>
-                <option value="interview">Job interview</option>
-                <option value="wedding">Wedding</option>
-                <option value="gym">Gym/Workout</option>
-                <option value="night">Night out</option>
-                <option value="work">Work/Office</option>
-                <option value="beach">Beach/Vacation</option>
-              </select>
-            </div>
+              <div className="upload-section">
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handleComparisonImages}
+                  id="comparison-upload"
+                  style={{ display: 'none' }}
+                />
+                <label htmlFor="comparison-upload" className="upload-area comparison">
+                  {comparisonPreviews.length > 0 ? (
+                    <div className="comparison-grid">
+                      {comparisonPreviews.map((preview, index) => (
+                        <div key={index} className="comparison-item">
+                          <img src={preview} alt={`Outfit ${index + 1}`} />
+                          <span className="comparison-label">Outfit {index + 1}</span>
+                        </div>
+                      ))}
+                      <div className="add-more">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                          <line x1="12" y1="5" x2="12" y2="19" strokeWidth="2"/>
+                          <line x1="5" y1="12" x2="19" y2="12" strokeWidth="2"/>
+                        </svg>
+                        <span>Add More</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="upload-placeholder">
+                      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <rect x="3" y="3" width="7" height="18" rx="1" strokeWidth="2"/>
+                        <rect x="14" y="3" width="7" height="18" rx="1" strokeWidth="2"/>
+                      </svg>
+                      <p className="upload-title">Upload 2-5 Outfits</p>
+                      <p className="upload-subtitle">Select multiple photos at once</p>
+                    </div>
+                  )}
+                </label>
+              </div>
 
-            {error && <div className="error">{error}</div>}
+              <div className="options-section">
+                <div className="form-group">
+                  <label htmlFor="occasion-compare" className="form-label">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                      <circle cx="12" cy="12" r="10" strokeWidth="2"/>
+                      <polyline points="12 6 12 12 16 14" strokeWidth="2"/>
+                    </svg>
+                    Occasion
+                  </label>
+                  <select
+                    id="occasion-compare"
+                    value={occasion}
+                    onChange={(e) => setOccasion(e.target.value)}
+                    className="form-select"
+                  >
+                    <option value="none">General / No specific occasion</option>
+                    <option value="casual">Casual hangout</option>
+                    <option value="date">First date</option>
+                    <option value="interview">Job interview</option>
+                    <option value="wedding">Wedding</option>
+                    <option value="gym">Gym / Workout</option>
+                    <option value="night">Night out</option>
+                    <option value="work">Work / Office</option>
+                    <option value="beach">Beach / Vacation</option>
+                  </select>
+                </div>
+              </div>
 
-            <button
-              onClick={compareOutfits}
-              disabled={comparisonImages.length < 2 || loading}
-              className="btn-rate comparison-mode"
-            >
-              {loading ? (
-                <>
-                  <span className="spinner"></span>
-                  Comparing...
-                </>
-              ) : (
-                'Compare Outfits'
+              {error && (
+                <div className="error-message">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <circle cx="12" cy="12" r="10" strokeWidth="2"/>
+                    <line x1="12" y1="8" x2="12" y2="12" strokeWidth="2"/>
+                    <line x1="12" y1="16" x2="12.01" y2="16" strokeWidth="2"/>
+                  </svg>
+                  <span>{error}</span>
+                </div>
               )}
-            </button>
+
+              <button
+                onClick={compareOutfits}
+                disabled={comparisonImages.length < 2 || loading}
+                className="btn-primary"
+              >
+                {loading ? (
+                  <>
+                    <span className="btn-spinner"></span>
+                    Comparing...
+                  </>
+                ) : (
+                  <>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                      <polyline points="9 11 12 14 22 4" strokeWidth="2"/>
+                      <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" strokeWidth="2"/>
+                    </svg>
+                    Compare Outfits
+                  </>
+                )}
+              </button>
+            </>
+          )}
+        </div>
+
+        {/* Quick Links */}
+        <div className="quick-links">
+          <button onClick={() => navigate('/wardrobe')} className="quick-link">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" strokeWidth="2"/>
+              <line x1="3" y1="6" x2="21" y2="6" strokeWidth="2"/>
+              <path d="M16 10a4 4 0 0 1-8 0" strokeWidth="2"/>
+            </svg>
+            Virtual Wardrobe
+          </button>
+          <button onClick={() => navigate('/history')} className="quick-link">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <circle cx="12" cy="12" r="10" strokeWidth="2"/>
+              <polyline points="12 6 12 12 16 14" strokeWidth="2"/>
+            </svg>
+            Rating History
+          </button>
+          <button onClick={() => navigate('/saved-outfits')} className="quick-link">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" strokeWidth="2"/>
+            </svg>
+            Saved Outfits
+          </button>
+        </div>
+
+        {/* Premium Upsell */}
+        {!isPremium && (
+          <div className="premium-upsell">
+            <div className="upsell-content">
+              <div className="upsell-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" strokeWidth="2"/>
+                </svg>
+              </div>
+              <div className="upsell-text">
+                <h3>Upgrade to Premium</h3>
+                <p>Unlimited ratings, AI chat, and advanced features</p>
+              </div>
+              <SimpleUpgradeButton text="Upgrade Now" />
+            </div>
           </div>
         )}
       </div>
+
+      {/* Modals */}
+      {showLastRatingWarning && (
+        <LastRatingWarning
+          onProceed={() => {
+            setShowLastRatingWarning(false)
+            if (pendingRatingAction) {
+              pendingRatingAction()
+            }
+          }}
+          onCancel={() => setShowLastRatingWarning(false)}
+        />
+      )}
+
+      {showStylistSelector && (
+        <StylistSelector
+          currentStylist={currentStylist}
+          onSelectStylist={handleSelectStylist}
+          onClose={() => setShowStylistSelector(false)}
+        />
+      )}
     </div>
   )
 
