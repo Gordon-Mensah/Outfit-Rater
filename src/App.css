@@ -176,7 +176,9 @@
 .header-right {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  justify-content: flex-end;
+  margin-left: auto;
+  padding-right: 0.5rem;
 }
 
 /* ===== WELCOME SECTION ===== */
@@ -474,7 +476,7 @@
   gap: 0.75rem;
   font-size: 1rem;
   font-weight: 600;
-  color: var(--text-primary);
+  color: #ffffff;
 }
 
 .form-label svg {
