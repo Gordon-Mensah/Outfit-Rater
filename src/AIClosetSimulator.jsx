@@ -136,10 +136,18 @@ function AIClosetSimulator() {
                 <div className="lock-feature">✓ Wear frequency prediction</div>
                 <div className="lock-feature">✓ Style DNA matching</div>
               </div>
-              <SimpleUpgradeButton 
-                text="Upgrade to Premium"
-                className="lock-upgrade-btn"
-              />
+              <div className="lock-buttons">
+                <SimpleUpgradeButton 
+                  text="Upgrade to Premium"
+                  className="lock-upgrade-btn"
+                />
+                <button 
+                  onClick={() => navigate('/rate')}
+                  className="lock-back-btn"
+                >
+                  Back to Dashboard
+                </button>
+              </div>
             </div>
           </div>
         )}
