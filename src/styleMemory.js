@@ -1,4 +1,4 @@
-// styleMemory.js - AI Style Learning System
+// styleMemory.js - AI Style Learning System - FIXED: Removed emojis
 
 /**
  * STYLE MEMORY SYSTEM
@@ -319,7 +319,8 @@ export const analyzeStyleProfile = (styleProfile) => {
   return insights
 }
 
-// ===== GET INSIGHT MESSAGE =====
+// ===== GET INSIGHT MESSAGE ===== 
+// FIXED: Removed all emojis from titles and messages
 export const getInsightMessage = (styleProfile) => {
   const insights = analyzeStyleProfile(styleProfile)
   
@@ -329,7 +330,7 @@ export const getInsightMessage = (styleProfile) => {
   
   if (insights.confidenceLevel < 30) {
     return {
-      title: "🌱 Learning Your Style...",
+      title: "Learning Your Style",
       message: `I'm starting to understand your preferences! Keep using the app and I'll get smarter.`,
       level: 'beginner'
     }
@@ -353,7 +354,7 @@ export const getInsightMessage = (styleProfile) => {
     message += `Want me to generate outfits based on this?`
     
     return {
-      title: "🧠 Style Profile Building!",
+      title: "Style Profile Building",
       message,
       level: 'intermediate',
       recommendations: insights.recommendations.slice(0, 2)
@@ -377,10 +378,10 @@ export const getInsightMessage = (styleProfile) => {
     dna.push(`${insights.preferredSilhouette} silhouette`)
   }
   
-  message += dna.join(' · ') + '. I know you well now! 🎯'
+  message += dna.join(' · ') + '. I know you well now!'
   
   return {
-    title: "🎯 Style DNA Unlocked!",
+    title: "Style DNA Unlocked",
     message,
     level: 'expert',
     recommendations: insights.recommendations

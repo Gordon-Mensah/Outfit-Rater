@@ -1,3 +1,13 @@
+
+.landing-nav {
+  position: relative;
+}
+.nav-cta {
+  position: absolute;
+  right: 1rem;
+  top: 1rem;
+  z-index: 10;
+}
 @import './design-tokens.css';
 @import './design-tokens.css';
 

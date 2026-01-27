@@ -5,10 +5,10 @@
 
 :root {
   /* ===== COLORS ===== */
-  /* Brand Colors - Purple is your brand, keeping it but making it systematic */
-  --brand-primary: #667eea;
-  --brand-secondary: #764ba2;
-  --brand-accent: #d4af37; /* Gold */
+/* NEW (Modern Blue) */
+--brand-primary: #2563eb;
+--brand-secondary: #1e40af;
+--brand-accent: #3b82f6;
   
   /* Semantic Colors */
   --color-success: #10b981;
