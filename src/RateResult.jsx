@@ -37,10 +37,10 @@ function RateResult() {
   }
 
   const getRatingLabel = (rating) => {
-    if (rating >= 9) return 'Outstanding! 🔥'
-    if (rating >= 7) return 'Great Look! ✨'
-    if (rating >= 5) return 'Good Effort! 👍'
-    return 'Room to Improve 💪'
+    if (rating >= 9) return 'Outstanding!'
+    if (rating >= 7) return 'Great Look!'
+    if (rating >= 5) return 'Good Effort!'
+    return 'Room to Improve'
   }
 
   const handleSaveOutfit = async () => {
@@ -92,7 +92,7 @@ function RateResult() {
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
         await navigator.share({
           title: 'My Outfit Rating',
-          text: `I got a ${rating}/10 on my ${occasion} outfit! 🔥`,
+          text: `I got a ${rating}/10 on my ${occasion} outfit!`,
           files: [file]
         })
       } else if (navigator.share) {
@@ -104,7 +104,7 @@ function RateResult() {
         })
       } else {
         // Desktop fallback: copy shareable text
-        const shareText = `I got a ${rating}/10 on my ${occasion} outfit! 🔥\n\nCheck out AI Outfit Rater at ${window.location.origin}`
+        const shareText = `I got a ${rating}/10 on my ${occasion} outfit! \n\nCheck out AI Outfit Rater at ${window.location.origin}`
         await navigator.clipboard.writeText(shareText)
         alert('✓ Share text copied to clipboard!')
       }
@@ -166,7 +166,7 @@ function RateResult() {
 
           {/* Feedback */}
           <div className="feedback-section">
-            <h3>💬 Detailed Feedback</h3>
+            <h3> Detailed Feedback</h3>
             <div className="feedback-content">
               <p>{feedback}</p>
             </div>
@@ -200,7 +200,7 @@ function RateResult() {
         {!isPremium && (
           <div className="upgrade-section">
             <div className="upgrade-card">
-              <h3>🎨 Unlock Style Chat</h3>
+              <h3>Unlock Style Chat</h3>
               <p>Get personalized style advice with our AI chat feature</p>
               <SimpleUpgradeButton 
                 text="Upgrade to Premium - $5.99/month"

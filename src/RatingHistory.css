@@ -100,7 +100,7 @@
   padding: 0.75rem 1.25rem;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   color: rgba(255, 255, 255, 0.8);
   font-weight: 600;
   cursor: pointer;
@@ -165,7 +165,7 @@
   background: rgba(255, 255, 255, 0.05);
   backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   transition: all 0.3s ease;
 }
 
@@ -178,7 +178,7 @@
 .stat-icon {
   width: 56px;
   height: 56px;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   display: flex;
   align-items: center;

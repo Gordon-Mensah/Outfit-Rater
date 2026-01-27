@@ -392,7 +392,7 @@ function App() {
                   <path d="M21 15l-5-5L5 21" strokeWidth="2" strokeLinecap="round"/>
                 </svg>
               </div>
-              <span className="logo-text">AI Outfit Rater</span>
+              <span className="logo-text"> Outfit Rater</span>
             </div>
           </div>
           <div className="header-right">
@@ -557,7 +557,7 @@ function App() {
                     <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" strokeWidth="2"/>
                     <circle cx="12" cy="7" r="4" strokeWidth="2"/>
                   </svg>
-                  AI Stylist: {getStylist(currentStylist)?.name || 'Minimalist'}
+                  Personal Stylist: {getStylist(currentStylist)?.name || 'Minimalist'}
                 </button>
               </div>
 

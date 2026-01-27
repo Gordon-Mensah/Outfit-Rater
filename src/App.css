@@ -159,7 +159,7 @@
 .logo-circle {
   width: 48px;
   height: 48px;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: linear-gradient(135deg, var(--primary-purple) 0%, var(--secondary-purple) 100%);
   display: flex;
   align-items: center;
@@ -212,7 +212,7 @@
   background: var(--bg-card);
   backdrop-filter: blur(20px);
   border: 1px solid var(--border-subtle);
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   margin-bottom: 2rem;
 }
 
@@ -247,7 +247,7 @@
   padding: 0.5rem;
   background: var(--bg-card);
   border: 1px solid var(--border-subtle);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   margin-bottom: 2.5rem;
 }
 
@@ -260,7 +260,7 @@
   padding: 1rem;
   background: transparent;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   color: var(--text-tertiary);
   font-weight: 600;
   cursor: pointer;
@@ -298,7 +298,7 @@
   width: 100%;
   min-height: 400px;
   border: 2px dashed var(--border-medium);
-  border-radius: 20px;
+  border-radius: var(--radius-lg);
   background: var(--bg-card);
   backdrop-filter: blur(20px);
   cursor: pointer;
@@ -352,7 +352,7 @@
   height: 100%;
   min-height: 400px;
   object-fit: cover;
-  border-radius: 18px;
+  border-radius: var(--radius-lg);
 }
 
 .change-image-overlay {
@@ -367,7 +367,7 @@
   gap: 1rem;
   opacity: 0;
   transition: opacity 0.3s ease;
-  border-radius: 18px;
+  border-radius: var(--radius-lg);
 }
 
 .preview-container:hover .change-image-overlay {
@@ -400,7 +400,7 @@
 .comparison-item {
   position: relative;
   aspect-ratio: 3/4;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   overflow: hidden;
   border: 2px solid var(--border-subtle);
 }
@@ -419,7 +419,7 @@
   padding: 0.5rem;
   background: rgba(0, 0, 0, 0.8);
   backdrop-filter: blur(10px);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   color: white;
   font-size: 0.85rem;
   font-weight: 600;
@@ -433,7 +433,7 @@
   justify-content: center;
   gap: 0.75rem;
   border: 2px dashed var(--border-medium);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   aspect-ratio: 3/4;
   color: var(--text-tertiary);
   font-weight: 600;
@@ -490,7 +490,7 @@
   background: var(--bg-card);
   backdrop-filter: blur(20px);
   border: 1px solid var(--border-subtle);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   color: var(--text-primary);
   font-size: 1rem;
   cursor: pointer;
@@ -583,7 +583,7 @@
 }
 
 .btn-primary:hover:not(:disabled) {
-  transform: translateY(-2px);
+  transform: translateY(var(--lift-subtle));
   box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
 }
 
@@ -646,7 +646,7 @@
 .premium-upsell {
   margin-top: 2rem;
   padding: 2rem;
-  background: linear-gradient(135deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.15) 100%);
+  background: var(--gradient-brand);
   backdrop-filter: blur(20px);
   border: 2px solid rgba(102, 126, 234, 0.3);
   border-radius: 20px;

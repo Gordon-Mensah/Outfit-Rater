@@ -8,7 +8,7 @@
 .style-insights-compact {
   background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
   border: 2px solid rgba(102, 126, 234, 0.3);
-  border-radius: 20px;
+  border-radius: var(--radius-lg);
   padding: 1.5rem;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -61,7 +61,7 @@
   background: linear-gradient(135deg, #667eea, #764ba2);
   color: white;
   border: none;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -85,7 +85,7 @@
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.2);
   padding: 0.5rem 1rem;
-  border-radius: 20px;
+  border-radius: var(--radius-lg);
   font-size: 0.9rem;
   color: rgba(255, 255, 255, 0.9);
   font-weight: 600;
@@ -95,7 +95,7 @@
 .style-insights-full {
   background: var(--bg-dark, #0a0a0a);
   border: 2px solid rgba(102, 126, 234, 0.3);
-  border-radius: 24px;
+  border-radius: var(--radius-lg);
   padding: 2rem;
   animation: slideDown 0.3s ease;
 }

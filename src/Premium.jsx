@@ -120,12 +120,11 @@ function Premium() {
       <div className="premium-hero">
         <div className="premium-hero-content">
           <div className="premium-badge-large">
-            <span className="badge-icon">⭐</span>
             <span>Premium</span>
           </div>
           
           <h1 className="premium-title">
-            Unlock Your Full Style Potential
+            Unlimited AI Outfit Ratings
           </h1>
           
           <p className="premium-subtitle">

@@ -125,7 +125,7 @@
   border: 1px solid var(--border-subtle);
   color: var(--text-secondary);
   padding: 0.75rem 1.25rem;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   font-size: 0.95rem;
   font-weight: 500;
   cursor: pointer;
@@ -227,7 +227,7 @@
   padding: 1.5rem 2rem;
   background: var(--bg-card);
   border: 1px solid var(--border-subtle);
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   backdrop-filter: blur(10px);
   max-width: 600px;
   margin: 0 auto;
@@ -265,7 +265,7 @@
   background: linear-gradient(135deg, rgba(102, 126, 234, 0.15), rgba(118, 75, 162, 0.15));
   backdrop-filter: blur(20px);
   border: 1px solid var(--border-medium);
-  border-radius: 20px;
+  border-radius: var(--radius-lg);
   padding: 1.5rem 2rem;
   margin-bottom: 2rem;
   display: flex;
@@ -309,7 +309,7 @@
   padding: 1rem 2rem;
   background: linear-gradient(135deg, var(--primary-purple), var(--secondary-purple));
   border: none;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   color: var(--text-primary);
   font-size: 1rem;
   font-weight: 600;
@@ -331,7 +331,7 @@
   padding: 0.625rem;
   background: var(--bg-card);
   border: 1px solid var(--border-subtle);
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   margin-bottom: 2.5rem;
   backdrop-filter: blur(10px);
   animation: fadeInUp 0.6s ease-out 0.3s both;
@@ -346,7 +346,7 @@
   padding: 1rem 1.5rem;
   background: transparent;
   border: none;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   color: var(--text-secondary);
   font-size: 0.95rem;
   font-weight: 600;
@@ -383,7 +383,7 @@
   padding: 5rem 2rem;
   background: var(--bg-card);
   border: 1px solid var(--border-subtle);
-  border-radius: 24px;
+  border-radius: var(--radius-lg);
   backdrop-filter: blur(20px);
 }
 
@@ -420,7 +420,7 @@
   padding: 1rem 1.5rem;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid var(--border-subtle);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   color: var(--text-secondary);
   font-size: 0.95rem;
 }
@@ -429,7 +429,7 @@
 .category-section {
   background: var(--bg-card);
   border: 1px solid var(--border-subtle);
-  border-radius: 20px;
+  border-radius: var(--radius-lg);
   padding: 2rem;
   backdrop-filter: blur(20px);
   transition: all 0.3s ease;
@@ -484,7 +484,7 @@
   padding: 0.875rem 1.5rem;
   background: linear-gradient(135deg, var(--primary-purple), var(--secondary-purple));
   border: none;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   color: var(--text-primary);
   font-size: 0.95rem;
   font-weight: 600;
@@ -508,7 +508,7 @@
 .item-card {
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid var(--border-subtle);
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   overflow: hidden;
   transition: all 0.3s ease;
 }
@@ -546,7 +546,7 @@
   height: 32px;
   background: rgba(239, 68, 68, 0.9);
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   color: var(--text-primary);
   cursor: pointer;
   display: flex;
@@ -573,7 +573,7 @@
   background: rgba(0, 0, 0, 0.7);
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 20px;
+  border-radius: var(--radius-lg);
   font-size: 0.75rem;
   font-weight: 600;
   color: var(--text-primary);
@@ -608,7 +608,7 @@
   padding: 3rem 1rem;
   background: rgba(255, 255, 255, 0.02);
   border: 2px dashed var(--border-subtle);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
 }
 
 .empty-category-icon {
@@ -644,7 +644,7 @@
   padding: 1.25rem 3rem;
   background: linear-gradient(135deg, var(--primary-purple), var(--secondary-purple));
   border: none;
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   color: var(--text-primary);
   font-size: 1.125rem;
   font-weight: 700;
@@ -690,7 +690,7 @@
   padding: 0.875rem 1.5rem;
   background: var(--bg-card);
   border: 1px solid var(--border-subtle);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   color: var(--text-secondary);
   font-size: 0.95rem;
   font-weight: 600;
@@ -713,7 +713,7 @@
 .outfit-card {
   background: var(--bg-card);
   border: 1px solid var(--border-subtle);
-  border-radius: 20px;
+  border-radius: var(--radius-lg);
   padding: 1.5rem;
   backdrop-filter: blur(20px);
   transition: all 0.3s ease;
@@ -744,7 +744,7 @@
   padding: 0.5rem 1rem;
   background: rgba(102, 126, 234, 0.2);
   border: 1px solid rgba(102, 126, 234, 0.3);
-  border-radius: 20px;
+  border-radius: var(--radius-lg);
   font-size: 0.875rem;
   font-weight: 600;
   color: var(--primary-purple);

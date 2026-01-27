@@ -29,6 +29,7 @@
   padding: 0.75rem 1.5rem;
   background: linear-gradient(135deg, #d4af37 0%, #f4e4c1 100%);
   border-radius: 30px;
+  border-radius: var(--radius-lg);
   font-weight: 700;
   color: #0a0a0a;
   margin-bottom: 2rem;
@@ -71,6 +72,7 @@
   background: rgba(16, 185, 129, 0.1);
   border: 2px solid rgba(16, 185, 129, 0.3);
   border-radius: 16px;
+  border-radius: var(--radius-lg);
   margin-top: 2rem;
 }
 
@@ -150,6 +152,7 @@
   background: rgba(255, 255, 255, 0.05);
   padding: 0.5rem;
   border-radius: 12px;
+  border-radius: var(--radius-md);
   width: fit-content;
   margin-left: auto;
   margin-right: auto;
@@ -160,6 +163,7 @@
   background: transparent;
   border: none;
   border-radius: 8px;
+  border-radius: var(--radius-sm);
   color: rgba(255, 255, 255, 0.6);
   font-weight: 600;
   cursor: pointer;
@@ -198,6 +202,7 @@
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 24px;
+  border-radius: var(--radius-lg);
   padding: 2.5rem;
   position: relative;
   transition: all 0.3s ease;
@@ -222,6 +227,7 @@
   color: #0a0a0a;
   padding: 0.5rem 1.5rem;
   border-radius: 20px;
+  border-radius: var(--radius-lg);
   font-size: 0.85rem;
   font-weight: 700;
   text-transform: uppercase;
@@ -472,6 +478,7 @@
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 16px;
+  border-radius: var(--radius-lg);
   padding: 2rem;
   transition: all 0.3s ease;
 }

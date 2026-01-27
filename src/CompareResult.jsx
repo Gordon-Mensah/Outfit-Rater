@@ -139,7 +139,6 @@ function CompareResult() {
           <div className="mix-match-section">
             <h3> Mix & Match Suggestion</h3>
             <div className="mix-match-content">
-              <span className="mix-icon">🎨</span>
               <p>{mixSuggestion}</p>
             </div>
           </div>

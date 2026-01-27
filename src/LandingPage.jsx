@@ -64,14 +64,13 @@ function LandingPage() {
             </div>
             
             <h1 className="hero-heading">
-              Elevate Your Style
-              <span className="gradient-text">With AI Precision</span>
+              Get AI Outfit Analysis
+              <span className="gradient-text">In 30 Seconds</span>
             </h1>
             
             <p className="hero-description">
-              Upload your outfit and receive instant, detailed feedback from our 
-              advanced AI fashion consultant. Get personalized recommendations 
-              to perfect your look.
+              Upload your outfit photo and receive instant, detailed feedback from our 
+  advanced AI. Get specific recommendations to improve your look.
             </p>
 
             <div className="hero-cta">
@@ -336,9 +335,8 @@ function LandingPage() {
         {/* CTA Section */}
         <section className="cta-section">
           <div className="cta-container">
-            <h2 className="cta-heading">Ready to Transform Your Style?</h2>
             <p className="cta-subheading">
-              Join thousands using AI to elevate their fashion game
+              Join thousands getting instant AI outfit feedback
             </p>
             <button 
               className="btn-cta"

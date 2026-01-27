@@ -1,4 +1,4 @@
-// StyleInsights.jsx - Show user their style DNA and recommendations
+// StyleInsights.jsx - FIXED: Removed emojis from headings
 import { useState, useEffect } from 'react'
 import { useAuth } from './AuthContext'
 import { supabase } from './supabaseClient'
@@ -44,10 +44,20 @@ function StyleInsights({ onGeneratePersonalized }) {
   }
 
   if (loading || !insight) {
-    return null // Don't show anything if no insights yet
+    return null
   }
 
   const analysis = styleProfile ? analyzeStyleProfile(styleProfile) : null
+
+  // FIXED: Get level indicator without emoji
+  const getLevelIndicator = (level) => {
+    const indicators = {
+      expert: '●●●',
+      intermediate: '●●○',
+      beginner: '●○○'
+    }
+    return indicators[level] || '●○○'
+  }
 
   return (
     <div className="style-insights-container">
@@ -55,9 +65,11 @@ function StyleInsights({ onGeneratePersonalized }) {
       {!showFull && (
         <div className="style-insights-compact" onClick={() => setShowFull(true)}>
           <div className="insight-header">
-            <div className="insight-icon">{insight.level === 'expert' ? '🎯' : insight.level === 'intermediate' ? '🧠' : '🌱'}</div>
+            {/* FIXED: Removed emoji, using level indicator */}
+            <div className="insight-icon insight-level">{getLevelIndicator(insight.level)}</div>
             <div className="insight-content">
-              <h4>{insight.title}</h4>
+              {/* FIXED: Removed emoji from title */}
+              <h4>{insight.title.replace(/🎯|🧠|🌱/g, '').trim()}</h4>
               <p>{insight.message}</p>
             </div>
             <button className="expand-btn">View Details →</button>
@@ -83,16 +95,18 @@ function StyleInsights({ onGeneratePersonalized }) {
         <div className="style-insights-full">
           <div className="insights-header-full">
             <div>
-              <h2>{insight.title}</h2>
+              {/* FIXED: Removed emoji from heading */}
+              <h2>{insight.title.replace(/🎯|🧠|🌱/g, '').trim()}</h2>
               <p className="insights-subtitle">Based on your wardrobe activity</p>
             </div>
-            <button className="close-btn" onClick={() => setShowFull(false)}>✕</button>
+            <button className="close-btn" onClick={() => setShowFull(false)}>×</button>
           </div>
 
           <div className="insights-body">
             {/* Learning Progress */}
             <div className="insight-section">
-              <h3> Learning Progress</h3>
+              {/* FIXED: Removed emoji from heading */}
+              <h3>Learning Progress</h3>
               <div className="progress-bar">
                 <div 
                   className="progress-fill" 
@@ -124,7 +138,8 @@ function StyleInsights({ onGeneratePersonalized }) {
             {/* Color Preferences */}
             {analysis && analysis.topColors.length > 0 && (
               <div className="insight-section">
-                <h3> Color Preferences</h3>
+                {/* FIXED: Removed emoji from heading */}
+                <h3>Color Preferences</h3>
                 <div className="color-grid">
                   <div className="color-group">
                     <h4>Loves</h4>
@@ -155,7 +170,8 @@ function StyleInsights({ onGeneratePersonalized }) {
             {/* Style Pattern */}
             {analysis && (analysis.stylePattern || analysis.preferredSilhouette) && (
               <div className="insight-section">
-                <h3>✨ Style DNA</h3>
+                {/* FIXED: Removed emoji from heading */}
+                <h3>Style DNA</h3>
                 <div className="dna-grid">
                   {analysis.stylePattern && (
                     <div className="dna-card">
@@ -188,7 +204,8 @@ function StyleInsights({ onGeneratePersonalized }) {
             {/* Recommendations */}
             {insight.recommendations && insight.recommendations.length > 0 && (
               <div className="insight-section">
-                <h3> Personalized Suggestions</h3>
+                {/* FIXED: Removed emoji from heading */}
+                <h3>Personalized Suggestions</h3>
                 <div className="recommendations-list">
                   {insight.recommendations.map((rec, index) => (
                     <div key={index} className="recommendation-card">
@@ -208,7 +225,7 @@ function StyleInsights({ onGeneratePersonalized }) {
 
           <div className="insights-footer">
             <p className="insights-note">
-             Your style profile updates automatically as you use the app!
+              Your style profile updates automatically as you use the app!
             </p>
           </div>
         </div>
