@@ -1,14 +1,18 @@
 
 .rate-header {
-  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2.5rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--border-subtle);
 }
 .header-right {
-  position: absolute;
-  right: 0.5rem;
-  top: 0.5rem;
-  padding-right: 0;
-  padding-top: 0;
-  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  margin-left: auto;
+  padding-right: 0.5rem;
 }
 /* App.css - Modern Design System */
 
