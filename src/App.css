@@ -186,11 +186,12 @@
 }
 
 .header-right {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  margin-left: auto;
-  padding-right: 0.5rem;
+  position: absolute;
+  right: 0.5rem;
+  top: 0.5rem;
+  padding-right: 0;
+  padding-top: 0;
+  z-index: 10;
 }
 
 /* ===== WELCOME SECTION ===== */
