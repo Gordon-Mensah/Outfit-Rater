@@ -18,24 +18,41 @@ export function AuthProvider({ children }) {
   const [isPremium, setIsPremium] = useState(false)
   const [dailyRatingCount, setDailyRatingCount] = useState(0)
 
-  // ⭐ NEW: Start keep-alive system when AuthProvider mounts
+  // Start keep-alive system when AuthProvider mounts
   useEffect(() => {
-    console.log('🏓 Initializing keep-alive system...')
+    console.log('🔧 Initializing keep-alive system...')
     startKeepAlive()
-    
-    // No cleanup needed - keep-alive runs continuously
   }, [])
 
-  // ⭐ NEW: Instant session check when user returns to tab
+  // 🔥 FIXED: Session check with timeout protection
   useEffect(() => {
+    let isCheckingSession = false
+    
     const handleFocus = async () => {
+      // Prevent multiple simultaneous checks
+      if (isCheckingSession) {
+        console.log('⚠️ Session check already in progress, skipping...')
+        return
+      }
+      
       console.log('👀 Window focused - checking session instantly...')
+      isCheckingSession = true
       
       try {
-        const { data: { session }, error } = await supabase.auth.getSession()
+        // 🔥 ADD TIMEOUT: If session check takes more than 5 seconds, abort
+        const sessionPromise = supabase.auth.getSession()
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Session check timeout')), 5000)
+        )
+        
+        const { data: { session }, error } = await Promise.race([
+          sessionPromise,
+          timeoutPromise
+        ])
         
         if (error) {
           console.error('❌ Session check error:', error)
+          isCheckingSession = false
           return
         }
         
@@ -43,14 +60,25 @@ export function AuthProvider({ children }) {
           console.log('✅ Session valid on focus')
           setUser(session.user)
           
-          // Refresh subscription and ratings data
-          await checkSubscription(session.user.id)
-          await checkDailyRatings(session.user.id)
+          // Refresh subscription and ratings data (with timeout)
+          await Promise.race([
+            Promise.all([
+              checkSubscription(session.user.id),
+              checkDailyRatings(session.user.id)
+            ]),
+            new Promise((_, reject) => 
+              setTimeout(() => reject(new Error('Data refresh timeout')), 5000)
+            )
+          ]).catch(err => {
+            console.error('❌ Data refresh error:', err)
+          })
         } else {
           console.log('⚠️ No session on focus')
         }
       } catch (err) {
-        console.error('❌ Focus check error:', err)
+        console.error('❌ Focus check error:', err.message)
+      } finally {
+        isCheckingSession = false
       }
     }
     
@@ -109,11 +137,19 @@ export function AuthProvider({ children }) {
       }
     )
 
-    // ⭐ AGGRESSIVE: Auto-refresh session every 5 minutes
+    // Auto-refresh session every 5 minutes (with timeout protection)
     const refreshInterval = setInterval(async () => {
       console.log('⏰ Auto-refreshing session (5min interval)...')
       try {
-        const { data: { session }, error } = await supabase.auth.getSession()
+        const sessionPromise = supabase.auth.getSession()
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Session check timeout')), 5000)
+        )
+        
+        const { data: { session }, error } = await Promise.race([
+          sessionPromise,
+          timeoutPromise
+        ])
         
         if (error) {
           console.error('❌ Session refresh error:', error)
@@ -146,7 +182,7 @@ export function AuthProvider({ children }) {
           setDailyRatingCount(0)
         }
       } catch (err) {
-        console.error('❌ Auto-refresh error:', err)
+        console.error('❌ Auto-refresh error:', err.message)
       }
     }, 5 * 60 * 1000) // 5 MINUTES
 
@@ -161,7 +197,16 @@ export function AuthProvider({ children }) {
     try {
       console.log('🔍 Checking initial session...')
       
-      const { data: { session }, error } = await supabase.auth.getSession()
+      // Add timeout protection
+      const sessionPromise = supabase.auth.getSession()
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Initial session check timeout')), 8000)
+      )
+      
+      const { data: { session }, error } = await Promise.race([
+        sessionPromise,
+        timeoutPromise
+      ])
       
       if (error) {
         console.error('❌ Error getting session:', error)
@@ -185,7 +230,7 @@ export function AuthProvider({ children }) {
         await checkDailyRatings(currentUser.id)
       }
     } catch (error) {
-      console.error('❌ checkInitialSession error:', error)
+      console.error('❌ checkInitialSession error:', error.message)
     } finally {
       console.log('✅ Setting loading to false')
       setLoading(false)
