@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react'
 import { supabase } from './supabaseClient'
+import { startKeepAlive } from './keepAlive' // ⭐ NEW: Import keep-alive system
 
 const AuthContext = createContext({})
 
@@ -17,23 +18,47 @@ export function AuthProvider({ children }) {
   const [isPremium, setIsPremium] = useState(false)
   const [dailyRatingCount, setDailyRatingCount] = useState(0)
 
+  // ⭐ NEW: Start keep-alive system when AuthProvider mounts
+  useEffect(() => {
+    console.log('🏓 Initializing keep-alive system...')
+    startKeepAlive()
+    
+    // No cleanup needed - keep-alive runs continuously
+  }, [])
+
   useEffect(() => {
     console.log('🚀 AuthProvider starting...')
     
     const timeoutId = setTimeout(() => {
       console.log('⏰ Timeout reached, forcing loading to false')
       setLoading(false)
-    }, 6000) // Increased to 6 seconds for better reliability
+    }, 6000)
 
-    // IMPROVED: Check session first, then set up listener
+    // Check session first
     checkInitialSession().then(() => {
       clearTimeout(timeoutId)
     })
 
-    // Set up auth state listener
+    // ⭐ FIXED: Enhanced auth state listener with token refresh handling
     const { data: authListener } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('🔔 Auth change:', event, session?.user?.email || 'No user')
+        
+        // ⭐ NEW: Handle token refresh event
+        if (event === 'TOKEN_REFRESHED') {
+          console.log('🔄 Token refreshed automatically')
+        }
+        
+        // ⭐ NEW: Handle sign out
+        if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
+          console.log('🚪 User signed out')
+          setUser(null)
+          setIsPremium(false)
+          setDailyRatingCount(0)
+          setLoading(false)
+          return
+        }
+        
         const currentUser = session?.user ?? null
         setUser(currentUser)
         
@@ -49,22 +74,72 @@ export function AuthProvider({ children }) {
       }
     )
 
+    // ⭐ UPGRADED: Auto-refresh session every 5 minutes (most aggressive safe interval)
+    const refreshInterval = setInterval(async () => {
+      console.log('⏰ Auto-refreshing session (5min interval)...')
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession()
+        
+        if (error) {
+          console.error('❌ Session refresh error:', error)
+          // If session expired, sign out
+          if (error.message?.includes('expired') || error.message?.includes('invalid')) {
+            console.log('🚪 Session expired, signing out...')
+            await supabase.auth.signOut()
+          }
+          return
+        }
+        
+        if (session) {
+          console.log('✅ Session is valid')
+          
+          // Check if token expires soon (within 10 minutes)
+          const expiresAt = session.expires_at
+          const now = Math.floor(Date.now() / 1000)
+          const minutesUntilExpiry = (expiresAt - now) / 60
+          
+          if (minutesUntilExpiry < 10) {
+            console.log('⚠️ Token expiring soon, force refreshing...')
+            const { error: refreshError } = await supabase.auth.refreshSession()
+            if (!refreshError) {
+              console.log('✅ Token force-refreshed')
+            }
+          }
+        } else {
+          console.log('⚠️ No active session')
+          setUser(null)
+          setIsPremium(false)
+          setDailyRatingCount(0)
+        }
+      } catch (err) {
+        console.error('❌ Auto-refresh error:', err)
+      }
+    }, 5 * 60 * 1000) // ⭐ CHANGED: 5 MINUTES (was 30 minutes)
+
     return () => {
       clearTimeout(timeoutId)
+      clearInterval(refreshInterval) // ⭐ NEW: Clean up interval
       authListener?.subscription?.unsubscribe()
     }
   }, [])
 
-  // IMPROVED: Better initial session check
-  const checkInitialSession = async () => {
+  // ⭐ IMPROVED: Better initial session check with retry
+  const checkInitialSession = async (retryCount = 0) => {
     try {
       console.log('🔍 Checking initial session...')
       
-      // Use getSession instead of getUser for better session detection
       const { data: { session }, error } = await supabase.auth.getSession()
       
       if (error) {
         console.error('❌ Error getting session:', error)
+        
+        // ⭐ NEW: Retry once on network error
+        if (retryCount === 0 && error.message?.includes('network')) {
+          console.log('🔄 Network error, retrying...')
+          await new Promise(resolve => setTimeout(resolve, 1000))
+          return checkInitialSession(1)
+        }
+        
         setLoading(false)
         return
       }
@@ -259,6 +334,40 @@ export function AuthProvider({ children }) {
     return false
   }
 
+  // ⭐ NEW: Check if session is valid
+  const isSessionValid = async () => {
+    try {
+      const { data: { session }, error } = await supabase.auth.getSession()
+      return !error && !!session
+    } catch {
+      return false
+    }
+  }
+
+  // ⭐ NEW: Manually refresh session
+  const refreshSession = async () => {
+    try {
+      console.log('🔄 Manually refreshing session...')
+      const { data: { session }, error } = await supabase.auth.refreshSession()
+      
+      if (error) {
+        console.error('❌ Session refresh failed:', error)
+        return false
+      }
+      
+      if (session) {
+        console.log('✅ Session refreshed')
+        setUser(session.user)
+        return true
+      }
+      
+      return false
+    } catch (error) {
+      console.error('❌ Session refresh error:', error)
+      return false
+    }
+  }
+
   const signUp = async (email, password) => {
     try {
       const { data, error } = await supabase.auth.signUp({
@@ -371,6 +480,8 @@ export function AuthProvider({ children }) {
     canRate,
     checkDailyRatings,
     refreshPremiumStatus,
+    isSessionValid,      // ⭐ NEW
+    refreshSession,      // ⭐ NEW
   }
 
   return (
