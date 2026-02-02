@@ -1,22 +1,27 @@
-// keepAlive.js - Keep Render service warm to prevent cold starts
-// Add this to your src/ folder
-
+// keepAlive.js - Enhanced with instant refresh on return
 /**
  * PROBLEM: Render spins down services after 15 minutes of inactivity
- * SOLUTION: Ping the API every 10 minutes to keep it alive
+ * SOLUTION: 
+ * 1. Ping API every 10 minutes to keep it alive
+ * 2. Instantly refresh when user returns to tab
  */
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://outfitrater.xyz' // Replace with your API URL
+const API_URL = import.meta.env.VITE_API_URL || 'https://outfit-rater.onrender.com'
 const PING_INTERVAL = 10 * 60 * 1000 // 10 minutes (before Render's 15min timeout)
 
 let pingInterval = null
+let lastPingTime = Date.now()
 
 // Start pinging
 export const startKeepAlive = () => {
   // Don't ping if already running
-  if (pingInterval) return
+  if (pingInterval) {
+    console.log('⚠️ Keep-alive already running')
+    return
+  }
   
   console.log('🏓 Starting keep-alive pings...')
+  console.log(`📡 Pinging ${API_URL}/api/ping every 10 minutes`)
   
   // Ping immediately
   pingAPI()
@@ -48,26 +53,57 @@ const pingAPI = async () => {
     
     if (response.ok) {
       const data = await response.json()
+      lastPingTime = Date.now()
       console.log('✅ Keep-alive ping successful:', data.timestamp)
     } else {
       console.warn('⚠️ Keep-alive ping failed:', response.status)
     }
   } catch (error) {
     console.error('❌ Keep-alive ping error:', error.message)
+    // Don't throw - we want the interval to keep trying
   }
 }
 
-// Auto-start on import (optional)
+// ⭐ NEW: Instant refresh when user returns
 if (typeof window !== 'undefined') {
-  // Start when user becomes active
-  window.addEventListener('focus', startKeepAlive)
-  
-  // Stop when user leaves (save resources)
-  window.addEventListener('blur', () => {
-    // Don't stop, keep pinging even when tab is inactive
-    // This ensures API stays warm
+  // When user returns to tab, immediately ping if it's been a while
+  window.addEventListener('focus', () => {
+    console.log('👀 User returned to tab!')
+    
+    const timeSinceLastPing = Date.now() - lastPingTime
+    const fiveMinutes = 5 * 60 * 1000
+    
+    // If it's been more than 5 minutes, ping immediately
+    if (timeSinceLastPing > fiveMinutes) {
+      console.log('🚀 Instant refresh triggered!')
+      pingAPI()
+    }
+    
+    // Make sure keep-alive is running
+    startKeepAlive()
   })
   
-  // Start immediately
+  // Keep pinging even when tab is blurred
+  window.addEventListener('blur', () => {
+    console.log('👋 Tab blurred - keep-alive still running')
+    // Don't stop! Keep pinging to ensure instant response when user returns
+  })
+  
+  // Start immediately on load
   startKeepAlive()
+  
+  // ⭐ NEW: Also refresh on visibility change (handles mobile better)
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) {
+      console.log('📱 App became visible!')
+      
+      const timeSinceLastPing = Date.now() - lastPingTime
+      const fiveMinutes = 5 * 60 * 1000
+      
+      if (timeSinceLastPing > fiveMinutes) {
+        console.log('🚀 Instant refresh triggered (visibility)!')
+        pingAPI()
+      }
+    }
+  })
 }

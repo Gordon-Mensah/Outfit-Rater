@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react'
 import { supabase } from './supabaseClient'
-import { startKeepAlive } from './keepAlive' // ⭐ NEW: Import keep-alive system
+import { startKeepAlive } from './keepAlive'
 
 const AuthContext = createContext({})
 
@@ -26,6 +26,41 @@ export function AuthProvider({ children }) {
     // No cleanup needed - keep-alive runs continuously
   }, [])
 
+  // ⭐ NEW: Instant session check when user returns to tab
+  useEffect(() => {
+    const handleFocus = async () => {
+      console.log('👀 Window focused - checking session instantly...')
+      
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession()
+        
+        if (error) {
+          console.error('❌ Session check error:', error)
+          return
+        }
+        
+        if (session?.user) {
+          console.log('✅ Session valid on focus')
+          setUser(session.user)
+          
+          // Refresh subscription and ratings data
+          await checkSubscription(session.user.id)
+          await checkDailyRatings(session.user.id)
+        } else {
+          console.log('⚠️ No session on focus')
+        }
+      } catch (err) {
+        console.error('❌ Focus check error:', err)
+      }
+    }
+    
+    window.addEventListener('focus', handleFocus)
+    
+    return () => {
+      window.removeEventListener('focus', handleFocus)
+    }
+  }, [])
+
   useEffect(() => {
     console.log('🚀 AuthProvider starting...')
     
@@ -39,17 +74,17 @@ export function AuthProvider({ children }) {
       clearTimeout(timeoutId)
     })
 
-    // ⭐ FIXED: Enhanced auth state listener with token refresh handling
+    // Enhanced auth state listener with token refresh handling
     const { data: authListener } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('🔔 Auth change:', event, session?.user?.email || 'No user')
         
-        // ⭐ NEW: Handle token refresh event
+        // Handle token refresh event
         if (event === 'TOKEN_REFRESHED') {
           console.log('🔄 Token refreshed automatically')
         }
         
-        // ⭐ NEW: Handle sign out
+        // Handle sign out
         if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
           console.log('🚪 User signed out')
           setUser(null)
@@ -74,7 +109,7 @@ export function AuthProvider({ children }) {
       }
     )
 
-    // ⭐ UPGRADED: Auto-refresh session every 5 minutes (most aggressive safe interval)
+    // ⭐ AGGRESSIVE: Auto-refresh session every 5 minutes
     const refreshInterval = setInterval(async () => {
       console.log('⏰ Auto-refreshing session (5min interval)...')
       try {
@@ -82,7 +117,6 @@ export function AuthProvider({ children }) {
         
         if (error) {
           console.error('❌ Session refresh error:', error)
-          // If session expired, sign out
           if (error.message?.includes('expired') || error.message?.includes('invalid')) {
             console.log('🚪 Session expired, signing out...')
             await supabase.auth.signOut()
@@ -114,16 +148,15 @@ export function AuthProvider({ children }) {
       } catch (err) {
         console.error('❌ Auto-refresh error:', err)
       }
-    }, 5 * 60 * 1000) // ⭐ CHANGED: 5 MINUTES (was 30 minutes)
+    }, 5 * 60 * 1000) // 5 MINUTES
 
     return () => {
       clearTimeout(timeoutId)
-      clearInterval(refreshInterval) // ⭐ NEW: Clean up interval
+      clearInterval(refreshInterval)
       authListener?.subscription?.unsubscribe()
     }
   }, [])
 
-  // ⭐ IMPROVED: Better initial session check with retry
   const checkInitialSession = async (retryCount = 0) => {
     try {
       console.log('🔍 Checking initial session...')
@@ -133,7 +166,6 @@ export function AuthProvider({ children }) {
       if (error) {
         console.error('❌ Error getting session:', error)
         
-        // ⭐ NEW: Retry once on network error
         if (retryCount === 0 && error.message?.includes('network')) {
           console.log('🔄 Network error, retrying...')
           await new Promise(resolve => setTimeout(resolve, 1000))
@@ -213,7 +245,6 @@ export function AuthProvider({ children }) {
     }
   }, [user?.id])
 
-  // Real-time subscription listener
   useEffect(() => {
     if (!user?.id) return
 
@@ -334,7 +365,6 @@ export function AuthProvider({ children }) {
     return false
   }
 
-  // ⭐ NEW: Check if session is valid
   const isSessionValid = async () => {
     try {
       const { data: { session }, error } = await supabase.auth.getSession()
@@ -344,7 +374,6 @@ export function AuthProvider({ children }) {
     }
   }
 
-  // ⭐ NEW: Manually refresh session
   const refreshSession = async () => {
     try {
       console.log('🔄 Manually refreshing session...')
@@ -378,14 +407,12 @@ export function AuthProvider({ children }) {
       if (error) throw error
 
       if (data.user) {
-        // Create subscription record
         await supabase.from('subscriptions').insert({
           user_id: data.user.id,
           status: 'free',
           plan: 'free'
         })
 
-        // Create referral code
         const referralCode = data.user.id.slice(0, 8).toUpperCase()
 
         await supabase.from("referral_links").insert({
@@ -393,7 +420,6 @@ export function AuthProvider({ children }) {
           referral_code: referralCode
         })
 
-        // Handle any pending referrals
         await handlePendingReferral(data.user.id)
       }
 
@@ -412,7 +438,6 @@ export function AuthProvider({ children }) {
 
       if (error) throw error
       
-      // Update user state immediately
       if (data.user) {
         setUser(data.user)
         await checkSubscription(data.user.id)
@@ -445,7 +470,6 @@ export function AuthProvider({ children }) {
     return dailyRatingCount < 5
   }
 
-  // Ensures every user has a referral code (Google or Email)
   const ensureReferralCode = async (userId) => {
     try {
       const { data: existing } = await supabase
@@ -480,8 +504,8 @@ export function AuthProvider({ children }) {
     canRate,
     checkDailyRatings,
     refreshPremiumStatus,
-    isSessionValid,      // ⭐ NEW
-    refreshSession,      // ⭐ NEW
+    isSessionValid,
+    refreshSession,
   }
 
   return (
