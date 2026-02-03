@@ -83,7 +83,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 100;
+  z-index: 1; /* Lower than hamburger menu */
   padding: 2rem;
 }
 
