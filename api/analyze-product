@@ -2,7 +2,7 @@
 
 app.post('/api/analyze-product', async (req, res) => {
   try {
-    const { productImage, category, wardrobeItems, userId } = req.body
+    const { productImage, category, wardrobeItems, userId, title } = req.body
 
     if (!productImage || !category || !userId) {
       return res.status(400).json({ error: 'Missing required fields' })
@@ -21,8 +21,15 @@ app.post('/api/analyze-product', async (req, res) => {
       colors: wardrobeItems.map(item => item.color).filter(Boolean)
     }
 
+    // If no title, ask AI to detect it from the image
+    let productTitle = title && title.trim() ? title.trim() : null;
+    let titlePrompt = '';
+    if (!productTitle) {
+      titlePrompt = '\n\nFirst, look at the product image and provide a short, clear title for this item (e.g. "Red T-shirt", "Blue Jeans", "White Sneakers"). Use the format: TITLE: <your title>\n';
+    }
+
     // Construct AI prompt for product analysis
-    const prompt = `You are an expert fashion analyst. A user is considering buying a new ${category} item and wants to know if it will fit their existing wardrobe.
+    const prompt = `${titlePrompt}You are an expert fashion analyst. A user is considering buying a new ${category} item and wants to know if it will fit their existing wardrobe.
 
 THEIR CURRENT WARDROBE:
 - Total items: ${wardrobeSummary.total}
@@ -107,7 +114,16 @@ Be specific, practical, and honest. Consider versatility, styling potential, and
     }
 
     const data = await response.json()
+
     const aiResponse = data.content[0].text
+
+    // If we asked for a title, extract it from the AI response
+    if (!productTitle && aiResponse.includes('TITLE:')) {
+      const titleMatch = aiResponse.match(/TITLE:\s*(.+)/);
+      if (titleMatch && titleMatch[1]) {
+        productTitle = titleMatch[1].split('\n')[0].trim();
+      }
+    }
 
     // Parse JSON response
     let analysis
@@ -127,6 +143,7 @@ Be specific, practical, and honest. Consider versatility, styling potential, and
 
     // Validate and ensure all fields are present
     const validatedAnalysis = {
+      title: productTitle || '',
       overallScore: analysis.overallScore || 50,
       verdict: analysis.verdict || 'Consider Carefully',
       verdictReason: analysis.verdictReason || 'Analysis unavailable',

@@ -522,14 +522,29 @@ function App() {
             /* Single Outfit Mode */
             <>
               <div className="upload-section">
+                {console.log('[ImageUpload] Render: input/label rendered, imagePreview:', imagePreview)}
                 <input
                   type="file"
                   accept="image/*"
                   onChange={handleImageChange}
                   id="file-upload"
                   style={{ display: 'none' }}
+                  data-testid="file-upload-input"
                 />
-                <label htmlFor="file-upload" className="upload-area">
+                <label
+                  htmlFor="file-upload"
+                  className="upload-area"
+                  onClick={() => {
+                    const input = document.getElementById('file-upload');
+                    if (input) {
+                      console.log('[ImageUpload] Label clicked, triggering input.click()');
+                      input.click();
+                    } else {
+                      console.warn('[ImageUpload] Label clicked, but input not found');
+                    }
+                  }}
+                  data-testid="file-upload-label"
+                >
                   {imagePreview ? (
                     <div className="preview-container">
                       <img src={imagePreview} alt="Outfit preview" className="preview-image" />

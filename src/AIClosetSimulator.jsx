@@ -16,6 +16,7 @@ function AIClosetSimulator() {
   const [productImage, setProductImage] = useState(null)
   const [productPreview, setProductPreview] = useState(null)
   const [productCategory, setProductCategory] = useState('tops')
+  const [productTitle, setProductTitle] = useState('')
   const [analyzing, setAnalyzing] = useState(false)
   const [analysis, setAnalysis] = useState(null)
   const [error, setError] = useState(null)
@@ -37,31 +38,26 @@ function AIClosetSimulator() {
       setError('Please upload a product image first')
       return
     }
-
+    // Product title is now optional
     if (!isPremium) {
       setError('AI Closet Simulator is a Premium feature')
       return
     }
-
     setAnalyzing(true)
     setError(null)
-
     try {
       // Get user's wardrobe
       const { data: wardrobeData, error: wardrobeError } = await supabase
         .from('wardrobe_items')
         .select('*')
         .eq('user_id', user.id)
-
       if (wardrobeError) throw wardrobeError
-
       // Convert product image to base64
       const base64Image = await new Promise((resolve) => {
         const reader = new FileReader()
         reader.onloadend = () => resolve(reader.result)
         reader.readAsDataURL(productImage)
       })
-
       // Call AI API to analyze the product
       const response = await fetch(`${API_BASE_URL}/api/analyze-product`, {
         method: 'POST',
@@ -69,14 +65,13 @@ function AIClosetSimulator() {
         body: JSON.stringify({
           productImage: base64Image,
           category: productCategory,
+          title: productTitle,
           wardrobeItems: wardrobeData || [],
           userId: user.id
         })
       })
-
       const data = await response.json()
       if (!response.ok) throw new Error(data.error || 'Analysis failed')
-
       setAnalysis(data)
     } catch (err) {
       console.error('Analysis error:', err)
@@ -187,21 +182,36 @@ function AIClosetSimulator() {
                 </div>
 
                 {productPreview && (
-                  <div className="category-selector">
-                    <label htmlFor="category">Product Category:</label>
-                    <select
-                      id="category"
-                      value={productCategory}
-                      onChange={(e) => setProductCategory(e.target.value)}
-                      disabled={!isPremium}
-                    >
-                      <option value="tops">Tops</option>
-                      <option value="bottoms">Bottoms</option>
-                      <option value="shoes">Shoes</option>
-                      <option value="outerwear">Outerwear</option>
-                      <option value="accessories">Accessories</option>
-                    </select>
-                  </div>
+                  <>
+                    <div className="category-selector">
+                      <label htmlFor="category">Product Category:</label>
+                      <select
+                        id="category"
+                        value={productCategory}
+                        onChange={(e) => setProductCategory(e.target.value)}
+                        disabled={!isPremium}
+                      >
+                        <option value="tops">Tops</option>
+                        <option value="bottoms">Bottoms</option>
+                        <option value="shoes">Shoes</option>
+                        <option value="outerwear">Outerwear</option>
+                        <option value="accessories">Accessories</option>
+                      </select>
+                    </div>
+                    <div className="title-input-group">
+                      <label htmlFor="product-title">Product Title (optional):</label>
+                      <input
+                        id="product-title"
+                        type="text"
+                        value={productTitle}
+                        onChange={e => setProductTitle(e.target.value)}
+                        placeholder="e.g. Red T-shirt (leave blank to let AI guess)"
+                        className="product-title-input"
+                        disabled={!isPremium}
+                        autoComplete="off"
+                      />
+                    </div>
+                  </>
                 )}
 
                 {error && <div className="error-message">{error}</div>}
