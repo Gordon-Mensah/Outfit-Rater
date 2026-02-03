@@ -1,10 +1,10 @@
-// App.jsx - Modern Redesign (FIXED VERSION)
+// App.jsx - Modern Redesign (FULLY FIXED VERSION)
 import { useState, useEffect } from 'react'
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 import { useAuth } from './AuthContext'
 import { supabase } from './supabaseClient'
 import imageCompression from 'browser-image-compression'
-import { startKeepAlive } from './keepAlive' // ⭐ NEW: Import keep-alive system
+import { startKeepAlive } from './keepAlive'
 import Login from './Login'
 import SignUp from './SignUp'
 import RateResult from './RateResult'
@@ -49,67 +49,99 @@ function App() {
   const [showStylistSelector, setShowStylistSelector] = useState(false)
   const [currentStylist, setCurrentStylist] = useState('minimalist')
 
-  // ⭐ NEW: Start keep-alive system when app mounts (runs once)
+  // Start keep-alive system when app mounts (runs once)
   useEffect(() => {
     console.log('🏓 Starting keep-alive system from App.jsx...')
     startKeepAlive()
-    
-    // No cleanup needed - keep-alive runs continuously
   }, [])
 
-  // ⭐ FIXED: Load user stylist preference with correct column name
+  // Load user stylist preference when user logs in
   useEffect(() => {
     if (user) {
       loadUserStylist()
     }
   }, [user])
 
-  // ✅ FIXED: Changed from 'id' to 'user_id'
+  // ✅ FIXED: Improved to handle missing profiles and create them automatically
   const loadUserStylist = async () => {
     if (!user) return
+    
     try {
       const { data, error } = await supabase
         .from('profiles')
         .select('stylist_preference')
-        .eq('user_id', user.id) // ⭐ FIXED: Changed from 'id' to 'user_id'
-        .single()
+        .eq('user_id', user.id)
+        .maybeSingle() // ⭐ Use maybeSingle() instead of single() to handle missing rows
       
       if (error) {
         console.error('Error loading stylist:', error)
         return
       }
       
-      if (data?.stylist_preference) {
+      // If no profile exists, create one
+      if (!data) {
+        console.log('📝 No profile found, creating one...')
+        const { error: insertError } = await supabase
+          .from('profiles')
+          .insert({
+            user_id: user.id,
+            stylist_preference: 'minimalist'
+          })
+        
+        if (insertError) {
+          console.error('❌ Error creating profile:', insertError)
+        } else {
+          console.log('✅ Profile created with default stylist: minimalist')
+          setCurrentStylist('minimalist')
+        }
+        return
+      }
+      
+      // Profile exists, load the preference
+      if (data.stylist_preference) {
         setCurrentStylist(data.stylist_preference)
         console.log('✅ Loaded stylist preference:', data.stylist_preference)
       }
     } catch (err) {
-      console.error('Error loading stylist:', err)
+      console.error('❌ Error in loadUserStylist:', err)
     }
   }
 
-  // ✅ FIXED: Changed from 'id' to 'user_id'
+  // ✅ FIXED: Improved to handle missing profiles
   const handleSelectStylist = async (stylistId) => {
     setCurrentStylist(stylistId)
     
     if (!user) return
     
     try {
-      const { error } = await supabase
+      // Try to update first
+      const { error: updateError } = await supabase
         .from('profiles')
         .update({ stylist_preference: stylistId })
-        .eq('user_id', user.id) // ⭐ FIXED: Changed from 'id' to 'user_id'
+        .eq('user_id', user.id)
       
-      if (error) throw error
-      
-      console.log('✅ Stylist preference saved:', stylistId)
+      if (updateError) {
+        // If update fails, profile might not exist - create it
+        console.log('📝 Profile not found, creating with stylist:', stylistId)
+        const { error: insertError } = await supabase
+          .from('profiles')
+          .insert({
+            user_id: user.id,
+            stylist_preference: stylistId
+          })
+        
+        if (insertError) {
+          console.error('❌ Error creating profile:', insertError)
+        } else {
+          console.log('✅ Profile created with stylist:', stylistId)
+        }
+      } else {
+        console.log('✅ Stylist preference saved:', stylistId)
+      }
     } catch (err) {
-      console.error('Error saving stylist:', err)
+      console.error('❌ Error saving stylist:', err)
     }
   }
-
-  // ⚠️ REMOVED: Duplicate focus handler (now handled in AuthContext.jsx only)
-  // The AuthContext already has a window focus listener, so we don't need one here
 
   // Load Stripe script
   useEffect(() => {
@@ -133,19 +165,34 @@ function App() {
   }
 
   const handleImageChange = async (e) => {
-    const file = e.target.files[0]
-    if (!file) return
+    const file = e.target.files[0];
+    console.log('[ImageUpload] File selected:', file);
+    if (!file) {
+      setError('No file selected.');
+      return;
+    }
     try {
-      const options = { maxSizeMB: 1, maxWidthOrHeight: 1920, useWebWorker: true }
-      const compressedFile = await imageCompression(file, options)
-      setImage(compressedFile)
-      const reader = new FileReader()
-      reader.onloadend = () => setImagePreview(reader.result)
-      reader.readAsDataURL(compressedFile)
-      setError(null)
+      const options = { maxSizeMB: 1, maxWidthOrHeight: 1920, useWebWorker: true };
+      const compressedFile = await imageCompression(file, options);
+      console.log('[ImageUpload] Compressed file:', compressedFile);
+      setImage(compressedFile);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        console.log('[ImageUpload] FileReader result:', reader.result);
+        if (!reader.result) {
+          setError('Failed to read image file.');
+        }
+        setImagePreview(reader.result);
+      };
+      reader.onerror = (e) => {
+        console.error('[ImageUpload] FileReader error:', e);
+        setError('Error reading image file.');
+      };
+      reader.readAsDataURL(compressedFile);
+      setError(null);
     } catch (err) {
-      console.error('Error compressing image:', err)
-      setError('Failed to process image.')
+      console.error('[ImageUpload] Error compressing image:', err);
+      setError('Failed to process image.');
     }
   }
 
@@ -219,8 +266,8 @@ function App() {
       const { data: profileData } = await supabase
         .from('profiles')
         .select('style_context')
-        .eq('user_id', user.id) // ⭐ Using user_id for consistency
-        .single()
+        .eq('user_id', user.id)
+        .maybeSingle()
 
       if (profileData?.style_context) {
         const sc = profileData.style_context
@@ -312,8 +359,8 @@ function App() {
       const { data: profileData } = await supabase
         .from('profiles')
         .select('style_context')
-        .eq('user_id', user.id) // ⭐ Using user_id for consistency
-        .single()
+        .eq('user_id', user.id)
+        .maybeSingle()
 
       if (profileData?.style_context) {
         const sc = profileData.style_context
