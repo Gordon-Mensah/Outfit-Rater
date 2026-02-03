@@ -1,4 +1,4 @@
-// App.jsx - Modern Redesign
+// App.jsx - Modern Redesign (FIXED VERSION)
 import { useState, useEffect } from 'react'
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 import { useAuth } from './AuthContext'
@@ -57,29 +57,38 @@ function App() {
     // No cleanup needed - keep-alive runs continuously
   }, [])
 
+  // ⭐ FIXED: Load user stylist preference with correct column name
   useEffect(() => {
     if (user) {
       loadUserStylist()
     }
   }, [user])
 
+  // ✅ FIXED: Changed from 'id' to 'user_id'
   const loadUserStylist = async () => {
     if (!user) return
     try {
       const { data, error } = await supabase
         .from('profiles')
         .select('stylist_preference')
-        .eq('id', user.id)
+        .eq('user_id', user.id) // ⭐ FIXED: Changed from 'id' to 'user_id'
         .single()
+      
+      if (error) {
+        console.error('Error loading stylist:', error)
+        return
+      }
       
       if (data?.stylist_preference) {
         setCurrentStylist(data.stylist_preference)
+        console.log('✅ Loaded stylist preference:', data.stylist_preference)
       }
     } catch (err) {
       console.error('Error loading stylist:', err)
     }
   }
 
+  // ✅ FIXED: Changed from 'id' to 'user_id'
   const handleSelectStylist = async (stylistId) => {
     setCurrentStylist(stylistId)
     
@@ -89,18 +98,20 @@ function App() {
       const { error } = await supabase
         .from('profiles')
         .update({ stylist_preference: stylistId })
-        .eq('id', user.id)
+        .eq('user_id', user.id) // ⭐ FIXED: Changed from 'id' to 'user_id'
       
       if (error) throw error
+      
+      console.log('✅ Stylist preference saved:', stylistId)
     } catch (err) {
       console.error('Error saving stylist:', err)
     }
   }
 
-  // ⚠️ REMOVED: Old ping system (replaced by keepAlive.js)
-  // The keep-alive system is now handled centrally in AuthContext.jsx
-  // This prevents duplicate pings and is more efficient
+  // ⚠️ REMOVED: Duplicate focus handler (now handled in AuthContext.jsx only)
+  // The AuthContext already has a window focus listener, so we don't need one here
 
+  // Load Stripe script
   useEffect(() => {
     if (window.Stripe) return
 
@@ -208,7 +219,7 @@ function App() {
       const { data: profileData } = await supabase
         .from('profiles')
         .select('style_context')
-        .eq('id', user.id)
+        .eq('user_id', user.id) // ⭐ Using user_id for consistency
         .single()
 
       if (profileData?.style_context) {
@@ -301,7 +312,7 @@ function App() {
       const { data: profileData } = await supabase
         .from('profiles')
         .select('style_context')
-        .eq('id', user.id)
+        .eq('user_id', user.id) // ⭐ Using user_id for consistency
         .single()
 
       if (profileData?.style_context) {
@@ -388,7 +399,7 @@ function App() {
                   <path d="M21 15l-5-5L5 21" strokeWidth="2" strokeLinecap="round"/>
                 </svg>
               </div>
-              <span className="logo-text"> Outfit Rater</span>
+              <span className="logo-text">AI Outfit Rater</span>
             </div>
           </div>
           <div className="header-right">
