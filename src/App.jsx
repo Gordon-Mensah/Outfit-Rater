@@ -1,4 +1,4 @@
-// App.jsx - Modern Redesign (FULLY FIXED VERSION)
+// App.jsx - Modern Redesign with Improved Image Upload
 import { useState, useEffect } from 'react'
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 import { useAuth } from './AuthContext'
@@ -71,7 +71,7 @@ function App() {
         .from('profiles')
         .select('stylist_preference')
         .eq('user_id', user.id)
-        .maybeSingle() // ⭐ Use maybeSingle() instead of single() to handle missing rows
+        .maybeSingle()
       
       if (error) {
         console.error('Error loading stylist:', error)
@@ -165,34 +165,20 @@ function App() {
   }
 
   const handleImageChange = async (e) => {
-    const file = e.target.files[0];
-    console.log('[ImageUpload] File selected:', file);
-    if (!file) {
-      setError('No file selected.');
-      return;
-    }
+    const file = e.target.files[0]
+    if (!file) return
+    
     try {
-      const options = { maxSizeMB: 1, maxWidthOrHeight: 1920, useWebWorker: true };
-      const compressedFile = await imageCompression(file, options);
-      console.log('[ImageUpload] Compressed file:', compressedFile);
-      setImage(compressedFile);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        console.log('[ImageUpload] FileReader result:', reader.result);
-        if (!reader.result) {
-          setError('Failed to read image file.');
-        }
-        setImagePreview(reader.result);
-      };
-      reader.onerror = (e) => {
-        console.error('[ImageUpload] FileReader error:', e);
-        setError('Error reading image file.');
-      };
-      reader.readAsDataURL(compressedFile);
-      setError(null);
+      const options = { maxSizeMB: 1, maxWidthOrHeight: 1920, useWebWorker: true }
+      const compressedFile = await imageCompression(file, options)
+      setImage(compressedFile)
+      const reader = new FileReader()
+      reader.onloadend = () => setImagePreview(reader.result)
+      reader.readAsDataURL(compressedFile)
+      setError(null)
     } catch (err) {
-      console.error('[ImageUpload] Error compressing image:', err);
-      setError('Failed to process image.');
+      console.error('Error compressing image:', err)
+      setError('Failed to process image.')
     }
   }
 
@@ -519,51 +505,36 @@ function App() {
         {/* Main Content Area */}
         <div className="main-content">
           {!comparisonMode ? (
-            /* Single Outfit Mode */
+            /* Single Outfit Mode - IMPROVED UPLOAD */
             <>
               <div className="upload-section">
-                {console.log('[ImageUpload] Render: input/label rendered, imagePreview:', imagePreview)}
                 <input
                   type="file"
                   accept="image/*"
                   onChange={handleImageChange}
                   id="file-upload"
                   style={{ display: 'none' }}
-                  data-testid="file-upload-input"
                 />
-                <label
-                  htmlFor="file-upload"
-                  className="upload-area"
-                  onClick={() => {
-                    const input = document.getElementById('file-upload');
-                    if (input) {
-                      console.log('[ImageUpload] Label clicked, triggering input.click()');
-                      input.click();
-                    } else {
-                      console.warn('[ImageUpload] Label clicked, but input not found');
-                    }
-                  }}
-                  data-testid="file-upload-label"
-                >
+                <label htmlFor="file-upload" className="upload-area">
                   {imagePreview ? (
                     <div className="preview-container">
                       <img src={imagePreview} alt="Outfit preview" className="preview-image" />
                       <div className="change-image-overlay">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                          <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" strokeWidth="2"/>
-                          <circle cx="12" cy="13" r="4" strokeWidth="2"/>
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                          <circle cx="12" cy="13" r="4"/>
                         </svg>
                         <span>Change Photo</span>
                       </div>
                     </div>
                   ) : (
                     <div className="upload-placeholder">
-                      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" strokeWidth="2"/>
-                        <circle cx="12" cy="13" r="4" strokeWidth="2"/>
+                      <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                        <circle cx="12" cy="13" r="4"/>
                       </svg>
                       <p className="upload-title">Upload Your Outfit</p>
-                      <p className="upload-subtitle">Click to select a photo</p>
+                      <p className="upload-subtitle">Click to select a photo or drag & drop</p>
                     </div>
                   )}
                 </label>
