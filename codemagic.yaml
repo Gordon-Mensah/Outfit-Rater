@@ -18,9 +18,10 @@ workflows:
         script: rm -rf ios
       - name: Add iOS platform
         script: cap add ios || true
-      - name: Fix Podfile deployment target
+      - name: Fix deployment target
         script: |
           sed -i '' "s/platform :ios, '[0-9.]*'/platform :ios, '16.0'/g" ios/App/Podfile
+          sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = [0-9.]*/IPHONEOS_DEPLOYMENT_TARGET = 16.0/g' ios/App/App.xcodeproj/project.pbxproj
       - name: Install CocoaPods
         script: |
           cd ios/App
