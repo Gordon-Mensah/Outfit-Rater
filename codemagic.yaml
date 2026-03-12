@@ -16,12 +16,18 @@ workflows:
         script: npm run build
       - name: Remove iOS platform
         script: rm -rf ios
-      - name: Add iOS platform without pod install
-        script: cap add ios --nopods
-      - name: Set iOS deployment target
+      - name: Add iOS platform
+        script: cap add ios || true
+      - name: Fix Podfile deployment target
         script: |
-          sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = [0-9.]*/IPHONEOS_DEPLOYMENT_TARGET = 16.0/g' ios/App/App.xcodeproj/project.pbxproj
-          sed -i '' "s/platform :ios, '[0-9.]*'/platform :ios, '16.0'/g" ios/App/Podfile
+          cat > ios/App/Podfile << 'EOF'
+          platform :ios, '16.0'
+          use_frameworks!
+          
+          target 'App' do
+            capacitor_pods
+          end
+          EOF
       - name: Install CocoaPods
         script: |
           cd ios/App
