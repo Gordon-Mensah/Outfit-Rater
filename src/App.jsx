@@ -815,7 +815,7 @@ function App() {
     <Routes>
       <Route 
         path="/" 
-        element={!user ? <LandingPage /> : <Navigate to="/rate" replace />} 
+        element={<LandingPage />} 
       />
       <Route 
         path="/login" 

@@ -7,23 +7,21 @@ function LandingPage() {
   const navigate = useNavigate()
   const { user, loading } = useAuth()
 
-  useEffect(() => {
-    if (user && !loading) {
-      navigate('/rate', { replace: true })
-    }
-  }, [user, loading, navigate])
-
-  if (loading) {
-    return (
-      <div className="loading-container">
-        <div className="spinner"></div>
-      </div>
-    )
-  }
-
-  if (user) {
-    return null
-  }
+  {user ? (
+    <button 
+      className="btn-primary"
+      onClick={() => navigate('/rate')}
+    >
+      Go to App
+    </button>
+  ) : (
+    <button 
+      className="btn-primary"
+      onClick={() => navigate('/signup')}
+    >
+      Start Rating Free
+    </button>
+  )}
 
   return (
     <div className="landing-page">
