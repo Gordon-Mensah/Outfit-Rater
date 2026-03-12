@@ -1,5 +1,4 @@
 // ReferralSystem.jsx - UPDATED WITH BETTER UX
-
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from './AuthContext'
@@ -26,7 +25,7 @@ function ReferralSystem() {
   useEffect(() => {
     const timeout = setTimeout(() => {
       setLoading(false)
-      console.warn("⏰ Referral page timeout")
+      console.warn(" Referral page timeout")
     }, 6000)
     return () => clearTimeout(timeout)
   }, [])
@@ -123,7 +122,7 @@ function ReferralSystem() {
       const json = await res.json()
 
       if (json.success) {
-        alert("✅ Payout request submitted! We'll process it within 3-5 business days.")
+        alert(" Payout request submitted! We'll process it within 3-5 business days.")
         loadReferralData()
       } else {
         alert(json.error || "Error submitting request.")
@@ -146,7 +145,7 @@ function ReferralSystem() {
         <div className="referral-header-section">
           <button onClick={() => navigate('/rate')} className="back-button">← Back</button>
           <div className="header">
-            <h1>💰 Referral Program</h1>
+            <h1> Referral Program</h1>
             <HamburgerMenu />
           </div>
           <p className="subtitle">Earn rewards by inviting friends!</p>
@@ -191,7 +190,7 @@ function ReferralSystem() {
                 opacity: payoutLoading || stats.cashbackEarned < 10 ? 0.6 : 1
               }}
             >
-              {payoutLoading ? '⏳ Processing...' : '💸 Request Payout'}
+              {payoutLoading ? ' Processing...' : ' Request Payout'}
             </button>
             <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)', marginTop: '8px' }}>
               {stats.cashbackEarned < 10 
@@ -215,8 +214,8 @@ function ReferralSystem() {
             </button>
           </div>
           <div className="share-btns">
-            <button onClick={shareLink} className="btn-share-soc">📤 Share</button>
-            <button onClick={copyLink} className="btn-share-soc sec">📋 Copy</button>
+            <button onClick={shareLink} className="btn-share-soc"> Share</button>
+            <button onClick={copyLink} className="btn-share-soc sec"> Copy</button>
           </div>
         </div>
 
@@ -236,14 +235,14 @@ function ReferralSystem() {
             <div className="rew-item"><span>Friend:</span><span>20% Off</span></div>
           </div>
           <div className="reward-card inf">
-            <h3>⭐ Influencer</h3>
+            <h3> Influencer</h3>
             <div className="rew-item"><span>You:</span><span>30% Cashback</span></div>
             <div className="rew-item"><span>User:</span><span>FREE Month</span></div>
             <button 
               className="btn-inf" 
               onClick={() => window.location.href = 'mailto:outfitraterpartner@gmail.com?subject=Partnership'}
             >
-              📧 Partner With Us
+               Partner With Us
             </button>
           </div>
         </div>
