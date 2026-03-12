@@ -8,10 +8,12 @@ workflows:
     scripts:
       - name: Install dependencies
         script: npm install
+      - name: Install Capacitor CLI
+        script: npm install -g @capacitor/cli
       - name: Build web app
         script: npm run build
       - name: Sync Capacitor
-        script: npx cap sync ios
+        script: cap sync ios
       - name: Install CocoaPods
         script: |
           cd ios/App
