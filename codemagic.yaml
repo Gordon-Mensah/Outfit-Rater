@@ -20,7 +20,7 @@ workflows:
         script: cap add ios || true
       - name: Fix Podfile deployment target
         script: |
-          sed -i '' "1s/.*/platform :ios, '16.0'/" ios/App/Podfile
+          sed -i '' "s/platform :ios, '[0-9.]*'/platform :ios, '16.0'/g" ios/App/Podfile
       - name: Install CocoaPods
         script: |
           cd ios/App
