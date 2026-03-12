@@ -14,20 +14,20 @@ workflows:
           npm install @capacitor/ios
       - name: Build web app
         script: npm run build
-      - name: Remove and re-add iOS platform
-        script: |
-          rm -rf ios
-          cap add ios
+      - name: Remove iOS platform
+        script: rm -rf ios
+      - name: Add iOS platform without pod install
+        script: cap add ios --nopods
       - name: Set iOS deployment target
         script: |
           sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = [0-9.]*/IPHONEOS_DEPLOYMENT_TARGET = 16.0/g' ios/App/App.xcodeproj/project.pbxproj
           sed -i '' "s/platform :ios, '[0-9.]*'/platform :ios, '16.0'/g" ios/App/Podfile
-      - name: Sync Capacitor
-        script: cap sync ios
       - name: Install CocoaPods
         script: |
           cd ios/App
           pod install
+      - name: Sync Capacitor
+        script: cap sync ios
       - name: Build iOS
         script: |
           xcodebuild \
