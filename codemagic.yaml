@@ -20,14 +20,7 @@ workflows:
         script: cap add ios || true
       - name: Fix Podfile deployment target
         script: |
-          cat > ios/App/Podfile << 'EOF'
-          platform :ios, '16.0'
-          use_frameworks!
-          
-          target 'App' do
-            capacitor_pods
-          end
-          EOF
+          sed -i '' "1s/.*/platform :ios, '16.0'/" ios/App/Podfile
       - name: Install CocoaPods
         script: |
           cd ios/App
