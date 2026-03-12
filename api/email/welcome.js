@@ -19,7 +19,7 @@ export default async function handler(req, res) {
       to: email,
       subject: 'Welcome to AI Outfit Rater!',
       html: `
-        <h2>Welcome to AI Outfit Rater 👗✨</h2>
+        <h2>Welcome to AI Outfit Rater </h2>
         <p>We’re excited to help you level up your style.</p>
         <p>Start by rating your first outfit — it only takes a moment.</p>
       `,
