@@ -143,19 +143,6 @@ function App() {
     }
   }
 
-  // Load Stripe script
-  useEffect(() => {
-    if (window.Stripe) return
-
-    const existingScript = document.querySelector('script[src="https://js.stripe.com/v3/"]')
-    if (existingScript) return
-
-    const script = document.createElement('script')
-    script.src = 'https://js.stripe.com/v3/'
-    script.async = true
-    document.body.appendChild(script)
-  }, [])
-
   if (authLoading) {
     return (
       <div className="loading-screen">
