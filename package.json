@@ -11,6 +11,11 @@
     "start": "node server.js"
   },
   "dependencies": {
+    "@capacitor/android": "^8.2.0",
+    "@capacitor/core": "^8.2.0",
+    "@capacitor/ios": "^8.2.0",
+    "@capacitor/splash-screen": "^8.0.1",
+    "@capacitor/status-bar": "^8.0.1",
     "@stripe/stripe-js": "^2.4.0",
     "@supabase/supabase-js": "^2.39.0",
     "@vitejs/plugin-react": "^4.2.1",
@@ -26,6 +31,7 @@
     "vite": "^5.4.11"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.2.0",
     "@types/react": "^18.2.43",
     "@types/react-dom": "^18.2.17"
   }

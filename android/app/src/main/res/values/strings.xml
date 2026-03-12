@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">outfit-rater</string>
+    <string name="title_activity_main">outfit-rater</string>
+    <string name="package_name">xyz.outfitrater.app</string>
+    <string name="custom_url_scheme">xyz.outfitrater.app</string>
+</resources>
