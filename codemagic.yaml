@@ -14,6 +14,10 @@ workflows:
           npm install @capacitor/ios
       - name: Build web app
         script: npm run build
+      - name: Remove and re-add iOS platform
+        script: |
+          rm -rf ios
+          cap add ios
       - name: Sync Capacitor
         script: cap sync ios
       - name: Install CocoaPods
