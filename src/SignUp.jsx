@@ -23,16 +23,33 @@ function SignUp() {
     try {
       setLoading(true)
       setError('')
+
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: { redirectTo: `${window.location.origin}/rate` }
       })
+
       if (error) throw error
+
+      // Wait a moment for Supabase to finish login
+      setTimeout(async () => {
+        const { data: userData } = await supabase.auth.getUser()
+
+        if (userData?.user?.email) {
+          // Send welcome email
+          fetch('/api/email/welcome', {
+            method: 'POST',
+            body: JSON.stringify({ email: userData.user.email }),
+          })
+        }
+      }, 1500)
+
     } catch (err) {
       setError(err.message)
       setLoading(false)
     }
   }
+
 
   const validateForm = () => {
     if (!email.includes('@')) {
@@ -75,6 +92,13 @@ function SignUp() {
 
       setSuccess(true)
       setTimeout(() => navigate('/login'), 2000)
+
+      // Send welcome email
+      fetch('/api/email/welcome', {
+        method: 'POST',
+        body: JSON.stringify({ email }),
+      });
+
 
       // Process referral or promo
       try {
