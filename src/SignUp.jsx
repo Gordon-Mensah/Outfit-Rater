@@ -1,4 +1,6 @@
-// SignUp.jsx - Modern design matching landing page
+// SignUp.jsx - COMPLETE UPDATED VERSION
+// Fixed: No auto-redirect, better UX
+
 import { useState } from 'react'
 import { useAuth } from './AuthContext'
 import { useNavigate } from 'react-router-dom'
@@ -31,7 +33,7 @@ function SignUp() {
 
       if (error) throw error
 
-      // Wait a moment for Supabase to finish login
+      // Wait for Supabase to finish login
       setTimeout(async () => {
         const { data: userData } = await supabase.auth.getUser()
 
@@ -39,6 +41,7 @@ function SignUp() {
           // Send welcome email
           fetch('/api/email/welcome', {
             method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email: userData.user.email }),
           })
         }
@@ -49,7 +52,6 @@ function SignUp() {
       setLoading(false)
     }
   }
-
 
   const validateForm = () => {
     if (!email.includes('@')) {
@@ -91,14 +93,16 @@ function SignUp() {
       }
 
       setSuccess(true)
-      setTimeout(() => navigate('/login'), 2000)
+      
+      // ✅ REMOVED AUTO-REDIRECT - Users click "Sign in" when ready
+      // setTimeout(() => navigate('/login'), 2000) ← DELETED
 
       // Send welcome email
       fetch('/api/email/welcome', {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
-      });
-
+      })
 
       // Process referral or promo
       try {
@@ -189,7 +193,7 @@ function SignUp() {
             <p className="auth-subtitle">Start rating your outfits with AI</p>
           </div>
 
-          {/* Success Message */}
+          {/* Success Message - UPDATED */}
           {success && (
             <div className="success-message">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -197,8 +201,8 @@ function SignUp() {
                 <polyline points="22 4 12 14.01 9 11.01" strokeWidth="2" strokeLinecap="round"/>
               </svg>
               <div>
-                <strong>Account created!</strong>
-                <p>Check your email to confirm your account</p>
+                <strong>Account created successfully!</strong>
+                <p>Check your email to confirm your account, then click "Sign in" below to continue.</p>
               </div>
             </div>
           )}
@@ -374,17 +378,37 @@ function SignUp() {
             </p>
           </form>
 
-          {/* Footer */}
+          {/* Footer - UPDATED */}
           <div className="auth-footer">
             <p className="footer-text">
-              Already have an account?{' '}
-              <button 
-                onClick={() => navigate('/login')}
-                className="link-btn"
-                disabled={loading || success}
-              >
-                Sign in
-              </button>
+              {success ? (
+                /* After successful signup */
+                <>
+                  Email confirmed?{' '}
+                  <button 
+                    onClick={() => navigate('/login')}
+                    className="link-btn"
+                    style={{ 
+                      fontWeight: '700',
+                      textDecoration: 'underline'
+                    }}
+                  >
+                    Sign in now →
+                  </button>
+                </>
+              ) : (
+                /* Before signup */
+                <>
+                  Already have an account?{' '}
+                  <button 
+                    onClick={() => navigate('/login')}
+                    className="link-btn"
+                    disabled={loading}
+                  >
+                    Sign in
+                  </button>
+                </>
+              )}
             </p>
           </div>
         </div>
