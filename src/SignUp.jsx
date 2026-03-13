@@ -58,69 +58,36 @@ function SignUp() {
 
   const handleSignUp = async (e) => {
     e.preventDefault()
-    console.log('🟢 handleSignUp fired')
+    console.log('SIGNUP: handleSignUp fired')
     setError('')
 
     if (!validateForm()) {
-      console.log('🔴 validateForm failed')
+      console.log('SIGNUP: validateForm failed')
       return
     }
 
     setLoading(true)
-    console.log('🟡 calling signUp with email:', email)
+    console.log('SIGNUP: calling signUp with email:', email)
 
     try {
       const { data, error } = await signUp(email, password)
-      console.log('🟡 signUp returned:', { data, error })
+      console.log('SIGNUP: signUp returned', JSON.stringify({ data, error }))
 
       if (error) {
-        console.log('🔴 signUp error:', error.message)
-        if (error.message.includes('already registered')) {
-          setError('Email already registered. Try logging in.')
-        } else if (error.message.includes('password')) {
-          setError('Password is too weak. Add numbers or symbols.')
-        } else {
-          setError(error.message)
-        }
-        setLoading(false)
-        return
+        console.log('SIGNUP: error', error.message)
+        // ... rest unchanged
       }
 
-      // Send welcome email (fire and forget)
-      fetch('/api/email/welcome', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
-      }).catch(err => console.error('Welcome email error:', err))
-
-      // Store referral info for AFTER email confirmation
-      try {
-        const pendingRef = localStorage.getItem("pendingReferral")
-        const pendingPromo = localStorage.getItem("pendingPromo")
-        if (data?.user?.id && (pendingPromo || pendingRef)) {
-          localStorage.setItem('pendingUserId', data.user.id)
-        }
-      } catch (err) {
-        console.error("Referral storage error:", err)
-      }
-
-      console.log('🟢 about to navigate to /check-email')
+      console.log('SIGNUP: navigating to /check-email')
       navigate('/check-email', { state: { email } })
-      console.log('🟢 navigate called successfully')
+      console.log('SIGNUP: navigate done')
 
-    } catch (err) {
-      console.log('🔴 caught exception:', err)
-      setError('Something went wrong. Please try again.')
-      setLoading(false)
+    const getPasswordStrength = () => {
+      if (password.length === 0) return null
+      if (password.length < 6) return 'weak'
+      if (password.length < 10) return 'medium'
+      return 'strong'
     }
-  }
-
-  const getPasswordStrength = () => {
-    if (password.length === 0) return null
-    if (password.length < 6) return 'weak'
-    if (password.length < 10) return 'medium'
-    return 'strong'
-  }
 
   const passwordStrength = getPasswordStrength()
 
