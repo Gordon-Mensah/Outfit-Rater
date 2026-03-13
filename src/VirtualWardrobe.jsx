@@ -107,7 +107,7 @@ function VirtualWardrobe() {
       const { data, error } = await supabase
         .from('profiles')
         .select('style_profile')
-        .eq('id', user.id)
+        .eq('user_id', user.id)
         .single()
       
       if (error) throw error
@@ -124,7 +124,7 @@ function VirtualWardrobe() {
         await supabase
           .from('profiles')
           .update({ style_profile: newProfile })
-          .eq('id', user.id)
+          .eq('user_id', user.id)
         
         console.log('✅ New style profile created')
       }
@@ -141,7 +141,7 @@ function VirtualWardrobe() {
       const { error } = await supabase
         .from('profiles')
         .update({ style_profile: updatedProfile })
-        .eq('id', user.id)
+        .eq('user_id', user.id)
       
       if (error) throw error
       console.log('✅ Style profile saved')

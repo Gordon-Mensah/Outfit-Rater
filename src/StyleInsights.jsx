@@ -26,7 +26,7 @@ function StyleInsights({ onGeneratePersonalized }) {
       const { data, error } = await supabase
         .from('profiles')
         .select('style_profile')
-        .eq('id', user.id)
+        .eq('user_id', user.id)
         .single()
       
       if (error) throw error
