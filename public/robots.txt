@@ -1,0 +1,23 @@
+# robots.txt for outfitrater.xyz
+
+User-agent: *
+Allow: /
+Allow: /login
+Allow: /signup
+Allow: /premium
+Allow: /referrals
+
+# Disallow private user pages
+Disallow: /rate
+Disallow: /result
+Disallow: /compare-result
+Disallow: /profile
+Disallow: /history
+Disallow: /saved-outfits
+Disallow: /fashion-chat
+Disallow: /wardrobe
+Disallow: /style-context
+Disallow: /closet-simulator
+
+# Sitemap location
+Sitemap: https://outfitrater.xyz/sitemap.xml
