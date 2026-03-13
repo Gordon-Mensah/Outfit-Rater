@@ -1,5 +1,4 @@
-// Login.jsx - NATIVE APP VERSION (No "Back to Home" button)
-
+// Login.jsx - Modern design matching landing page
 import { useState } from 'react'
 import { useAuth } from './AuthContext'
 import { useNavigate } from 'react-router-dom'
@@ -57,6 +56,7 @@ function Login() {
 
   return (
     <div className="auth-page">
+      {/* Animated Background */}
       <div className="auth-bg">
         <div className="gradient-orb orb-1"></div>
         <div className="gradient-orb orb-2"></div>
@@ -64,7 +64,9 @@ function Login() {
         <div className="grid-overlay"></div>
       </div>
 
+      {/* Content */}
       <div className="auth-content">
+        {/* Logo */}
         <div className="auth-logo">
           <div className="logo-circle">
             <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -76,12 +78,14 @@ function Login() {
           <span className="logo-text">AI Outfit Rater</span>
         </div>
 
+        {/* Auth Card */}
         <div className="auth-card">
           <div className="auth-header">
             <h1 className="auth-title">Welcome Back</h1>
             <p className="auth-subtitle">Sign in to continue your style journey</p>
           </div>
 
+          {/* Google Button */}
           <button 
             onClick={handleGoogleSignIn}
             className="auth-google-btn"
@@ -97,13 +101,16 @@ function Login() {
             <span>Continue with Google</span>
           </button>
 
+          {/* Divider */}
           <div className="auth-divider">
             <span className="divider-line"></span>
             <span className="divider-text">or</span>
             <span className="divider-line"></span>
           </div>
 
+          {/* Form */}
           <form onSubmit={handleLogin} className="auth-form">
+            {/* Email */}
             <div className="form-group">
               <label className="form-label">Email</label>
               <input
@@ -117,6 +124,7 @@ function Login() {
               />
             </div>
 
+            {/* Password */}
             <div className="form-group">
               <label className="form-label">Password</label>
               <div className="input-with-icon">
@@ -150,6 +158,7 @@ function Login() {
               </div>
             </div>
 
+            {/* Error */}
             {error && (
               <div className="error-message">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -161,6 +170,7 @@ function Login() {
               </div>
             )}
 
+            {/* Submit */}
             <button 
               type="submit" 
               className="auth-submit-btn"
@@ -182,6 +192,7 @@ function Login() {
             </button>
           </form>
 
+          {/* Footer */}
           <div className="auth-footer">
             <p className="footer-text">
               Don't have an account?{' '}
@@ -196,7 +207,16 @@ function Login() {
           </div>
         </div>
 
-        {/* ✅ REMOVED "Back to home" button for native app */}
+        {/* Back to home */}
+        <button 
+          onClick={() => navigate('/')}
+          className="back-home-btn"
+        >
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor">
+            <path d="M16 10l-4-4m0 0l-4 4m4-4v12M4 10h12" strokeWidth="2" strokeLinecap="round"/>
+          </svg>
+          Back to home
+        </button>
       </div>
     </div>
   )
