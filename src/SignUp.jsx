@@ -1,4 +1,4 @@
-// SignUp.jsx - FIXED: Proper email confirmation flow
+// SignUp.jsx - FIXED: Redirects to /check-email after signup
 
 import { useState } from 'react'
 import { useAuth } from './AuthContext'
@@ -15,7 +15,6 @@ function SignUp() {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [success, setSuccess] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [appliedCode, setAppliedCode] = useState(null)
@@ -25,12 +24,10 @@ function SignUp() {
       setLoading(true)
       setError('')
 
-      // ✅ Google signup works differently - no email confirmation needed
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: { 
           redirectTo: `${window.location.origin}/rate`,
-          // Skip email verification for Google OAuth
           skipBrowserRedirect: false
         }
       })
@@ -62,14 +59,12 @@ function SignUp() {
   const handleSignUp = async (e) => {
     e.preventDefault()
     setError('')
-    setSuccess(false)
 
     if (!validateForm()) return
 
     setLoading(true)
 
     try {
-      // ✅ Sign up with email confirmation required
       const { data, error } = await signUp(email, password)
 
       if (error) {
@@ -84,36 +79,26 @@ function SignUp() {
         return
       }
 
-      // ✅ SUCCESS - Show message and DON'T try to log in
-      setSuccess(true)
-      setLoading(false)
+      // Send welcome email (fire and forget)
+      fetch('/api/email/welcome', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      }).catch(err => console.error('Welcome email error:', err))
 
-      // Send welcome email
-      try {
-        await fetch('/api/email/welcome', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email }),
-        })
-      } catch (err) {
-        console.error('Welcome email error:', err)
-      }
-
-      // ✅ Store referral info for AFTER email confirmation
+      // Store referral info for AFTER email confirmation
       try {
         const pendingRef = localStorage.getItem("pendingReferral")
         const pendingPromo = localStorage.getItem("pendingPromo")
-
-        // Store user ID for later referral processing
-        if (data?.user?.id) {
-          if (pendingPromo || pendingRef) {
-            localStorage.setItem('pendingUserId', data.user.id)
-            // Keep referral data until email is confirmed
-          }
+        if (data?.user?.id && (pendingPromo || pendingRef)) {
+          localStorage.setItem('pendingUserId', data.user.id)
         }
       } catch (err) {
         console.error("Referral storage error:", err)
       }
+
+      // ✅ Redirect to /check-email, passing the email for display
+      navigate('/check-email', { state: { email } })
 
     } catch (err) {
       console.error('Signup error:', err)
@@ -158,32 +143,10 @@ function SignUp() {
             <p className="auth-subtitle">Start rating your outfits with AI</p>
           </div>
 
-          {/* Success Message - IMPROVED */}
-          {success && (
-            <div className="success-message">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" strokeWidth="2" strokeLinecap="round"/>
-                <polyline points="22 4 12 14.01 9 11.01" strokeWidth="2" strokeLinecap="round"/>
-              </svg>
-              <div>
-                <strong>✅ Account created!</strong>
-                <p style={{ marginTop: '8px', lineHeight: '1.6' }}>
-                  📧 We sent a confirmation email to <strong>{email}</strong>
-                  <br/>
-                  <br/>
-                  Please check your inbox and click the confirmation link.
-                  <br/>
-                  <br/>
-                  ⚠️ <strong>Important:</strong> You must confirm your email before you can sign in.
-                </p>
-              </div>
-            </div>
-          )}
-
           <button 
             onClick={handleGoogleSignUp}
             className="auth-google-btn"
-            disabled={loading || success}
+            disabled={loading}
             type="button"
           >
             <svg className="google-icon" width="20" height="20" viewBox="0 0 24 24">
@@ -210,7 +173,7 @@ function SignUp() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                disabled={loading || success}
+                disabled={loading}
                 className="form-input"
               />
             </div>
@@ -224,7 +187,7 @@ function SignUp() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  disabled={loading || success}
+                  disabled={loading}
                   minLength={6}
                   className="form-input"
                 />
@@ -257,7 +220,7 @@ function SignUp() {
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   required
-                  disabled={loading || success}
+                  disabled={loading}
                   minLength={6}
                   className="form-input"
                 />
@@ -310,20 +273,12 @@ function SignUp() {
             <button 
               type="submit" 
               className="auth-submit-btn"
-              disabled={loading || success}
+              disabled={loading}
             >
               {loading ? (
                 <>
                   <span className="btn-spinner"></span>
                   Creating account...
-                </>
-              ) : success ? (
-                <>
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" strokeWidth="2" strokeLinecap="round"/>
-                    <polyline points="22 4 12 14.01 9 11.01" strokeWidth="2" strokeLinecap="round"/>
-                  </svg>
-                  Email sent!
                 </>
               ) : (
                 <>
@@ -342,29 +297,14 @@ function SignUp() {
 
           <div className="auth-footer">
             <p className="footer-text">
-              {success ? (
-                <>
-                  Confirmed your email?{' '}
-                  <button 
-                    onClick={() => navigate('/login')}
-                    className="link-btn"
-                    style={{ fontWeight: '700', textDecoration: 'underline' }}
-                  >
-                    Sign in now →
-                  </button>
-                </>
-              ) : (
-                <>
-                  Already have an account?{' '}
-                  <button 
-                    onClick={() => navigate('/login')}
-                    className="link-btn"
-                    disabled={loading}
-                  >
-                    Sign in
-                  </button>
-                </>
-              )}
+              Already have an account?{' '}
+              <button 
+                onClick={() => navigate('/login')}
+                className="link-btn"
+                disabled={loading}
+              >
+                Sign in
+              </button>
             </p>
           </div>
         </div>

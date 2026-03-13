@@ -27,6 +27,7 @@ import { cities, workplaces, socialScenes } from './contextData'
 import StylistSelector from './StylistSelector'
 import { getStylist } from './stylistPersonalities'
 import AIClosetSimulator from './AIClosetSimulator'
+import CheckEmail from './CheckEmail'
 import './App.css'
 
 const API_BASE_URL = import.meta.env.PROD ? '' : 'http://localhost:3000'
@@ -811,6 +812,10 @@ function App() {
       <Route 
         path="/signup" 
         element={!user ? <SignUp /> : <Navigate to="/rate" replace />} 
+      />
+      <Route 
+        path="/check-email" 
+        element={<CheckEmail />} 
       />
       <Route 
         path="/rate" 
