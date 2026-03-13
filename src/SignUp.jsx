@@ -1,5 +1,3 @@
-// SignUp.jsx - With debug logging to trace redirect issue
-
 import { useState } from 'react'
 import { useAuth } from './AuthContext'
 import { useNavigate } from 'react-router-dom'
@@ -71,23 +69,56 @@ function SignUp() {
 
     try {
       const { data, error } = await signUp(email, password)
-      console.log('SIGNUP: signUp returned', JSON.stringify({ data, error }))
+      console.log('SIGNUP: signUp returned, error:', error ? error.message : 'none')
 
       if (error) {
-        console.log('SIGNUP: error', error.message)
-        // ... rest unchanged
+        console.log('SIGNUP: error -', error.message)
+        if (error.message.includes('already registered')) {
+          setError('Email already registered. Try logging in.')
+        } else if (error.message.includes('password')) {
+          setError('Password is too weak. Add numbers or symbols.')
+        } else {
+          setError(error.message)
+        }
+        setLoading(false)
+        return
+      }
+
+      // Send welcome email (fire and forget)
+      fetch('/api/email/welcome', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      }).catch(err => console.error('Welcome email error:', err))
+
+      // Store referral info for AFTER email confirmation
+      try {
+        const pendingRef = localStorage.getItem("pendingReferral")
+        const pendingPromo = localStorage.getItem("pendingPromo")
+        if (data?.user?.id && (pendingPromo || pendingRef)) {
+          localStorage.setItem('pendingUserId', data.user.id)
+        }
+      } catch (err) {
+        console.error("Referral storage error:", err)
       }
 
       console.log('SIGNUP: navigating to /check-email')
       navigate('/check-email', { state: { email } })
-      console.log('SIGNUP: navigate done')
+      console.log('SIGNUP: navigate called')
 
-    const getPasswordStrength = () => {
-      if (password.length === 0) return null
-      if (password.length < 6) return 'weak'
-      if (password.length < 10) return 'medium'
-      return 'strong'
+    } catch (err) {
+      console.log('SIGNUP: caught exception -', err.message)
+      setError('Something went wrong. Please try again.')
+      setLoading(false)
     }
+  }
+
+  const getPasswordStrength = () => {
+    if (password.length === 0) return null
+    if (password.length < 6) return 'weak'
+    if (password.length < 10) return 'medium'
+    return 'strong'
+  }
 
   const passwordStrength = getPasswordStrength()
 
