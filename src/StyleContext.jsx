@@ -11,19 +11,15 @@ import './StyleContext.css'
 // Requires VITE_GOOGLE_MAPS_API_KEY in your .env
 // ─────────────────────────────────────────────
 async function reverseGeocode(latitude, longitude) {
-  const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY
-  if (!apiKey) throw new Error('Google Maps API key not configured')
+  const { data, error } = await supabase.functions.invoke('geocoding-proxy', {
+    body: { latitude, longitude }
+  })
 
-  const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&result_type=locality|administrative_area_level_1&key=${apiKey}`
-  const res = await fetch(url)
-  if (!res.ok) throw new Error('Geocoding request failed')
-
-  const data = await res.json()
+  if (error) throw new Error(error.message)
   if (data.status !== 'OK' || !data.results?.length) {
     throw new Error('No results from geocoding')
   }
 
-  // Extract city name from address components
   for (const result of data.results) {
     for (const component of result.address_components) {
       if (component.types.includes('locality') || component.types.includes('postal_town')) {
@@ -31,8 +27,6 @@ async function reverseGeocode(latitude, longitude) {
       }
     }
   }
-
-  // Fallback: use administrative_area_level_1
   for (const result of data.results) {
     for (const component of result.address_components) {
       if (component.types.includes('administrative_area_level_1')) {
