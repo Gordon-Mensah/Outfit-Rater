@@ -1,4 +1,4 @@
-// SignUp.jsx - FIXED: Redirects to /check-email after signup
+// SignUp.jsx - With debug logging to trace redirect issue
 
 import { useState } from 'react'
 import { useAuth } from './AuthContext'
@@ -58,16 +58,23 @@ function SignUp() {
 
   const handleSignUp = async (e) => {
     e.preventDefault()
+    console.log('🟢 handleSignUp fired')
     setError('')
 
-    if (!validateForm()) return
+    if (!validateForm()) {
+      console.log('🔴 validateForm failed')
+      return
+    }
 
     setLoading(true)
+    console.log('🟡 calling signUp with email:', email)
 
     try {
       const { data, error } = await signUp(email, password)
+      console.log('🟡 signUp returned:', { data, error })
 
       if (error) {
+        console.log('🔴 signUp error:', error.message)
         if (error.message.includes('already registered')) {
           setError('Email already registered. Try logging in.')
         } else if (error.message.includes('password')) {
@@ -97,11 +104,12 @@ function SignUp() {
         console.error("Referral storage error:", err)
       }
 
-      // ✅ Redirect to /check-email, passing the email for display
+      console.log('🟢 about to navigate to /check-email')
       navigate('/check-email', { state: { email } })
+      console.log('🟢 navigate called successfully')
 
     } catch (err) {
-      console.error('Signup error:', err)
+      console.log('🔴 caught exception:', err)
       setError('Something went wrong. Please try again.')
       setLoading(false)
     }
