@@ -9,7 +9,8 @@ import StyleInsights from './StyleInsights'
 import './VirtualWardrobe.css'
 import { 
   getUserWeatherTwoDays, 
-  getTodayTomorrowOutfits 
+  getTodayTomorrowOutfits,
+  fetchWeather
 } from './weatherIntegration'
 import { 
   createEmptyStyleProfile,
@@ -31,7 +32,7 @@ function VirtualWardrobe() {
     outerwear: []
   })
   
-  // ✨ Style Memory State
+  // Style Memory State
   const [styleProfile, setStyleProfile] = useState(null)
   
   const [loading, setLoading] = useState(true)
@@ -99,7 +100,7 @@ function VirtualWardrobe() {
     }
   }
 
-  // ✨ Load user's style profile
+  // Load user's style profile
   const loadStyleProfile = async () => {
     if (!user) return
     
@@ -114,7 +115,7 @@ function VirtualWardrobe() {
       
       if (data?.style_profile) {
         setStyleProfile(data.style_profile)
-        console.log('✅ Style profile loaded, learning score:', data.style_profile.stats.learningScore)
+        console.log('Style profile loaded, learning score:', data.style_profile.stats.learningScore)
       } else {
         // Create new empty profile
         const newProfile = createEmptyStyleProfile()
@@ -126,14 +127,14 @@ function VirtualWardrobe() {
           .update({ style_profile: newProfile })
           .eq('user_id', user.id)
         
-        console.log('✅ New style profile created')
+        console.log('New style profile created')
       }
     } catch (err) {
       console.error('Error loading style profile:', err)
     }
   }
 
-  // ✨ Save style profile to database
+  // Save style profile to database
   const saveStyleProfile = async (updatedProfile) => {
     if (!user) return
     
@@ -144,7 +145,7 @@ function VirtualWardrobe() {
         .eq('user_id', user.id)
       
       if (error) throw error
-      console.log('✅ Style profile saved')
+      console.log('Style profile saved')
     } catch (err) {
       console.error('Error saving style profile:', err)
     }
@@ -167,6 +168,7 @@ function VirtualWardrobe() {
     }
   }
 
+  // ✅ FIXED: Replaced OpenWeatherMap with Open-Meteo (no API key needed)
   const requestLocationAndWeather = async () => {
     setLoadingWeather(true)
     
@@ -185,29 +187,30 @@ function VirtualWardrobe() {
       
       const { latitude, longitude } = position.coords
       
-      // Fetch weather from OpenWeatherMap API
-      const API_KEY = '405a09c9d260cec7f7e77ed429e079b5'
-      const response = await fetch(
-        `https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&units=metric&appid=${API_KEY}`
-      )
+      // ✅ Use Open-Meteo via weatherIntegration.js (no API key, no CSP issues)
+      const data = await fetchWeather(latitude, longitude)
       
-      if (response.ok) {
-        const data = await response.json()
+      if (data) {
         const weatherIcons = {
           'Clear': '☀️',
-          'Clouds': '☁️',
-          'Rain': '🌧️',
+          'Mainly Clear': '🌤️',
+          'Partly Cloudy': '⛅',
+          'Cloudy': '☁️',
+          'Fog': '🌫️',
+          'Light Drizzle': '🌦️',
           'Drizzle': '🌦️',
-          'Thunderstorm': '⛈️',
+          'Heavy Drizzle': '🌦️',
+          'Light Rain': '🌧️',
+          'Rain': '🌧️',
+          'Heavy Rain': '🌧️',
           'Snow': '❄️',
-          'Mist': '🌫️',
-          'Fog': '🌫️'
+          'Thunderstorm': '⛈️'
         }
-        
+
         setWeather({
-          temp: Math.round(data.main.temp),
-          condition: data.weather[0].main,
-          icon: weatherIcons[data.weather[0].main] || '🌤️'
+          temp: data.temp,
+          condition: data.condition,
+          icon: weatherIcons[data.condition] || '🌤️'
         })
       } else {
         setWeather({
@@ -248,7 +251,7 @@ function VirtualWardrobe() {
 
     const totalItems = Object.values(wardrobe).flat().length
     if (!isPremium && totalItems >= 20) {
-      alert('⭐ Free users can add up to 20 items. Upgrade to Premium for unlimited wardrobe!')
+      alert('Free users can add up to 20 items. Upgrade to Premium for unlimited wardrobe!')
       return
     }
 
@@ -304,7 +307,7 @@ function VirtualWardrobe() {
         [uploadingCategory]: [...prev[uploadingCategory], data]
       }))
 
-      // ✨ Track upload action in Style Memory
+      // Track upload action in Style Memory
       if (styleProfile) {
         const updatedProfile = trackStyleAction(
           styleProfile,
@@ -316,7 +319,7 @@ function VirtualWardrobe() {
         setStyleProfile(updatedProfile)
         await saveStyleProfile(updatedProfile)
         
-        console.log('✅ Tracked upload, learning score:', updatedProfile.stats.learningScore)
+        console.log('Tracked upload, learning score:', updatedProfile.stats.learningScore)
       }
 
       // Close modal
@@ -327,7 +330,7 @@ function VirtualWardrobe() {
       setItemColor('')
       setItemBrand('')
       
-      alert('✅ Item added to your wardrobe!')
+      alert('Item added to your wardrobe!')
     } catch (err) {
       console.error('Error uploading:', err)
       alert('Failed to add item. Please try again.')
@@ -341,7 +344,7 @@ function VirtualWardrobe() {
     if (!confirm('Remove this item from your wardrobe?')) return
 
     try {
-      // ✨ Track delete action BEFORE deleting (so we have item data)
+      // Track delete action BEFORE deleting (so we have item data)
       if (styleProfile) {
         const itemToDelete = wardrobe[category].find(item => item.id === itemId)
         
@@ -356,7 +359,7 @@ function VirtualWardrobe() {
           setStyleProfile(updatedProfile)
           await saveStyleProfile(updatedProfile)
           
-          console.log('✅ Tracked delete, user avoids:', itemToDelete.color)
+          console.log('Tracked delete, user avoids:', itemToDelete.color)
         }
       }
 
@@ -555,7 +558,7 @@ function VirtualWardrobe() {
           </div>
         )}
 
-        {/* ✨ Style Insights Component */}
+        {/* Style Insights Component */}
         {styleProfile && (
           <StyleInsights 
             onGeneratePersonalized={(recommendation) => {
@@ -606,9 +609,9 @@ function VirtualWardrobe() {
                   <h3>Your Wardrobe is Empty</h3>
                   <p>Start building your digital wardrobe by uploading your first clothing item</p>
                   <div className="empty-stats">
-                    <span>✨ Upload photos of your clothes</span>
-                    <span>✨ Get AI outfit suggestions</span>
-                    <span>✨ Never wonder what to wear again</span>
+                    <span>Upload photos of your clothes</span>
+                    <span>Get AI outfit suggestions</span>
+                    <span>Never wonder what to wear again</span>
                   </div>
                   
                   <div style={{marginTop: '2rem', display: 'flex', flexDirection: 'column', gap: '1rem', maxWidth: '400px', margin: '2rem auto 0'}}>
@@ -816,7 +819,7 @@ function VirtualWardrobe() {
                 className="modal-close-btn"
                 onClick={() => setShowUploadModal(false)}
               >
-                ✕
+                X
               </button>
             </div>
 
