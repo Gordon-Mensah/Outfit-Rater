@@ -40,7 +40,7 @@
   border: 1px solid rgba(255, 255, 255, 0.1);
   color: rgba(255, 255, 255, 0.8);
   padding: 0.75rem 1.25rem;
-  border-radius: var(--radius-md);
+  border-radius: 12px;
   font-size: 0.95rem;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -56,7 +56,7 @@
   background: rgba(255, 255, 255, 0.05);
   backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: var(--radius-lg);
+  border-radius: 24px;
   padding: 3rem;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
 }
@@ -73,6 +73,7 @@
   background: linear-gradient(135deg, #ffffff 0%, rgba(255, 255, 255, 0.8) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .context-card-header p {
@@ -96,6 +97,24 @@
   gap: 0.75rem;
 }
 
+/* Label row with auto-detect button inline */
+.form-group-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.form-group-label-row label {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: white;
+  margin: 0;
+}
+
 .form-group label {
   display: flex;
   align-items: center;
@@ -105,9 +124,101 @@
   color: white;
 }
 
-.form-group label svg {
+.form-group label svg,
+.form-group-label-row label svg {
   color: #667eea;
   flex-shrink: 0;
+}
+
+/* Auto-detect button */
+.detect-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.9rem;
+  background: rgba(102, 126, 234, 0.15);
+  border: 1px solid rgba(102, 126, 234, 0.35);
+  border-radius: 100px;
+  color: #a5b4fc;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.detect-btn:hover:not(:disabled) {
+  background: rgba(102, 126, 234, 0.25);
+  border-color: rgba(102, 126, 234, 0.55);
+  color: #c7d2fe;
+  transform: translateY(-1px);
+}
+
+.detect-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.detect-btn--loading {
+  pointer-events: none;
+}
+
+/* Tiny spinner inside detect button */
+.detect-spinner {
+  width: 12px;
+  height: 12px;
+  border: 2px solid rgba(165, 180, 252, 0.3);
+  border-top-color: #a5b4fc;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Detection feedback messages */
+.detect-success {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1rem;
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  border-radius: 10px;
+  font-size: 0.85rem;
+  color: #6ee7b7;
+  animation: fadeSlideIn 0.3s ease;
+}
+
+.detect-success strong {
+  color: #a7f3d0;
+}
+
+.detect-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.6rem 1rem;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  border-radius: 10px;
+  font-size: 0.85rem;
+  color: #fca5a5;
+  line-height: 1.5;
+  animation: fadeSlideIn 0.3s ease;
+}
+
+.detect-error svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+@keyframes fadeSlideIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .context-select {
@@ -120,10 +231,16 @@
   font-size: 1rem;
   cursor: pointer;
   transition: all 0.3s ease;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.4)' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  padding-right: 2.5rem;
 }
 
 .context-select:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background-color: rgba(255, 255, 255, 0.08);
   border-color: rgba(255, 255, 255, 0.15);
 }
 
@@ -136,7 +253,6 @@
 .context-select option {
   background: #1a1a1a;
   color: white;
-  padding: 0.75rem;
 }
 
 .field-hint {
@@ -197,6 +313,16 @@
   cursor: not-allowed;
 }
 
+.button-spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+  flex-shrink: 0;
+}
+
 .success-message {
   margin-top: 1.5rem;
   padding: 1rem 1.5rem;
@@ -206,18 +332,7 @@
   color: #6ee7b7;
   text-align: center;
   font-weight: 600;
-  animation: slideIn 0.3s ease;
-}
-
-@keyframes slideIn {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  animation: fadeSlideIn 0.3s ease;
 }
 
 .info-box {
@@ -244,24 +359,48 @@
   margin: 0;
 }
 
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  gap: 1rem;
+  background: #0a0a0a;
+  color: white;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(255, 255, 255, 0.1);
+  border-top-color: #667eea;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .context-content {
     padding: 1rem;
   }
-  
+
   .context-card {
     padding: 2rem 1.5rem;
   }
-  
+
   .context-card-header h1 {
     font-size: 2rem;
   }
-  
+
+  .form-group-label-row {
+    flex-wrap: wrap;
+  }
+
   .context-actions {
     flex-direction: column;
   }
-  
+
   .btn-secondary,
   .btn-primary {
     flex: 1;
