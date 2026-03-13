@@ -24,12 +24,11 @@ export function AuthProvider({ children }) {
     startKeepAlive()
   }, [])
 
-  // ⭐ IMPROVED: Window focus handler with better timeout and error handling
+  // Window focus handler with better timeout and error handling
   useEffect(() => {
     let isCheckingSession = false
     
     const handleFocus = async () => {
-      // Prevent multiple simultaneous checks
       if (isCheckingSession) {
         console.log('⚠️ Session check already in progress, skipping...')
         return
@@ -39,7 +38,6 @@ export function AuthProvider({ children }) {
       isCheckingSession = true
       
       try {
-        // ⭐ REDUCED TIMEOUT: 3 seconds is enough
         const sessionPromise = supabase.auth.getSession()
         const timeoutPromise = new Promise((_, reject) => 
           setTimeout(() => reject(new Error('Session check timeout')), 3000)
@@ -52,7 +50,6 @@ export function AuthProvider({ children }) {
         
         if (error) {
           console.error('❌ Session check error:', error)
-          // ⭐ FIX: If error, force a session refresh
           console.log('🔄 Attempting session refresh...')
           const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession()
           if (!refreshError && refreshData?.session) {
@@ -67,7 +64,6 @@ export function AuthProvider({ children }) {
           console.log('✅ Session valid on focus')
           setUser(session.user)
           
-          // ⭐ IMPROVED: Refresh data with shorter timeout and better error handling
           try {
             await Promise.race([
               Promise.all([
@@ -79,12 +75,10 @@ export function AuthProvider({ children }) {
               )
             ])
           } catch (dataErr) {
-            // Don't block if data refresh fails
             console.warn('⚠️ Data refresh slow/failed, continuing anyway')
           }
         } else {
           console.log('⚠️ No session on focus, trying refresh...')
-          // ⭐ FIX: If no session, try to refresh
           const { data: refreshData } = await supabase.auth.refreshSession()
           if (refreshData?.session) {
             console.log('✅ Session recovered')
@@ -93,7 +87,6 @@ export function AuthProvider({ children }) {
         }
       } catch (err) {
         console.error('❌ Focus check error:', err.message)
-        // ⭐ FIX: On timeout, try one force refresh
         if (err.message === 'Session check timeout') {
           console.log('⚡ Timeout detected, force refreshing...')
           try {
@@ -116,10 +109,7 @@ export function AuthProvider({ children }) {
     }
     
     window.addEventListener('focus', handleFocus)
-    
-    return () => {
-      window.removeEventListener('focus', handleFocus)
-    }
+    return () => window.removeEventListener('focus', handleFocus)
   }, [])
 
   useEffect(() => {
@@ -130,12 +120,11 @@ export function AuthProvider({ children }) {
       setLoading(false)
     }, 6000)
 
-    // Check session first
     checkInitialSession().then(() => {
       clearTimeout(timeoutId)
     })
 
-    // Enhanced auth state listener
+    // ✅ FIX: Ignore unconfirmed signups in auth state listener
     const { data: authListener } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('🔔 Auth change:', event, session?.user?.email || 'No user')
@@ -152,12 +141,20 @@ export function AuthProvider({ children }) {
           setLoading(false)
           return
         }
+
+        // ✅ KEY FIX: When email confirmation is required, Supabase fires
+        // SIGNED_IN with a user but NO session. Treat this as "pending confirmation"
+        // and do NOT set the user — otherwise App.jsx route guards bounce them to login.
+        if (!session) {
+          console.log('📧 Auth event with no session — likely awaiting email confirmation, ignoring')
+          setLoading(false)
+          return
+        }
         
-        const currentUser = session?.user ?? null
+        const currentUser = session.user ?? null
         setUser(currentUser)
         
         if (currentUser) {
-          // ⭐ IMPROVED: Don't await here to prevent blocking
           checkSubscription(currentUser.id).catch(err => 
             console.warn('⚠️ Subscription check failed:', err)
           )
@@ -173,7 +170,6 @@ export function AuthProvider({ children }) {
       }
     )
 
-    // ⭐ CHANGED TO 2 MINUTES: More aggressive refresh
     const refreshInterval = setInterval(async () => {
       console.log('⏰ Auto-refreshing session (2min interval)...')
       try {
@@ -202,8 +198,6 @@ export function AuthProvider({ children }) {
         
         if (session) {
           console.log('✅ Session is valid')
-          
-          // ⭐ IMPROVED: Check if token expires within 15 minutes (more aggressive)
           const expiresAt = session.expires_at
           const now = Math.floor(Date.now() / 1000)
           const minutesUntilExpiry = (expiresAt - now) / 60
@@ -230,7 +224,7 @@ export function AuthProvider({ children }) {
           console.error('❌ Auto-refresh error:', err.message)
         }
       }
-    }, 2 * 60 * 1000) // ⭐ CHANGED TO 2 MINUTES
+    }, 2 * 60 * 1000)
 
     return () => {
       clearTimeout(timeoutId)
@@ -264,7 +258,6 @@ export function AuthProvider({ children }) {
         } else {
           console.error('❌ Error getting session:', error)
         }
-        
         setLoading(false)
         return
       }
@@ -274,7 +267,6 @@ export function AuthProvider({ children }) {
       setUser(currentUser)
       
       if (currentUser) {
-        // Don't await - fire and forget to prevent blocking
         checkSubscription(currentUser.id).catch(err => 
           console.warn('⚠️ Initial subscription check failed:', err)
         )
@@ -290,14 +282,13 @@ export function AuthProvider({ children }) {
     }
   }
 
-  // ✅ NEW: Process referrals after email confirmation
+  // Process referrals after email confirmation
   const processPostConfirmationReferrals = async (userId) => {
     try {
       const pendingRef = localStorage.getItem("pendingReferral")
       const pendingPromo = localStorage.getItem("pendingPromo")
       const storedUserId = localStorage.getItem("pendingUserId")
 
-      // Only process if user IDs match
       if (storedUserId && storedUserId !== userId) {
         console.log('⚠️ User ID mismatch, skipping referral processing')
         return
@@ -341,7 +332,6 @@ export function AuthProvider({ children }) {
         }
       }
 
-      // Clean up ALL referral-related localStorage
       localStorage.removeItem("pendingReferral")
       localStorage.removeItem("pendingPromo")
       localStorage.removeItem("pendingUserId")
@@ -420,7 +410,6 @@ export function AuthProvider({ children }) {
         },
         (payload) => {
           console.log('🔔 Subscription changed in real-time:', payload)
-          
           if (payload.new) {
             const premium = payload.new.status === 'active' && payload.new.plan === 'premium'
             console.log('✅ Premium status updated:', premium)
@@ -555,38 +544,22 @@ export function AuthProvider({ children }) {
     }
   }
 
+  // ✅ FIX: signUp no longer inserts DB records — user isn't confirmed yet.
+  // Subscription + referral records are created on first login instead.
   const signUp = async (email, password) => {
     try {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-      })
-
+      const { data, error } = await supabase.auth.signUp({ email, password })
       if (error) throw error
-
-      if (data.user) {
-        await supabase.from('subscriptions').insert({
-          user_id: data.user.id,
-          status: 'free',
-          plan: 'free'
-        })
-
-        const referralCode = data.user.id.slice(0, 8).toUpperCase()
-
-        await supabase.from("referral_links").insert({
-          user_id: data.user.id,
-          referral_code: referralCode
-        })
-
-        await handlePendingReferral(data.user.id)
-      }
-
+      // Note: data.session will be null when email confirmation is required.
+      // DB record creation is deferred to signIn to avoid acting on unconfirmed users.
       return { data, error: null }
     } catch (error) {
       return { data: null, error }
     }
   }
 
+  // ✅ FIX: Create subscription + referral records here if they don't exist yet,
+  // since this only runs after the user has confirmed their email.
   const signIn = async (email, password) => {
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -598,10 +571,37 @@ export function AuthProvider({ children }) {
       
       if (data.user) {
         setUser(data.user)
-        
-        // ✅ Process any pending referrals after successful login
+
+        // Create subscription record if it doesn't exist yet
+        const { data: existingSub } = await supabase
+          .from('subscriptions')
+          .select('user_id')
+          .eq('user_id', data.user.id)
+          .maybeSingle()
+
+        if (!existingSub) {
+          console.log('📝 First login after confirmation — creating subscription record')
+          await supabase.from('subscriptions').insert({
+            user_id: data.user.id,
+            status: 'free',
+            plan: 'free'
+          })
+
+          // Create referral code too
+          const referralCode = data.user.id.slice(0, 8).toUpperCase()
+          await supabase
+            .from('referral_links')
+            .insert({ user_id: data.user.id, referral_code: referralCode })
+            .select()
+            // Silently ignore if already exists
+            .then(({ error }) => {
+              if (error && !error.message.includes('duplicate')) {
+                console.error('❌ Referral link insert error:', error)
+              }
+            })
+        }
+
         await processPostConfirmationReferrals(data.user.id)
-        
         await checkSubscription(data.user.id)
         await checkDailyRatings(data.user.id)
       }
@@ -642,12 +642,10 @@ export function AuthProvider({ children }) {
 
       if (!existing) {
         const referralCode = userId.slice(0, 8).toUpperCase()
-
         await supabase.from("referral_links").insert({
           user_id: userId,
           referral_code: referralCode
         })
-
         console.log("🎉 Referral code created:", referralCode)
       }
     } catch (err) {
