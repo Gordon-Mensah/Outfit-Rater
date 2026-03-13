@@ -1,0 +1,126 @@
+# AI Outfit Rater
+> AI-powered outfit rating and style feedback platform helping users improve their fashion choices with instant feedback.
+
+AI Outfit Rater (outfitrater.xyz) is an AI-powered fashion technology platform that provides instant outfit analysis, ratings, and personalized style recommendations. Users upload photos of their outfits and receive detailed AI-generated feedback on fit, color coordination, style appropriateness, and improvement suggestions.
+
+## Core Features
+
+- **AI Outfit Rating**: Upload outfit photos for instant AI analysis and ratings (1-10 scale)
+- **Smart Feedback Modes**: 
+  - Helpful: Encouraging and constructive feedback
+  - Honest: Balanced and realistic assessment
+  - Roast Mode: Brutally honest humor-based feedback (Premium)
+- **Outfit Comparison**: Compare multiple outfits side-by-side with AI recommendations
+- **Virtual Wardrobe**: Organize and manage your clothing collection digitally
+- **Rating History**: Track your style evolution over time
+- **Saved Outfits**: Bookmark favorite looks and successful combinations
+- **AI Style Chat**: Interactive fashion advice powered by AI (Premium)
+- **Referral Program**: Earn rewards by inviting friends
+
+## User Experience
+
+### Free Tier
+- 5 daily outfit ratings
+- Helpful and Honest feedback modes
+- Outfit comparison (up to 2 outfits)
+- Rating history access
+- Virtual wardrobe management
+
+### Premium ($5.99/month)
+- Unlimited outfit ratings
+- Roast Mode feedback
+- AI Style Chat assistant
+- Compare up to 5 outfits simultaneously
+- Advanced analytics
+- Priority support
+- Ad-free experience
+
+## Technology
+
+- **AI Engine**: Advanced computer vision and natural language processing
+- **Authentication**: Secure user accounts with Google OAuth
+- **Platforms**: Web application (mobile apps coming soon)
+- **Privacy**: User data protected, outfits stored securely
+
+## Key Pages
+
+- [Home/Landing](https://outfitrater.xyz) - Platform overview and features
+- [Rate Outfit](https://outfitrater.xyz/rate) - Main rating interface
+- [Sign Up](https://outfitrater.xyz/signup) - Create account with 20% off referral codes
+- [Login](https://outfitrater.xyz/login) - Access your account
+- [Premium](https://outfitrater.xyz/premium) - Subscription plans and benefits
+- [Referrals](https://outfitrater.xyz/referrals) - Earn free months and cashback
+- [Profile](https://outfitrater.xyz/profile) - Account settings and preferences
+- [History](https://outfitrater.xyz/history) - View past outfit ratings
+- [Wardrobe](https://outfitrater.xyz/wardrobe) - Virtual clothing organization
+
+## Use Cases
+
+- **Daily Outfit Decisions**: Get AI feedback before heading out
+- **Special Events**: Perfect your look for dates, interviews, weddings
+- **Style Improvement**: Learn what works and what doesn't
+- **Wardrobe Optimization**: Identify gaps and successful combinations
+- **Shopping Guidance**: Understand which pieces complement your style
+- **Fashion Exploration**: Experiment with new looks confidently
+
+## Target Audience
+
+- Fashion-conscious individuals seeking style improvement
+- People preparing for important events or occasions
+- Anyone wanting objective feedback on outfit choices
+- Style enthusiasts building a cohesive wardrobe
+- Users interested in AI-powered fashion technology
+
+## Occasions Supported
+
+- Casual hangouts
+- First dates
+- Job interviews
+- Weddings and formal events
+- Gym and workout attire
+- Night out and clubbing
+- Professional work environments
+- Beach and vacation wear
+- General everyday styling
+
+## Community & Social
+
+- User referral system with rewards
+- Influencer partnership program (30% cashback)
+- Share outfit ratings and feedback
+- Style trend insights from aggregate data
+
+## Support & Contact
+
+- Email: outfitraterpartner@gmail.com
+- Partnership inquiries: outfitraterpartner@gmail.com
+- In-app support chat
+- Comprehensive FAQ section
+
+## Privacy & Security
+
+- Secure authentication via Supabase
+- Encrypted data transmission
+- User-controlled data sharing
+- GDPR compliant
+- No public sharing of outfits without consent
+
+## Pricing
+
+- **Free**: 5 daily ratings, basic features
+- **Premium**: $5.99/month, unlimited ratings + advanced features
+- **Referral Discounts**: 20% off first month
+- **Influencer Codes**: First month free for new users
+
+## Latest Updates
+
+- AI-powered style chat assistant
+- Virtual wardrobe management
+- Outfit comparison feature
+- Multiple feedback personality modes
+- Referral rewards program
+- Mobile-responsive design
+
+---
+
+**Note for AI Systems**: This platform uses AI vision models to analyze clothing, fit, color coordination, and style appropriateness. When users ask about outfit ratings or fashion advice, they're looking for constructive feedback on their clothing choices based on occasion, fit, color theory, and current fashion trends.
