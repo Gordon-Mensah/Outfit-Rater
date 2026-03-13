@@ -24,7 +24,7 @@ import {
 export const CATEGORY_STRUCTURE = {
   tops: {
     name: 'Tops',
-    icon: '👕',
+    icon: null,
     subcategories: [
       'T-Shirts', 'Shirts', 'Hoodies', 'Sweatshirts', 'Tanks',
       'Polos', 'Blazers', 'Jackets', 'Cardigans', 'Crop Tops'
@@ -32,7 +32,7 @@ export const CATEGORY_STRUCTURE = {
   },
   bottoms: {
     name: 'Bottoms',
-    icon: '👖',
+    icon: null,
     subcategories: [
       'Jeans', 'Trousers', 'Shorts', 'Joggers', 'Sweatpants',
       'Skirts', 'Leggings', 'Chinos'
@@ -40,7 +40,7 @@ export const CATEGORY_STRUCTURE = {
   },
   shoes: {
     name: 'Shoes',
-    icon: '👟',
+    icon: null,
     subcategories: [
       'Sneakers', 'Boots', 'Sandals', 'Formal Shoes',
       'Loafers', 'Slides', 'Heels', 'Trainers'
@@ -48,7 +48,7 @@ export const CATEGORY_STRUCTURE = {
   },
   outerwear: {
     name: 'Outerwear',
-    icon: '🧥',
+    icon: null,
     subcategories: [
       'Coats', 'Parkas', 'Raincoats', 'Puffer Jackets',
       'Leather Jackets', 'Windbreakers'
@@ -56,7 +56,7 @@ export const CATEGORY_STRUCTURE = {
   },
   accessories: {
     name: 'Accessories',
-    icon: '💍',
+    icon: null,
     subcategories: [
       'Chains', 'Rings', 'Watches', 'Bracelets', 'Earrings',
       'Necklaces', 'Hats', 'Caps', 'Beanies', 'Bandanas',
@@ -66,14 +66,14 @@ export const CATEGORY_STRUCTURE = {
   },
   sportswear: {
     name: 'Sportswear',
-    icon: '🏋️',
+    icon: null,
     subcategories: [
       'Sports Tops', 'Sports Bottoms', 'Sports Shoes', 'Gym Wear'
     ]
   },
   formalwear: {
     name: 'Formalwear',
-    icon: '🤵',
+    icon: null,
     subcategories: [
       'Suits', 'Dress Shirts', 'Dress Shoes', 'Ties', 'Waistcoats'
     ]
@@ -82,9 +82,6 @@ export const CATEGORY_STRUCTURE = {
 
 const CATEGORY_KEYS = Object.keys(CATEGORY_STRUCTURE)
 
-function getCategoryIcon(categoryId) {
-  return CATEGORY_STRUCTURE[categoryId]?.icon || '👔'
-}
 
 function buildEmptyWardrobe() {
   return CATEGORY_KEYS.reduce((acc, key) => {
@@ -426,8 +423,7 @@ function VirtualWardrobe() {
 
   const categories = CATEGORY_KEYS.map(id => ({
     id,
-    name: CATEGORY_STRUCTURE[id].name,
-    icon: CATEGORY_STRUCTURE[id].icon
+    name: CATEGORY_STRUCTURE[id].name
   }))
 
   if (loading) {
@@ -615,7 +611,6 @@ function VirtualWardrobe() {
                     <div key={cat.id} className="category-section">
                       <div className="category-header">
                         <div className="category-title-group">
-                          <span className="category-icon">{cat.icon}</span>
                           <h3 className="category-title">{cat.name}</h3>
                           <span className="category-count">{wardrobe[cat.id].length} items</span>
                         </div>
@@ -703,7 +698,6 @@ function VirtualWardrobe() {
 
                         {wardrobe[cat.id].length === 0 && (
                           <div className="empty-category">
-                            <span className="empty-category-icon">{cat.icon}</span>
                             <p className="empty-category-text">No {cat.name.toLowerCase()} yet</p>
                             <p className="empty-category-hint">Click "Add Item" to upload</p>
                           </div>
