@@ -1,4 +1,4 @@
-// VirtualWardrobe.jsx - Complete with Style Memory System
+// VirtualWardrobe.jsx - Complete with Style Memory System + Full Category Structure
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from './AuthContext'
@@ -18,19 +18,90 @@ import {
   extractStyleAttributes 
 } from './styleMemory'
 
+// ─────────────────────────────────────────────
+// FULL CATEGORY + SUBCATEGORY STRUCTURE
+// ─────────────────────────────────────────────
+export const CATEGORY_STRUCTURE = {
+  tops: {
+    name: 'Tops',
+    icon: '👕',
+    subcategories: [
+      'T-Shirts', 'Shirts', 'Hoodies', 'Sweatshirts', 'Tanks',
+      'Polos', 'Blazers', 'Jackets', 'Cardigans', 'Crop Tops'
+    ]
+  },
+  bottoms: {
+    name: 'Bottoms',
+    icon: '👖',
+    subcategories: [
+      'Jeans', 'Trousers', 'Shorts', 'Joggers', 'Sweatpants',
+      'Skirts', 'Leggings', 'Chinos'
+    ]
+  },
+  shoes: {
+    name: 'Shoes',
+    icon: '👟',
+    subcategories: [
+      'Sneakers', 'Boots', 'Sandals', 'Formal Shoes',
+      'Loafers', 'Slides', 'Heels', 'Trainers'
+    ]
+  },
+  outerwear: {
+    name: 'Outerwear',
+    icon: '🧥',
+    subcategories: [
+      'Coats', 'Parkas', 'Raincoats', 'Puffer Jackets',
+      'Leather Jackets', 'Windbreakers'
+    ]
+  },
+  accessories: {
+    name: 'Accessories',
+    icon: '💍',
+    subcategories: [
+      'Chains', 'Rings', 'Watches', 'Bracelets', 'Earrings',
+      'Necklaces', 'Hats', 'Caps', 'Beanies', 'Bandanas',
+      'Handkerchiefs', 'Belts', 'Sunglasses', 'Bags', 'Wallets',
+      'Scarves', 'Ties', 'Socks'
+    ]
+  },
+  sportswear: {
+    name: 'Sportswear',
+    icon: '🏋️',
+    subcategories: [
+      'Sports Tops', 'Sports Bottoms', 'Sports Shoes', 'Gym Wear'
+    ]
+  },
+  formalwear: {
+    name: 'Formalwear',
+    icon: '🤵',
+    subcategories: [
+      'Suits', 'Dress Shirts', 'Dress Shoes', 'Ties', 'Waistcoats'
+    ]
+  }
+}
 
+const CATEGORY_KEYS = Object.keys(CATEGORY_STRUCTURE)
+
+function getCategoryIcon(categoryId) {
+  return CATEGORY_STRUCTURE[categoryId]?.icon || '👔'
+}
+
+function buildEmptyWardrobe() {
+  return CATEGORY_KEYS.reduce((acc, key) => {
+    acc[key] = []
+    return acc
+  }, {})
+}
+
+// ─────────────────────────────────────────────
+// COMPONENT
+// ─────────────────────────────────────────────
 function VirtualWardrobe() {
   const { user, isPremium } = useAuth()
   const navigate = useNavigate()
   
   const [activeTab, setActiveTab] = useState('closet')
-  const [wardrobe, setWardrobe] = useState({
-    tops: [],
-    bottoms: [],
-    shoes: [],
-    accessories: [],
-    outerwear: []
-  })
+  const [wardrobe, setWardrobe] = useState(buildEmptyWardrobe())
   
   // Style Memory State
   const [styleProfile, setStyleProfile] = useState(null)
@@ -47,6 +118,7 @@ function VirtualWardrobe() {
   const [itemName, setItemName] = useState('')
   const [itemColor, setItemColor] = useState('')
   const [itemBrand, setItemBrand] = useState('')
+  const [itemSubcategory, setItemSubcategory] = useState('')
 
   // Weather State
   const [weather, setWeather] = useState(null)
@@ -78,13 +150,7 @@ function VirtualWardrobe() {
       
       if (error) throw error
       
-      const organized = {
-        tops: [],
-        bottoms: [],
-        shoes: [],
-        accessories: [],
-        outerwear: []
-      }
+      const organized = buildEmptyWardrobe()
       
       data?.forEach(item => {
         if (organized[item.category]) {
@@ -117,16 +183,12 @@ function VirtualWardrobe() {
         setStyleProfile(data.style_profile)
         console.log('Style profile loaded, learning score:', data.style_profile.stats.learningScore)
       } else {
-        // Create new empty profile
         const newProfile = createEmptyStyleProfile()
         setStyleProfile(newProfile)
-        
-        // Save to database
         await supabase
           .from('profiles')
           .update({ style_profile: newProfile })
           .eq('user_id', user.id)
-        
         console.log('New style profile created')
       }
     } catch (err) {
@@ -134,16 +196,13 @@ function VirtualWardrobe() {
     }
   }
 
-  // Save style profile to database
   const saveStyleProfile = async (updatedProfile) => {
     if (!user) return
-    
     try {
       const { error } = await supabase
         .from('profiles')
         .update({ style_profile: updatedProfile })
         .eq('user_id', user.id)
-      
       if (error) throw error
       console.log('Style profile saved')
     } catch (err) {
@@ -155,25 +214,17 @@ function VirtualWardrobe() {
     try {
       const { weather } = await getUserWeatherTwoDays()
       setTwoDayWeather(weather)
-
-      const outfits = getTodayTomorrowOutfits(
-        wardrobe,
-        weather.today,
-        weather.tomorrow
-      )
-
+      const outfits = getTodayTomorrowOutfits(wardrobe, weather.today, weather.tomorrow)
       setTwoDayOutfits(outfits)
     } catch (err) {
       console.error("Two-day weather error:", err)
     }
   }
 
-  // ✅ FIXED: Replaced OpenWeatherMap with Open-Meteo (no API key needed)
   const requestLocationAndWeather = async () => {
     setLoadingWeather(true)
     
     if (!navigator.geolocation) {
-      console.log('Geolocation not supported')
       setLoadingWeather(false)
       return
     }
@@ -182,51 +233,25 @@ function VirtualWardrobe() {
       const position = await new Promise((resolve, reject) => {
         navigator.geolocation.getCurrentPosition(resolve, reject)
       })
-
       setLocationPermission('granted')
       
       const { latitude, longitude } = position.coords
-      
-      // ✅ Use Open-Meteo via weatherIntegration.js (no API key, no CSP issues)
       const data = await fetchWeather(latitude, longitude)
       
       if (data) {
         const weatherIcons = {
-          'Clear': '☀️',
-          'Mainly Clear': '🌤️',
-          'Partly Cloudy': '⛅',
-          'Cloudy': '☁️',
-          'Fog': '🌫️',
-          'Light Drizzle': '🌦️',
-          'Drizzle': '🌦️',
-          'Heavy Drizzle': '🌦️',
-          'Light Rain': '🌧️',
-          'Rain': '🌧️',
-          'Heavy Rain': '🌧️',
-          'Snow': '❄️',
-          'Thunderstorm': '⛈️'
+          'Clear': '☀️', 'Mainly Clear': '🌤️', 'Partly Cloudy': '⛅',
+          'Cloudy': '☁️', 'Fog': '🌫️', 'Light Drizzle': '🌦️',
+          'Drizzle': '🌦️', 'Heavy Drizzle': '🌦️', 'Light Rain': '🌧️',
+          'Rain': '🌧️', 'Heavy Rain': '🌧️', 'Snow': '❄️', 'Thunderstorm': '⛈️'
         }
-
-        setWeather({
-          temp: data.temp,
-          condition: data.condition,
-          icon: weatherIcons[data.condition] || '🌤️'
-        })
+        setWeather({ temp: data.temp, condition: data.condition, icon: weatherIcons[data.condition] || '🌤️' })
       } else {
-        setWeather({
-          temp: 22,
-          condition: 'Clear',
-          icon: '☀️'
-        })
+        setWeather({ temp: 22, condition: 'Clear', icon: '☀️' })
       }
     } catch (error) {
       setLocationPermission('denied')
-      console.log('Location permission denied or error:', error)
-      setWeather({
-        temp: 22,
-        condition: 'Clear',
-        icon: '☀️'
-      })
+      setWeather({ temp: 22, condition: 'Clear', icon: '☀️' })
     } finally {
       setLoadingWeather(false)
     }
@@ -238,9 +263,7 @@ function VirtualWardrobe() {
     input.accept = 'image/*'
     input.onchange = (e) => {
       const file = e.target.files?.[0]
-      if (file) {
-        handleImageUpload({ target: { files: [file] } }, 'tops')
-      }
+      if (file) handleImageUpload({ target: { files: [file] } }, 'tops')
     }
     input.click()
   }
@@ -255,14 +278,13 @@ function VirtualWardrobe() {
       return
     }
 
-    // Open modal
     setUploadingCategory(category)
     setSelectedFile(file)
     setItemName(file.name.replace(/\.[^/.]+$/, ''))
     setItemColor('')
     setItemBrand('')
+    setItemSubcategory(CATEGORY_STRUCTURE[category]?.subcategories[0] || '')
     
-    // Create preview
     const reader = new FileReader()
     reader.onloadend = () => setPreviewUrl(reader.result)
     reader.readAsDataURL(file)
@@ -290,6 +312,7 @@ function VirtualWardrobe() {
         .insert({
           user_id: user.id,
           category: uploadingCategory,
+          subcategory: itemSubcategory || null,
           image_data: base64,
           name: itemName.trim(),
           color: itemColor.trim() || 'unspecified',
@@ -307,28 +330,20 @@ function VirtualWardrobe() {
         [uploadingCategory]: [...prev[uploadingCategory], data]
       }))
 
-      // Track upload action in Style Memory
       if (styleProfile) {
-        const updatedProfile = trackStyleAction(
-          styleProfile,
-          'UPLOAD',
-          data,
-          {}
-        )
-        
+        const updatedProfile = trackStyleAction(styleProfile, 'UPLOAD', data, {})
         setStyleProfile(updatedProfile)
         await saveStyleProfile(updatedProfile)
-        
         console.log('Tracked upload, learning score:', updatedProfile.stats.learningScore)
       }
 
-      // Close modal
       setShowUploadModal(false)
       setSelectedFile(null)
       setPreviewUrl(null)
       setItemName('')
       setItemColor('')
       setItemBrand('')
+      setItemSubcategory('')
       
       alert('Item added to your wardrobe!')
     } catch (err) {
@@ -344,22 +359,12 @@ function VirtualWardrobe() {
     if (!confirm('Remove this item from your wardrobe?')) return
 
     try {
-      // Track delete action BEFORE deleting (so we have item data)
       if (styleProfile) {
         const itemToDelete = wardrobe[category].find(item => item.id === itemId)
-        
         if (itemToDelete) {
-          const updatedProfile = trackStyleAction(
-            styleProfile,
-            'DELETE',
-            itemToDelete,
-            {}
-          )
-          
+          const updatedProfile = trackStyleAction(styleProfile, 'DELETE', itemToDelete, {})
           setStyleProfile(updatedProfile)
           await saveStyleProfile(updatedProfile)
-          
-          console.log('Tracked delete, user avoids:', itemToDelete.color)
         }
       }
 
@@ -383,7 +388,6 @@ function VirtualWardrobe() {
 
   const generateOutfits = async () => {
     const totalItems = Object.values(wardrobe).flat().length
-    
     if (totalItems < 3) {
       alert('Add at least 3 items to your wardrobe to generate outfits!')
       return
@@ -418,28 +422,13 @@ function VirtualWardrobe() {
     }
   }
 
-  const getTotalItems = () => {
-    return Object.values(wardrobe).flat().length
-  }
+  const getTotalItems = () => Object.values(wardrobe).flat().length
 
-  const getCategoryIcon = (category) => {
-    const icons = {
-      tops: '👕',
-      bottoms: '👖',
-      shoes: '👟',
-      accessories: '🎒',
-      outerwear: '🧥'
-    }
-    return icons[category] || '👔'
-  }
-
-  const categories = [
-    { id: 'tops', name: 'Tops', icon: getCategoryIcon('tops') },
-    { id: 'bottoms', name: 'Bottoms', icon: getCategoryIcon('bottoms') },
-    { id: 'shoes', name: 'Shoes', icon: getCategoryIcon('shoes') },
-    { id: 'outerwear', name: 'Outerwear', icon: getCategoryIcon('outerwear') },
-    { id: 'accessories', name: 'Accessories', icon: getCategoryIcon('accessories') }
-  ]
+  const categories = CATEGORY_KEYS.map(id => ({
+    id,
+    name: CATEGORY_STRUCTURE[id].name,
+    icon: CATEGORY_STRUCTURE[id].icon
+  }))
 
   if (loading) {
     return (
@@ -480,10 +469,7 @@ function VirtualWardrobe() {
           
           <div className="nav-actions">
             {!isPremium && (
-              <SimpleUpgradeButton 
-                text="Upgrade"
-                className="nav-upgrade-btn"
-              />
+              <SimpleUpgradeButton text="Upgrade" className="nav-upgrade-btn" />
             )}
             <HamburgerMenu />
           </div>
@@ -660,11 +646,39 @@ function VirtualWardrobe() {
                         </label>
                       </div>
 
+                      {/* Subcategory breakdown (only shown if items exist) */}
+                      {wardrobe[cat.id].length > 0 && (
+                        <div className="subcategory-tabs">
+                          {CATEGORY_STRUCTURE[cat.id].subcategories
+                            .filter(sub => wardrobe[cat.id].some(item => item.subcategory === sub))
+                            .map(sub => (
+                              <span key={sub} className="subcategory-chip">
+                                {sub}
+                                <span className="subcategory-chip-count">
+                                  {wardrobe[cat.id].filter(item => item.subcategory === sub).length}
+                                </span>
+                              </span>
+                            ))
+                          }
+                          {wardrobe[cat.id].some(item => !item.subcategory) && (
+                            <span className="subcategory-chip subcategory-chip--other">
+                              Other
+                              <span className="subcategory-chip-count">
+                                {wardrobe[cat.id].filter(item => !item.subcategory).length}
+                              </span>
+                            </span>
+                          )}
+                        </div>
+                      )}
+
                       <div className="items-grid">
                         {wardrobe[cat.id].map(item => (
                           <div key={item.id} className="item-card">
                             <div className="item-image-container">
                               <img src={item.image_data} alt={item.name} className="item-image" />
+                              {item.subcategory && (
+                                <span className="item-subcategory-badge">{item.subcategory}</span>
+                              )}
                               <button
                                 className="delete-btn"
                                 onClick={() => deleteItem(item.id, cat.id)}
@@ -700,10 +714,7 @@ function VirtualWardrobe() {
 
                   {getTotalItems() >= 3 && (
                     <div className="generate-section">
-                      <button
-                        className="btn-generate"
-                        onClick={generateOutfits}
-                      >
+                      <button className="btn-generate" onClick={generateOutfits}>
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                           <circle cx="12" cy="12" r="3" strokeWidth="2"/>
                           <path d="M12 1v6m0 6v6M4.22 4.22l4.24 4.24m5.08 5.08l4.24 4.24M1 12h6m6 0h6M4.22 19.78l4.24-4.24m5.08-5.08l4.24-4.24" strokeWidth="2" strokeLinecap="round"/>
@@ -730,10 +741,7 @@ function VirtualWardrobe() {
                   </div>
                   <h3>No Outfits Yet</h3>
                   <p>Generate AI-powered outfit combinations from your wardrobe</p>
-                  <button
-                    className="btn-primary"
-                    onClick={() => setActiveTab('closet')}
-                  >
+                  <button className="btn-primary" onClick={() => setActiveTab('closet')}>
                     Go to My Closet
                   </button>
                 </div>
@@ -764,31 +772,41 @@ function VirtualWardrobe() {
                           {outfit.top && (
                             <div className="outfit-item">
                               <img src={outfit.top.image_data} alt="Top" />
-                              <span className="outfit-item-label">Top</span>
+                              <span className="outfit-item-label">
+                                {outfit.top.subcategory || 'Top'}
+                              </span>
                             </div>
                           )}
                           {outfit.bottom && (
                             <div className="outfit-item">
                               <img src={outfit.bottom.image_data} alt="Bottom" />
-                              <span className="outfit-item-label">Bottom</span>
+                              <span className="outfit-item-label">
+                                {outfit.bottom.subcategory || 'Bottom'}
+                              </span>
                             </div>
                           )}
                           {outfit.shoes && (
                             <div className="outfit-item">
                               <img src={outfit.shoes.image_data} alt="Shoes" />
-                              <span className="outfit-item-label">Shoes</span>
+                              <span className="outfit-item-label">
+                                {outfit.shoes.subcategory || 'Shoes'}
+                              </span>
                             </div>
                           )}
                           {outfit.outerwear && (
                             <div className="outfit-item">
                               <img src={outfit.outerwear.image_data} alt="Outerwear" />
-                              <span className="outfit-item-label">Outerwear</span>
+                              <span className="outfit-item-label">
+                                {outfit.outerwear.subcategory || 'Outerwear'}
+                              </span>
                             </div>
                           )}
                           {outfit.accessory && (
                             <div className="outfit-item">
                               <img src={outfit.accessory.image_data} alt="Accessory" />
-                              <span className="outfit-item-label">Accessory</span>
+                              <span className="outfit-item-label">
+                                {outfit.accessory.subcategory || 'Accessory'}
+                              </span>
                             </div>
                           )}
                         </div>
@@ -814,12 +832,9 @@ function VirtualWardrobe() {
         <div className="modal-overlay" onClick={() => setShowUploadModal(false)}>
           <div className="upload-modal" onClick={(e) => e.stopPropagation()}>
             <div className="upload-modal-header">
-              <h2>Add {uploadingCategory?.charAt(0).toUpperCase() + uploadingCategory?.slice(1)}</h2>
-              <button 
-                className="modal-close-btn"
-                onClick={() => setShowUploadModal(false)}
-              >
-                X
+              <h2>Add {CATEGORY_STRUCTURE[uploadingCategory]?.name}</h2>
+              <button className="modal-close-btn" onClick={() => setShowUploadModal(false)}>
+                ✕
               </button>
             </div>
 
@@ -831,6 +846,20 @@ function VirtualWardrobe() {
               )}
 
               <div className="upload-form">
+                {/* Subcategory selector */}
+                <div className="form-group">
+                  <label>Type *</label>
+                  <select
+                    value={itemSubcategory}
+                    onChange={(e) => setItemSubcategory(e.target.value)}
+                    className="form-input form-select"
+                  >
+                    {CATEGORY_STRUCTURE[uploadingCategory]?.subcategories.map(sub => (
+                      <option key={sub} value={sub}>{sub}</option>
+                    ))}
+                  </select>
+                </div>
+
                 <div className="form-group">
                   <label>Item Name *</label>
                   <input
@@ -871,14 +900,14 @@ function VirtualWardrobe() {
                 <button 
                   className="btn-secondary"
                   onClick={() => setShowUploadModal(false)}
-                  disabled={uploadingFile}
+                  disabled={!!uploadingFile}
                 >
                   Cancel
                 </button>
                 <button 
                   className="btn-primary"
                   onClick={confirmUpload}
-                  disabled={!itemName.trim() || uploadingFile}
+                  disabled={!itemName.trim() || !!uploadingFile}
                 >
                   {uploadingFile ? (
                     <>
