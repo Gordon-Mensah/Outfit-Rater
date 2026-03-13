@@ -1,5 +1,4 @@
-// SignUp.jsx - COMPLETE UPDATED VERSION
-// Fixed: No auto-redirect, better UX
+// SignUp.jsx - FIXED: Proper email confirmation flow
 
 import { useState } from 'react'
 import { useAuth } from './AuthContext'
@@ -26,26 +25,17 @@ function SignUp() {
       setLoading(true)
       setError('')
 
+      // ✅ Google signup works differently - no email confirmation needed
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
-        options: { redirectTo: `${window.location.origin}/rate` }
+        options: { 
+          redirectTo: `${window.location.origin}/rate`,
+          // Skip email verification for Google OAuth
+          skipBrowserRedirect: false
+        }
       })
 
       if (error) throw error
-
-      // Wait for Supabase to finish login
-      setTimeout(async () => {
-        const { data: userData } = await supabase.auth.getUser()
-
-        if (userData?.user?.email) {
-          // Send welcome email
-          fetch('/api/email/welcome', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: userData.user.email }),
-          })
-        }
-      }, 1500)
 
     } catch (err) {
       setError(err.message)
@@ -79,7 +69,8 @@ function SignUp() {
     setLoading(true)
 
     try {
-      const { error } = await signUp(email, password)
+      // ✅ Sign up with email confirmation required
+      const { data, error } = await signUp(email, password)
 
       if (error) {
         if (error.message.includes('already registered')) {
@@ -89,66 +80,44 @@ function SignUp() {
         } else {
           setError(error.message)
         }
+        setLoading(false)
         return
       }
 
+      // ✅ SUCCESS - Show message and DON'T try to log in
       setSuccess(true)
-      
-      // ✅ REMOVED AUTO-REDIRECT - Users click "Sign in" when ready
-      // setTimeout(() => navigate('/login'), 2000) ← DELETED
+      setLoading(false)
 
       // Send welcome email
-      fetch('/api/email/welcome', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
-      })
+      try {
+        await fetch('/api/email/welcome', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email }),
+        })
+      } catch (err) {
+        console.error('Welcome email error:', err)
+      }
 
-      // Process referral or promo
+      // ✅ Store referral info for AFTER email confirmation
       try {
         const pendingRef = localStorage.getItem("pendingReferral")
         const pendingPromo = localStorage.getItem("pendingPromo")
 
-        if (pendingPromo) {
-          const applied = JSON.parse(pendingPromo)
-          await supabase.from("referral_transactions").insert({
-            referee_id: (await supabase.auth.getUser()).data.user.id,
-            promo_code: applied.type === "influencer" ? applied.code : null,
-            referral_code: applied.type === "user" ? applied.code : null,
-            referrer_id: applied.referrerId,
-            transaction_type: applied.type,
-            referee_discount: applied.discount === "free" ? 4.99 : 0.998,
-            status: "pending"
-          })
-        }
-
-        if (pendingRef) {
-          const { data: link } = await supabase
-            .from("referral_links")
-            .select("user_id")
-            .eq("referral_code", pendingRef)
-            .single()
-
-          if (link) {
-            await supabase.from("referral_transactions").insert({
-              referee_id: (await supabase.auth.getUser()).data.user.id,
-              referral_code: pendingRef,
-              referrer_id: link.user_id,
-              transaction_type: "user",
-              referee_discount: 0.998,
-              status: "pending"
-            })
+        // Store user ID for later referral processing
+        if (data?.user?.id) {
+          if (pendingPromo || pendingRef) {
+            localStorage.setItem('pendingUserId', data.user.id)
+            // Keep referral data until email is confirmed
           }
         }
-
-        localStorage.removeItem("pendingReferral")
-        localStorage.removeItem("pendingPromo")
       } catch (err) {
-        console.error("Referral processing error:", err)
+        console.error("Referral storage error:", err)
       }
+
     } catch (err) {
+      console.error('Signup error:', err)
       setError('Something went wrong. Please try again.')
-    } finally {
       setLoading(false)
     }
   }
@@ -164,7 +133,6 @@ function SignUp() {
 
   return (
     <div className="auth-page">
-      {/* Animated Background */}
       <div className="auth-bg">
         <div className="gradient-orb orb-1"></div>
         <div className="gradient-orb orb-2"></div>
@@ -172,9 +140,7 @@ function SignUp() {
         <div className="grid-overlay"></div>
       </div>
 
-      {/* Content */}
       <div className="auth-content">
-        {/* Logo */}
         <div className="auth-logo">
           <div className="logo-circle">
             <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -186,28 +152,34 @@ function SignUp() {
           <span className="logo-text">AI Outfit Rater</span>
         </div>
 
-        {/* Auth Card */}
         <div className="auth-card">
           <div className="auth-header">
             <h1 className="auth-title">Create Account</h1>
             <p className="auth-subtitle">Start rating your outfits with AI</p>
           </div>
 
-          {/* Success Message - UPDATED */}
+          {/* Success Message - IMPROVED */}
           {success && (
             <div className="success-message">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                 <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" strokeWidth="2" strokeLinecap="round"/>
                 <polyline points="22 4 12 14.01 9 11.01" strokeWidth="2" strokeLinecap="round"/>
               </svg>
               <div>
-                <strong>Account created successfully!</strong>
-                <p>Check your email to confirm your account, then click "Sign in" below to continue.</p>
+                <strong>✅ Account created!</strong>
+                <p style={{ marginTop: '8px', lineHeight: '1.6' }}>
+                  📧 We sent a confirmation email to <strong>{email}</strong>
+                  <br/>
+                  <br/>
+                  Please check your inbox and click the confirmation link.
+                  <br/>
+                  <br/>
+                  ⚠️ <strong>Important:</strong> You must confirm your email before you can sign in.
+                </p>
               </div>
             </div>
           )}
 
-          {/* Google Button */}
           <button 
             onClick={handleGoogleSignUp}
             className="auth-google-btn"
@@ -223,16 +195,13 @@ function SignUp() {
             <span>Continue with Google</span>
           </button>
 
-          {/* Divider */}
           <div className="auth-divider">
             <span className="divider-line"></span>
             <span className="divider-text">or</span>
             <span className="divider-line"></span>
           </div>
 
-          {/* Form */}
           <form onSubmit={handleSignUp} className="auth-form">
-            {/* Email */}
             <div className="form-group">
               <label className="form-label">Email</label>
               <input
@@ -246,7 +215,6 @@ function SignUp() {
               />
             </div>
 
-            {/* Password */}
             <div className="form-group">
               <label className="form-label">Password</label>
               <div className="input-with-icon">
@@ -280,7 +248,6 @@ function SignUp() {
               </div>
             </div>
 
-            {/* Confirm Password */}
             <div className="form-group">
               <label className="form-label">Confirm Password</label>
               <div className="input-with-icon">
@@ -314,7 +281,6 @@ function SignUp() {
               </div>
             </div>
 
-            {/* Password Strength */}
             {passwordStrength && (
               <div className="password-strength">
                 <div className="strength-bar">
@@ -328,7 +294,6 @@ function SignUp() {
               </div>
             )}
 
-            {/* Error */}
             {error && (
               <div className="error-message">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -340,10 +305,8 @@ function SignUp() {
               </div>
             )}
 
-            {/* Promo Code */}
             <PromoCodeInput onCodeApplied={setAppliedCode} />
 
-            {/* Submit */}
             <button 
               type="submit" 
               className="auth-submit-btn"
@@ -360,7 +323,7 @@ function SignUp() {
                     <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" strokeWidth="2" strokeLinecap="round"/>
                     <polyline points="22 4 12 14.01 9 11.01" strokeWidth="2" strokeLinecap="round"/>
                   </svg>
-                  Account created!
+                  Email sent!
                 </>
               ) : (
                 <>
@@ -372,32 +335,25 @@ function SignUp() {
               )}
             </button>
 
-            {/* Terms */}
             <p className="terms-text">
               By signing up, you agree to our Terms of Service and Privacy Policy
             </p>
           </form>
 
-          {/* Footer - UPDATED */}
           <div className="auth-footer">
             <p className="footer-text">
               {success ? (
-                /* After successful signup */
                 <>
-                  Email confirmed?{' '}
+                  Confirmed your email?{' '}
                   <button 
                     onClick={() => navigate('/login')}
                     className="link-btn"
-                    style={{ 
-                      fontWeight: '700',
-                      textDecoration: 'underline'
-                    }}
+                    style={{ fontWeight: '700', textDecoration: 'underline' }}
                   >
                     Sign in now →
                   </button>
                 </>
               ) : (
-                /* Before signup */
                 <>
                   Already have an account?{' '}
                   <button 
@@ -413,7 +369,6 @@ function SignUp() {
           </div>
         </div>
 
-        {/* Back to home */}
         <button 
           onClick={() => navigate('/')}
           className="back-home-btn"

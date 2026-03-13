@@ -290,6 +290,66 @@ export function AuthProvider({ children }) {
     }
   }
 
+  // ✅ NEW: Process referrals after email confirmation
+  const processPostConfirmationReferrals = async (userId) => {
+    try {
+      const pendingRef = localStorage.getItem("pendingReferral")
+      const pendingPromo = localStorage.getItem("pendingPromo")
+      const storedUserId = localStorage.getItem("pendingUserId")
+
+      // Only process if user IDs match
+      if (storedUserId && storedUserId !== userId) {
+        console.log('⚠️ User ID mismatch, skipping referral processing')
+        return
+      }
+
+      if (!pendingRef && !pendingPromo) return
+
+      console.log('🎁 Processing post-confirmation referrals...')
+
+      if (pendingPromo) {
+        const applied = JSON.parse(pendingPromo)
+        await supabase.from("referral_transactions").insert({
+          referee_id: userId,
+          promo_code: applied.type === "influencer" ? applied.code : null,
+          referral_code: applied.type === "user" ? applied.code : null,
+          referrer_id: applied.referrerId,
+          transaction_type: applied.type,
+          referee_discount: applied.discount === "free" ? 4.99 : 0.998,
+          status: "pending"
+        })
+        console.log('✅ Promo code referral processed')
+      }
+
+      if (pendingRef) {
+        const { data: link } = await supabase
+          .from("referral_links")
+          .select("user_id")
+          .eq("referral_code", pendingRef)
+          .single()
+
+        if (link) {
+          await supabase.from("referral_transactions").insert({
+            referee_id: userId,
+            referral_code: pendingRef,
+            referrer_id: link.user_id,
+            transaction_type: "user",
+            referee_discount: 0.998,
+            status: "pending"
+          })
+          console.log('✅ User referral processed')
+        }
+      }
+
+      // Clean up ALL referral-related localStorage
+      localStorage.removeItem("pendingReferral")
+      localStorage.removeItem("pendingPromo")
+      localStorage.removeItem("pendingUserId")
+    } catch (err) {
+      console.error("❌ Post-confirmation referral error:", err)
+    }
+  }
+
   const handlePendingReferral = async (userId) => {
     try {
       const pendingRef = localStorage.getItem("pendingReferral")
@@ -533,11 +593,15 @@ export function AuthProvider({ children }) {
         email,
         password,
       })
-
+  
       if (error) throw error
       
       if (data.user) {
         setUser(data.user)
+        
+        // ✅ Process any pending referrals after successful login
+        await processPostConfirmationReferrals(data.user.id)
+        
         await checkSubscription(data.user.id)
         await checkDailyRatings(data.user.id)
       }
