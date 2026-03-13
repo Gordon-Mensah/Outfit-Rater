@@ -117,6 +117,13 @@ function VirtualWardrobe() {
   const [itemBrand, setItemBrand] = useState('')
   const [itemSubcategory, setItemSubcategory] = useState('')
 
+  // Move Item Modal State
+  const [showMoveModal, setShowMoveModal] = useState(false)
+  const [movingItem, setMovingItem] = useState(null)
+  const [moveTargetCategory, setMoveTargetCategory] = useState('')
+  const [moveTargetSubcategory, setMoveTargetSubcategory] = useState('')
+  const [movingSaving, setMovingSaving] = useState(false)
+
   // Weather State
   const [weather, setWeather] = useState(null)
   const [locationPermission, setLocationPermission] = useState(null)
@@ -380,6 +387,51 @@ function VirtualWardrobe() {
     } catch (err) {
       console.error('Error deleting:', err)
       alert('Failed to delete item')
+    }
+  }
+
+  const openMoveModal = (item, currentCategory) => {
+    setMovingItem({ ...item, currentCategory })
+    setMoveTargetCategory(currentCategory)
+    setMoveTargetSubcategory(item.subcategory || CATEGORY_STRUCTURE[currentCategory]?.subcategories[0] || '')
+    setShowMoveModal(true)
+  }
+
+  const confirmMove = async () => {
+    if (!movingItem) return
+    setMovingSaving(true)
+
+    try {
+      const { error } = await supabase
+        .from('wardrobe_items')
+        .update({
+          category: moveTargetCategory,
+          subcategory: moveTargetSubcategory || null
+        })
+        .eq('id', movingItem.id)
+        .eq('user_id', user.id)
+
+      if (error) throw error
+
+      // Update local state: remove from old category, add to new
+      setWardrobe(prev => {
+        const updated = { ...prev }
+        // Remove from old category
+        updated[movingItem.currentCategory] = updated[movingItem.currentCategory].filter(i => i.id !== movingItem.id)
+        // Add to new category with updated fields
+        const updatedItem = { ...movingItem, category: moveTargetCategory, subcategory: moveTargetSubcategory || null }
+        delete updatedItem.currentCategory
+        updated[moveTargetCategory] = [updatedItem, ...updated[moveTargetCategory]]
+        return updated
+      })
+
+      setShowMoveModal(false)
+      setMovingItem(null)
+    } catch (err) {
+      console.error('Error moving item:', err)
+      alert('Failed to move item. Please try again.')
+    } finally {
+      setMovingSaving(false)
     }
   }
 
@@ -674,15 +726,26 @@ function VirtualWardrobe() {
                               {item.subcategory && (
                                 <span className="item-subcategory-badge">{item.subcategory}</span>
                               )}
-                              <button
-                                className="delete-btn"
-                                onClick={() => deleteItem(item.id, cat.id)}
-                                title="Remove item"
-                              >
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                  <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" strokeWidth="2" strokeLinecap="round"/>
-                                </svg>
-                              </button>
+                              <div className="item-card-actions">
+                                <button
+                                  className="item-action-btn item-action-btn--move"
+                                  onClick={() => openMoveModal(item, cat.id)}
+                                  title="Move to another category"
+                                >
+                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                    <path d="M5 12h14M12 5l7 7-7 7" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                  </svg>
+                                </button>
+                                <button
+                                  className="item-action-btn item-action-btn--delete"
+                                  onClick={() => deleteItem(item.id, cat.id)}
+                                  title="Remove item"
+                                >
+                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                    <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" strokeWidth="2" strokeLinecap="round"/>
+                                  </svg>
+                                </button>
+                              </div>
                             </div>
                             <div className="item-details">
                               <p className="item-name">{item.name}</p>
@@ -910,6 +973,103 @@ function VirtualWardrobe() {
                     </>
                   ) : (
                     'Add to Wardrobe'
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* MOVE ITEM MODAL */}
+      {showMoveModal && movingItem && (
+        <div className="modal-overlay" onClick={() => setShowMoveModal(false)}>
+          <div className="upload-modal move-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="upload-modal-header">
+              <div>
+                <h2>Move Item</h2>
+                <p className="move-modal-subtitle">{movingItem.name}</p>
+              </div>
+              <button className="modal-close-btn" onClick={() => setShowMoveModal(false)}>
+                ✕
+              </button>
+            </div>
+
+            <div className="upload-modal-content">
+              {/* Preview */}
+              <div className="move-preview">
+                <img src={movingItem.image_data} alt={movingItem.name} className="move-preview-image" />
+                <div className="move-preview-info">
+                  <span className="move-preview-name">{movingItem.name}</span>
+                  <span className="move-preview-current">
+                    Currently in: <strong>{CATEGORY_STRUCTURE[movingItem.currentCategory]?.name}</strong>
+                    {movingItem.subcategory && <> → <strong>{movingItem.subcategory}</strong></>}
+                  </span>
+                </div>
+              </div>
+
+              <div className="move-arrow-divider">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path d="M12 5v14M5 12l7 7 7-7" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                <span>Move to</span>
+              </div>
+
+              <div className="upload-form">
+                <div className="form-group">
+                  <label>Category</label>
+                  <select
+                    value={moveTargetCategory}
+                    onChange={(e) => {
+                      setMoveTargetCategory(e.target.value)
+                      setMoveTargetSubcategory(CATEGORY_STRUCTURE[e.target.value]?.subcategories[0] || '')
+                    }}
+                    className="form-input form-select"
+                  >
+                    {CATEGORY_KEYS.map(key => (
+                      <option key={key} value={key}>{CATEGORY_STRUCTURE[key].name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label>Subcategory</label>
+                  <select
+                    value={moveTargetSubcategory}
+                    onChange={(e) => setMoveTargetSubcategory(e.target.value)}
+                    className="form-input form-select"
+                  >
+                    {CATEGORY_STRUCTURE[moveTargetCategory]?.subcategories.map(sub => (
+                      <option key={sub} value={sub}>{sub}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="upload-modal-actions">
+                <button
+                  className="btn-secondary"
+                  onClick={() => setShowMoveModal(false)}
+                  disabled={movingSaving}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="btn-primary"
+                  onClick={confirmMove}
+                  disabled={movingSaving}
+                >
+                  {movingSaving ? (
+                    <>
+                      <div className="button-spinner"></div>
+                      Moving...
+                    </>
+                  ) : (
+                    <>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M5 12h14M12 5l7 7-7 7" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                      Move Item
+                    </>
                   )}
                 </button>
               </div>
