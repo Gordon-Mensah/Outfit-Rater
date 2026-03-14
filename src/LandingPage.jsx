@@ -46,6 +46,12 @@ function LandingPage() {
             </button>
             <button 
               className="nav-cta"
+              onClick={() => navigate('/blog')}
+            >
+              Blog
+            </button>
+            <button 
+              className="nav-cta"
               onClick={() => navigate('/signup')}
             >
               Get Started
