@@ -463,3 +463,7 @@ app.listen(PORT, () => {
   console.log(`🔔 Webhook endpoint: /api/stripe-webhook`);
   console.log(`🏓 Ping endpoint: /api/ping`);
 });
+
+// Open server.js in your editor and add a comment anywhere, e.g.:
+// CSP updated - Google Maps fix
+// Then save and push:
