@@ -462,6 +462,7 @@ app.listen(PORT, () => {
   console.log(`🔗 API available at: http://localhost:${PORT}/api`);
   console.log(`🔔 Webhook endpoint: /api/stripe-webhook`);
   console.log(`🏓 Ping endpoint: /api/ping`);
+  
 });
 
 // Open server.js in your editor and add a comment anywhere, e.g.:
