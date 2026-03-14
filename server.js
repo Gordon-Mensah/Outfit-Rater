@@ -457,12 +457,12 @@ if (process.env.NODE_ENV === 'production') {
 
 // Start server
 app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`🚀 Server running on port ${PORT} - CSP v2`);
   console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🔗 API available at: http://localhost:${PORT}/api`);
   console.log(`🔔 Webhook endpoint: /api/stripe-webhook`);
   console.log(`🏓 Ping endpoint: /api/ping`);
-  
+
 });
 
 // Open server.js in your editor and add a comment anywhere, e.g.:
