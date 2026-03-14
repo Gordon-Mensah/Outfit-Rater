@@ -200,9 +200,9 @@ app.get('/api/ping', (req, res) => {
   });
 });
 
-// 🗺️ Geocoding proxy - bypasses CSP by proxying Google Maps requests server-side
+// 🗺️ Geocoding proxy - uses OpenStreetMap Nominatim (free, no API key needed)
 // The browser calls /api/geocode (same origin, always allowed),
-// and the server calls Google Maps — no CSP issues at all.
+// and the server calls Nominatim — no CSP issues and no billing required.
 app.get('/api/geocode', async (req, res) => {
   try {
     const { lat, lng } = req.query;
@@ -211,19 +211,33 @@ app.get('/api/geocode', async (req, res) => {
       return res.status(400).json({ error: 'Missing lat or lng query parameters' });
     }
 
-    const apiKey = process.env.GOOGLE_MAPS_API_KEY;
-    if (!apiKey) {
-      return res.status(500).json({ error: 'Google Maps API key not configured on server' });
-    }
-
     console.log(`🗺️ Geocoding request: ${lat}, ${lng}`);
 
-    const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&result_type=locality|administrative_area_level_1&key=${apiKey}`;
-    const response = await fetch(url);
+    const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`;
+    const response = await fetch(url, {
+      headers: { 'User-Agent': 'OutfitRater/1.0 (outfitrater.xyz)' }
+    });
     const data = await response.json();
 
-    console.log(`✅ Geocoding result: ${data.status}`);
-    res.json(data);
+    // Extract city from Nominatim response
+    const city = data.address?.city || data.address?.town || data.address?.village || data.address?.county;
+
+    if (!city) {
+      console.log(`⚠️ No city found in geocoding response`);
+      return res.json({ status: 'ZERO_RESULTS', results: [] });
+    }
+
+    console.log(`✅ Geocoding result: ${city}`);
+
+    // Format response to match Google Maps structure that StyleContext.jsx expects
+    res.json({
+      status: 'OK',
+      results: [{
+        address_components: [
+          { long_name: city, types: ['locality'] }
+        ]
+      }]
+    });
   } catch (error) {
     console.error('❌ Geocoding proxy error:', error);
     res.status(500).json({ error: 'Geocoding request failed', details: error.message });
@@ -492,9 +506,5 @@ app.listen(PORT, () => {
   console.log(`🔗 API available at: http://localhost:${PORT}/api`);
   console.log(`🔔 Webhook endpoint: /api/stripe-webhook`);
   console.log(`🏓 Ping endpoint: /api/ping`);
-  console.log(`🗺️ Geocoding proxy: /api/geocode`);
+  console.log(`🗺️ Geocoding proxy: /api/geocode (OpenStreetMap Nominatim - free)`);
 });
-
-// Open server.js in your editor and add a comment anywhere, e.g.:
-// CSP updated - Google Maps fix
-// Then save and push:
