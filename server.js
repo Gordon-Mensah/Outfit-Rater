@@ -170,26 +170,27 @@ app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
-// ✅ Content Security Policy - allows weather APIs and all required services
+// ✅ Content Security Policy - allows weather APIs, Google Maps, and all required services
 app.use((req, res, next) => {
   res.setHeader(
     'Content-Security-Policy',
     [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com",
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://maps.googleapis.com",
       "style-src 'self' 'unsafe-inline'",
-      "img-src 'self' data: blob: https:",
+      "img-src 'self' data: blob: https: https://maps.gstatic.com",
       "font-src 'self' data:",
-      "connect-src 'self' https://api.anthropic.com https://*.supabase.co wss://*.supabase.co https://js.stripe.com https://r.stripe.com https://api.stripe.com https://outfitrater.xyz https://*.outfitrater.xyz https://api.openweathermap.org https://api.open-meteo.com",
+      "connect-src 'self' https://api.anthropic.com https://*.supabase.co wss://*.supabase.co https://js.stripe.com https://r.stripe.com https://api.stripe.com https://outfitrater.xyz https://*.outfitrater.xyz https://api.openweathermap.org https://api.open-meteo.com https://maps.googleapis.com",
       "frame-src https://js.stripe.com https://hooks.stripe.com",
       "worker-src 'self' blob:"
     ].join('; ')
   );
   next();
 });
+
 // API Routes
 
-// ⭐ NEW: Ping endpoint to keep Render service alive
+// ⭐ Ping endpoint to keep Render service alive
 app.get('/api/ping', (req, res) => {
   console.log('🏓 Ping received at:', new Date().toISOString());
   res.json({
@@ -460,5 +461,5 @@ app.listen(PORT, () => {
   console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🔗 API available at: http://localhost:${PORT}/api`);
   console.log(`🔔 Webhook endpoint: /api/stripe-webhook`);
-  console.log(`🏓 Ping endpoint: /api/ping`); // ⭐ NEW
+  console.log(`🏓 Ping endpoint: /api/ping`);
 });
