@@ -21,7 +21,7 @@ function CompareResult() {
 
   // If no data, redirect back
   if (!ratings || !images) {
-    navigate('/')
+    navigate('/rate')
     return null
   }
 
@@ -83,7 +83,7 @@ function CompareResult() {
       <div className="compare-container">
         {/* Header */}
         <div className="result-header-section">
-          <button onClick={() => navigate('/')} className="back-button">
+          <button onClick={() => navigate('/rate')} className="back-button">
             ← Back to Home
           </button>
           <h1>Comparison Results</h1>
@@ -253,14 +253,14 @@ function CompareResult() {
           </button>
 
           <button 
-            onClick={() => navigate('/', { state: { mode: 'compare' } })} 
+            onClick={() => navigate('/rate', { state: { mode: 'compare' } })} 
             className="btn-action btn-compare-again"
           >
              Compare More Outfits
           </button>
 
           <button 
-            onClick={() => navigate('/', { state: { mode: 'single' } })} 
+            onClick={() => navigate('/rate', { state: { mode: 'single' } })} 
             className="btn-action btn-rate-single"
           >
             Rate Single Outfit

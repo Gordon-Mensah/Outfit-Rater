@@ -81,7 +81,7 @@ function SavedOutfits() {
       <div className="saved-container">
         {/* Header */}
         <div className="saved-header-section">
-          <button onClick={() => navigate('/')} className="back-button">
+          <button onClick={() => navigate('/rate')} className="back-button">
             ← Back to Dashboard
           </button>
           <div className="header">
@@ -136,7 +136,7 @@ function SavedOutfits() {
             <div className="empty-state">
               <h3>No saved outfits yet</h3>
               <p>Save your favorite outfit ratings to access them anytime!</p>
-              <button onClick={() => navigate('/')} className="btn-primary">
+              <button onClick={() => navigate('/rate')} className="btn-primary">
                 Rate an Outfit
               </button>
             </div>

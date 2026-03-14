@@ -21,7 +21,7 @@ function RateResult() {
       <div className="result-page">
         <div className="result-container">
           <p style={{ color: 'white', textAlign: 'center' }}>No results to display</p>
-          <button onClick={() => navigate('/')} className="btn-secondary-action">
+          <button onClick={() => navigate('/rate')} className="btn-secondary-action">
             Go Back
           </button>
         </div>
@@ -121,7 +121,7 @@ function RateResult() {
       <div className="result-container">
         {/* Header */}
         <div className="result-header-section">
-          <button onClick={() => navigate('/')} className="back-button">
+          <button onClick={() => navigate('/rate')} className="back-button">
             ← Back to Dashboard
           </button>
           <div className="header">
@@ -188,7 +188,7 @@ function RateResult() {
               📤 Share Result
             </button>
             <button 
-              onClick={() => navigate('/')}
+              onClick={() => navigate('/rate')}
               className="btn-action btn-reset"
             >
               ➕ Rate Another

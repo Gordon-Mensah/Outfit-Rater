@@ -31,7 +31,7 @@ function FashionChatPage() {
   useEffect(() => {
     if (!isPremium) {
       alert(' This is a premium feature. Please upgrade to access AI chat.')
-      navigate('/')
+      navigate('/rate')
     }
   }, [isPremium, navigate])
 

@@ -30,7 +30,7 @@ function Blog() {
       <div className="blog-content">
         {/* Header */}
         <header className="blog-header">
-          <button onClick={() => navigate('/')} className="back-btn">
+          <button onClick={() => navigate('/rate')} className="back-btn">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <path d="M19 12H5M12 19l-7-7 7-7" strokeWidth="2" strokeLinecap="round"/>
             </svg>
