@@ -105,8 +105,8 @@ function HamburgerMenu() {
         {/* Menu Items */}
         <nav className="menu-nav">
           <button 
-            className={`menu-item ${isActive('/') || isActive('/rate') ? 'active' : ''}`}
-            onClick={() => navigateAndClose('/')}
+            className={`menu-item ${isActive('/rate') || isActive('/rate') ? 'active' : ''}`}
+            onClick={() => navigateAndClose('/rate')}
           >
             <span className="menu-item-text">Dashboard</span>
             <span className="menu-item-arrow">›</span>
