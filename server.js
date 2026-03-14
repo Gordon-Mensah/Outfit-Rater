@@ -200,6 +200,36 @@ app.get('/api/ping', (req, res) => {
   });
 });
 
+// 🗺️ Geocoding proxy - bypasses CSP by proxying Google Maps requests server-side
+// The browser calls /api/geocode (same origin, always allowed),
+// and the server calls Google Maps — no CSP issues at all.
+app.get('/api/geocode', async (req, res) => {
+  try {
+    const { lat, lng } = req.query;
+
+    if (!lat || !lng) {
+      return res.status(400).json({ error: 'Missing lat or lng query parameters' });
+    }
+
+    const apiKey = process.env.GOOGLE_MAPS_API_KEY;
+    if (!apiKey) {
+      return res.status(500).json({ error: 'Google Maps API key not configured on server' });
+    }
+
+    console.log(`🗺️ Geocoding request: ${lat}, ${lng}`);
+
+    const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&result_type=locality|administrative_area_level_1&key=${apiKey}`;
+    const response = await fetch(url);
+    const data = await response.json();
+
+    console.log(`✅ Geocoding result: ${data.status}`);
+    res.json(data);
+  } catch (error) {
+    console.error('❌ Geocoding proxy error:', error);
+    res.status(500).json({ error: 'Geocoding request failed', details: error.message });
+  }
+});
+
 // 1. Rate Outfit Endpoint
 app.post('/api/rate-outfit', async (req, res) => {
   try {
@@ -462,7 +492,7 @@ app.listen(PORT, () => {
   console.log(`🔗 API available at: http://localhost:${PORT}/api`);
   console.log(`🔔 Webhook endpoint: /api/stripe-webhook`);
   console.log(`🏓 Ping endpoint: /api/ping`);
-
+  console.log(`🗺️ Geocoding proxy: /api/geocode`);
 });
 
 // Open server.js in your editor and add a comment anywhere, e.g.:

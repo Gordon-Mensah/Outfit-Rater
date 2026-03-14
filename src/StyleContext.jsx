@@ -7,15 +7,11 @@ import { cities, workplaces, socialScenes, ageGroups } from './contextData'
 import './StyleContext.css'
 
 // ─────────────────────────────────────────────
-// Reverse geocode coords → city name via Google Maps Geocoding API
-// Requires VITE_GOOGLE_MAPS_API_KEY in your .env
+// Reverse geocode coords → city name via our own server proxy
+// The server calls Google Maps, so no CSP issues in the browser
 // ─────────────────────────────────────────────
 async function reverseGeocode(latitude, longitude) {
-  const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY
-  if (!apiKey) throw new Error('Google Maps API key not configured')
-
-  const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&result_type=locality|administrative_area_level_1&key=${apiKey}`
-  const res = await fetch(url)
+  const res = await fetch(`/api/geocode?lat=${latitude}&lng=${longitude}`)
   if (!res.ok) throw new Error('Geocoding request failed')
 
   const data = await res.json()
