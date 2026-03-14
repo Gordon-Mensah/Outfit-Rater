@@ -29,6 +29,8 @@ import { getStylist } from './stylistPersonalities'
 import AIClosetSimulator from './AIClosetSimulator'
 import CheckEmail from './CheckEmail'
 import './App.css'
+import Blog from './Blog'
+import BlogPost from './BlogPost'
 
 const API_BASE_URL = import.meta.env.PROD ? '' : 'http://localhost:3000'
 
@@ -809,6 +811,10 @@ function App() {
         path="/login" 
         element={!user ? <Login /> : <Navigate to="/rate" replace />} 
       />
+      <Route
+       path="/blog" element={<Blog />} />
+      <Route
+       path="/blog/:slug" element={<BlogPost />} />
       <Route 
         path="/signup" 
         element={!user ? <SignUp /> : <Navigate to="/rate" replace />} 
