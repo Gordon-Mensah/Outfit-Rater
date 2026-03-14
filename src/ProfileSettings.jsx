@@ -206,7 +206,7 @@ function ProfileSettings() {
       <div className="profile-container">
         {/* Header */}
         <div className="profile-header">
-          <button onClick={() => navigate('/')} className="back-btn">
+          <button onClick={() => navigate('/rate')} className="back-btn">
             ← Back to Dashboard
           </button>
           <h1 className="profile-title">Profile Settings</h1>
