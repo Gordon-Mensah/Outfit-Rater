@@ -52,13 +52,11 @@ function App() {
   const [showStylistSelector, setShowStylistSelector] = useState(false)
   const [currentStylist, setCurrentStylist] = useState('minimalist')
 
-  // Start keep-alive system when app mounts (runs once)
   useEffect(() => {
     console.log('🏓 Starting keep-alive system from App.jsx...')
     startKeepAlive()
   }, [])
 
-  // Load user stylist preference when user logs in
   useEffect(() => {
     if (user) {
       loadUserStylist()
@@ -394,18 +392,17 @@ function App() {
   }
 
   // ─── Main Rate Page ───────────────────────────────────────────────
-  // Extracted as a proper component so useLocation works correctly
   const MainAppContent = () => {
     const { state: routeState } = useLocation()
 
     // When navigated from wardrobe "Rate This Outfit" button,
-    // pre-load the outfit images into comparison mode
+    // pre-load the combined outfit grid image into single rating mode
     useEffect(() => {
-      if (routeState?.preloadedOutfit?.length > 0) {
-        console.log('👗 Pre-loading outfit from wardrobe:', routeState.preloadedOutfit.length, 'items')
-        setComparisonPreviews(routeState.preloadedOutfit)
-        setComparisonImages(routeState.preloadedOutfit) // base64 strings work directly
-        setComparisonMode(true)
+      if (routeState?.primaryImage) {
+        console.log('👗 Pre-loading combined outfit image from wardrobe')
+        setImage(routeState.primaryImage)
+        setImagePreview(routeState.primaryImage)
+        setComparisonMode(false)
         if (routeState.outfitOccasion) {
           setOccasion(routeState.outfitOccasion.toLowerCase())
         }
@@ -445,11 +442,11 @@ function App() {
 
           {/* Welcome Section */}
           <section className="welcome-section">
-            {routeState?.preloadedOutfit ? (
+            {routeState?.primaryImage ? (
               <>
                 <h1 className="welcome-heading">Rate This Outfit</h1>
                 <p className="welcome-subtitle">
-                  Your wardrobe outfit is loaded — get AI feedback on this combination
+                  Your wardrobe outfit is loaded — get AI feedback on the full combination
                 </p>
               </>
             ) : (
@@ -462,22 +459,20 @@ function App() {
             )}
           </section>
 
-          {/* Wardrobe outfit banner — shown when pre-loaded */}
-          {routeState?.preloadedOutfit && (
+          {/* Wardrobe outfit banner */}
+          {routeState?.primaryImage && (
             <div className="wardrobe-outfit-banner">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                 <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" strokeWidth="2"/>
                 <line x1="3" y1="6" x2="21" y2="6" strokeWidth="2"/>
                 <path d="M16 10a4 4 0 0 1-8 0" strokeWidth="2"/>
               </svg>
-              <span>
-                Outfit loaded from your wardrobe — {routeState.preloadedOutfit.length} items ready to rate
-              </span>
+              <span>Outfit loaded from your wardrobe — all items combined into one image for rating</span>
               <button
                 className="banner-clear-btn"
                 onClick={() => {
-                  setComparisonImages([])
-                  setComparisonPreviews([])
+                  setImage(null)
+                  setImagePreview(null)
                   setComparisonMode(false)
                   window.history.replaceState({}, '')
                 }}
@@ -666,24 +661,17 @@ function App() {
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                         <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" strokeWidth="2"/>
                       </svg>
-                      Rate My Outfit
+                      {routeState?.primaryImage ? 'Rate This Outfit' : 'Rate My Outfit'}
                     </>
                   )}
                 </button>
               </>
             ) : (
-              /* Comparison Mode — also used for wardrobe outfit rating */
+              /* Comparison Mode */
               <>
                 <div className="comparison-info">
-                  <h3 className="comparison-title">
-                    {routeState?.preloadedOutfit ? 'Your Wardrobe Outfit' : 'Compare Multiple Outfits'}
-                  </h3>
-                  <p className="comparison-subtitle">
-                    {routeState?.preloadedOutfit
-                      ? 'Each item from your outfit is shown below — click Compare to get AI feedback'
-                      : 'Upload 2-5 photos to compare side-by-side'
-                    }
-                  </p>
+                  <h3 className="comparison-title">Compare Multiple Outfits</h3>
+                  <p className="comparison-subtitle">Upload 2-5 photos to compare side-by-side</p>
                 </div>
 
                 <div className="upload-section">
@@ -701,20 +689,16 @@ function App() {
                         {comparisonPreviews.map((preview, index) => (
                           <div key={index} className="comparison-item">
                             <img src={preview} alt={`Outfit ${index + 1}`} />
-                            <span className="comparison-label">
-                              {routeState?.preloadedOutfit ? `Item ${index + 1}` : `Outfit ${index + 1}`}
-                            </span>
+                            <span className="comparison-label">Outfit {index + 1}</span>
                           </div>
                         ))}
-                        {!routeState?.preloadedOutfit && (
-                          <div className="add-more">
-                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                              <line x1="12" y1="5" x2="12" y2="19" strokeWidth="2"/>
-                              <line x1="5" y1="12" x2="19" y2="12" strokeWidth="2"/>
-                            </svg>
-                            <span>Add More</span>
-                          </div>
-                        )}
+                        <div className="add-more">
+                          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <line x1="12" y1="5" x2="12" y2="19" strokeWidth="2"/>
+                            <line x1="5" y1="12" x2="19" y2="12" strokeWidth="2"/>
+                          </svg>
+                          <span>Add More</span>
+                        </div>
                       </div>
                     ) : (
                       <div className="upload-placeholder">
@@ -776,7 +760,7 @@ function App() {
                   {loading ? (
                     <>
                       <span className="btn-spinner"></span>
-                      {routeState?.preloadedOutfit ? 'Analyzing Outfit...' : 'Comparing...'}
+                      Comparing...
                     </>
                   ) : (
                     <>
@@ -784,7 +768,7 @@ function App() {
                         <polyline points="9 11 12 14 22 4" strokeWidth="2"/>
                         <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" strokeWidth="2"/>
                       </svg>
-                      {routeState?.preloadedOutfit ? 'Rate This Outfit' : 'Compare Outfits'}
+                      Compare Outfits
                     </>
                   )}
                 </button>
