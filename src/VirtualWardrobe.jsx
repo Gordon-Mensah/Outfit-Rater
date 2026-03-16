@@ -711,6 +711,7 @@ function VirtualWardrobe() {
                   type="file"
                   accept="image/*"
                   onChange={handleStylistPhotoUpload}
+                  onClick={(e) => { e.target.value = null }}
                   style={{ display: 'none' }}
                 />
                 <div className="stylist-upload-icon">
