@@ -1,6 +1,6 @@
 // App.jsx - Modern Redesign with Improved Image Upload
 import { useState, useEffect } from 'react'
-import { Routes, Route, Navigate, useNavigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from './AuthContext'
 import { supabase } from './supabaseClient'
 import imageCompression from 'browser-image-compression'
@@ -65,7 +65,6 @@ function App() {
     }
   }, [user])
 
-  // ✅ FIXED: Improved to handle missing profiles and create them automatically
   const loadUserStylist = async () => {
     if (!user) return
     
@@ -81,7 +80,6 @@ function App() {
         return
       }
       
-      // If no profile exists, create one
       if (!data) {
         console.log('📝 No profile found, creating one...')
         const { error: insertError } = await supabase
@@ -100,7 +98,6 @@ function App() {
         return
       }
       
-      // Profile exists, load the preference
       if (data.stylist_preference) {
         setCurrentStylist(data.stylist_preference)
         console.log('✅ Loaded stylist preference:', data.stylist_preference)
@@ -110,21 +107,18 @@ function App() {
     }
   }
 
-  // ✅ FIXED: Improved to handle missing profiles
   const handleSelectStylist = async (stylistId) => {
     setCurrentStylist(stylistId)
     
     if (!user) return
     
     try {
-      // Try to update first
       const { error: updateError } = await supabase
         .from('profiles')
         .update({ stylist_preference: stylistId })
         .eq('user_id', user.id)
       
       if (updateError) {
-        // If update fails, profile might not exist - create it
         console.log('📝 Profile not found, creating with stylist:', stylistId)
         const { error: insertError } = await supabase
           .from('profiles')
@@ -399,472 +393,493 @@ function App() {
     }
   }
 
-  const MainAppContent = () => (
-    <div className="rate-page">
-      {/* Background */}
-      <div className="rate-bg">
-        <div className="gradient-orb orb-1"></div>
-        <div className="gradient-orb orb-2"></div>
-        <div className="gradient-orb orb-3"></div>
-        <div className="grid-overlay"></div>
-      </div>
+  // ─── Main Rate Page ───────────────────────────────────────────────
+  // Extracted as a proper component so useLocation works correctly
+  const MainAppContent = () => {
+    const { state: routeState } = useLocation()
 
-      {/* Content */}
-      <div className="rate-content">
-        {/* Header */}
-        <header className="rate-header">
-          <div className="header-left">
-            <div className="app-logo">
-              <div className="logo-circle">
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                  <rect x="3" y="3" width="18" height="18" rx="2" strokeWidth="2"/>
-                  <circle cx="8.5" cy="8.5" r="1.5" fill="currentColor"/>
-                  <path d="M21 15l-5-5L5 21" strokeWidth="2" strokeLinecap="round"/>
-                </svg>
+    // When navigated from wardrobe "Rate This Outfit" button,
+    // pre-load the outfit images into comparison mode
+    useEffect(() => {
+      if (routeState?.preloadedOutfit?.length > 0) {
+        console.log('👗 Pre-loading outfit from wardrobe:', routeState.preloadedOutfit.length, 'items')
+        setComparisonPreviews(routeState.preloadedOutfit)
+        setComparisonImages(routeState.preloadedOutfit) // base64 strings work directly
+        setComparisonMode(true)
+        if (routeState.outfitOccasion) {
+          setOccasion(routeState.outfitOccasion.toLowerCase())
+        }
+      }
+    }, [routeState])
+
+    return (
+      <div className="rate-page">
+        {/* Background */}
+        <div className="rate-bg">
+          <div className="gradient-orb orb-1"></div>
+          <div className="gradient-orb orb-2"></div>
+          <div className="gradient-orb orb-3"></div>
+          <div className="grid-overlay"></div>
+        </div>
+
+        {/* Content */}
+        <div className="rate-content">
+          {/* Header */}
+          <header className="rate-header">
+            <div className="header-left">
+              <div className="app-logo">
+                <div className="logo-circle">
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <rect x="3" y="3" width="18" height="18" rx="2" strokeWidth="2"/>
+                    <circle cx="8.5" cy="8.5" r="1.5" fill="currentColor"/>
+                    <path d="M21 15l-5-5L5 21" strokeWidth="2" strokeLinecap="round"/>
+                  </svg>
+                </div>
+                <span className="logo-text">AI Outfit Rater</span>
               </div>
-              <span className="logo-text">AI Outfit Rater</span>
             </div>
-          </div>
-          <div className="header-right">
-            <HamburgerMenu />
-          </div>
-        </header>
+            <div className="header-right">
+              <HamburgerMenu />
+            </div>
+          </header>
 
-        {/* Welcome Section */}
-        <section className="welcome-section">
-          <h1 className="welcome-heading">Rate Your Outfit</h1>
-          <p className="welcome-subtitle">
-            Upload a photo and get instant AI-powered feedback
-          </p>
-        </section>
+          {/* Welcome Section */}
+          <section className="welcome-section">
+            {routeState?.preloadedOutfit ? (
+              <>
+                <h1 className="welcome-heading">Rate This Outfit</h1>
+                <p className="welcome-subtitle">
+                  Your wardrobe outfit is loaded — get AI feedback on this combination
+                </p>
+              </>
+            ) : (
+              <>
+                <h1 className="welcome-heading">Rate Your Outfit</h1>
+                <p className="welcome-subtitle">
+                  Upload a photo and get instant AI-powered feedback
+                </p>
+              </>
+            )}
+          </section>
 
-        {/* Stats Bar */}
-        <div className="stats-bar">
-          <div className="stat-item">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <circle cx="12" cy="12" r="10" strokeWidth="2"/>
-              <polyline points="12 6 12 12 16 14" strokeWidth="2"/>
-            </svg>
-            <span>{isPremium ? 'Unlimited' : `${dailyRatingCount}/5`} ratings today</span>
-          </div>
-          {!isPremium && (
-            <div className="stat-item premium-cta">
+          {/* Wardrobe outfit banner — shown when pre-loaded */}
+          {routeState?.preloadedOutfit && (
+            <div className="wardrobe-outfit-banner">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" strokeWidth="2"/>
+                <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" strokeWidth="2"/>
+                <line x1="3" y1="6" x2="21" y2="6" strokeWidth="2"/>
+                <path d="M16 10a4 4 0 0 1-8 0" strokeWidth="2"/>
               </svg>
-              <span>Upgrade for unlimited</span>
+              <span>
+                Outfit loaded from your wardrobe — {routeState.preloadedOutfit.length} items ready to rate
+              </span>
+              <button
+                className="banner-clear-btn"
+                onClick={() => {
+                  setComparisonImages([])
+                  setComparisonPreviews([])
+                  setComparisonMode(false)
+                  window.history.replaceState({}, '')
+                }}
+              >
+                Clear
+              </button>
             </div>
           )}
-        </div>
 
-        {/* Mode Toggle */}
-        <div className="mode-toggle">
-          <button
-            className={`mode-btn ${!comparisonMode ? 'active' : ''}`}
-            onClick={() => {
-              setComparisonMode(false)
-              setComparisonImages([])
-              setComparisonPreviews([])
-              setError(null)
-            }}
-          >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <rect x="3" y="3" width="18" height="18" rx="2" strokeWidth="2"/>
-              <circle cx="8.5" cy="8.5" r="1.5" fill="currentColor"/>
-              <path d="M21 15l-5-5L5 21" strokeWidth="2"/>
-            </svg>
-            Single Outfit
-          </button>
-          <button
-            className={`mode-btn ${comparisonMode ? 'active' : ''}`}
-            onClick={() => {
-              setComparisonMode(true)
-              setImage(null)
-              setImagePreview(null)
-              setError(null)
-            }}
-          >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <rect x="3" y="3" width="7" height="18" rx="1" strokeWidth="2"/>
-              <rect x="14" y="3" width="7" height="18" rx="1" strokeWidth="2"/>
-            </svg>
-            Compare Outfits
-          </button>
-        </div>
+          {/* Stats Bar */}
+          <div className="stats-bar">
+            <div className="stat-item">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <circle cx="12" cy="12" r="10" strokeWidth="2"/>
+                <polyline points="12 6 12 12 16 14" strokeWidth="2"/>
+              </svg>
+              <span>{isPremium ? 'Unlimited' : `${dailyRatingCount}/5`} ratings today</span>
+            </div>
+            {!isPremium && (
+              <div className="stat-item premium-cta">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" strokeWidth="2"/>
+                </svg>
+                <span>Upgrade for unlimited</span>
+              </div>
+            )}
+          </div>
 
-        {/* Main Content Area */}
-        <div className="main-content">
-          {!comparisonMode ? (
-            /* Single Outfit Mode - IMPROVED UPLOAD */
-            <>
-              <div className="upload-section">
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageChange}
-                  id="file-upload"
-                  style={{ display: 'none' }}
-                />
-                <label htmlFor="file-upload" className="upload-area">
-                  {imagePreview ? (
-                    <div className="preview-container">
-                      <img src={imagePreview} alt="Outfit preview" className="preview-image" />
-                      <div className="change-image-overlay">
-                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          {/* Mode Toggle */}
+          <div className="mode-toggle">
+            <button
+              className={`mode-btn ${!comparisonMode ? 'active' : ''}`}
+              onClick={() => {
+                setComparisonMode(false)
+                setComparisonImages([])
+                setComparisonPreviews([])
+                setError(null)
+              }}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <rect x="3" y="3" width="18" height="18" rx="2" strokeWidth="2"/>
+                <circle cx="8.5" cy="8.5" r="1.5" fill="currentColor"/>
+                <path d="M21 15l-5-5L5 21" strokeWidth="2"/>
+              </svg>
+              Single Outfit
+            </button>
+            <button
+              className={`mode-btn ${comparisonMode ? 'active' : ''}`}
+              onClick={() => {
+                setComparisonMode(true)
+                setImage(null)
+                setImagePreview(null)
+                setError(null)
+              }}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <rect x="3" y="3" width="7" height="18" rx="1" strokeWidth="2"/>
+                <rect x="14" y="3" width="7" height="18" rx="1" strokeWidth="2"/>
+              </svg>
+              Compare Outfits
+            </button>
+          </div>
+
+          {/* Main Content Area */}
+          <div className="main-content">
+            {!comparisonMode ? (
+              /* Single Outfit Mode */
+              <>
+                <div className="upload-section">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageChange}
+                    id="file-upload"
+                    style={{ display: 'none' }}
+                  />
+                  <label htmlFor="file-upload" className="upload-area">
+                    {imagePreview ? (
+                      <div className="preview-container">
+                        <img src={imagePreview} alt="Outfit preview" className="preview-image" />
+                        <div className="change-image-overlay">
+                          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                            <circle cx="12" cy="13" r="4"/>
+                          </svg>
+                          <span>Change Photo</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="upload-placeholder">
+                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                           <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
                           <circle cx="12" cy="13" r="4"/>
                         </svg>
-                        <span>Change Photo</span>
+                        <p className="upload-title">Upload Your Outfit</p>
+                        <p className="upload-subtitle">Click to select a photo or drag & drop</p>
                       </div>
-                    </div>
-                  ) : (
-                    <div className="upload-placeholder">
-                      <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
-                        <circle cx="12" cy="13" r="4"/>
-                      </svg>
-                      <p className="upload-title">Upload Your Outfit</p>
-                      <p className="upload-subtitle">Click to select a photo or drag & drop</p>
-                    </div>
-                  )}
-                </label>
-              </div>
+                    )}
+                  </label>
+                </div>
 
-              <div className="options-section">
-                <div className="form-group">
-                  <label htmlFor="occasion" className="form-label">
+                <div className="options-section">
+                  <div className="form-group">
+                    <label htmlFor="occasion" className="form-label">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <circle cx="12" cy="12" r="10" strokeWidth="2"/>
+                        <polyline points="12 6 12 12 16 14" strokeWidth="2"/>
+                      </svg>
+                      Occasion
+                    </label>
+                    <select
+                      id="occasion"
+                      value={occasion}
+                      onChange={(e) => setOccasion(e.target.value)}
+                      className="form-select"
+                    >
+                      <option value="none">General / No specific occasion</option>
+                      <option value="casual">Casual hangout</option>
+                      <option value="date">First date</option>
+                      <option value="interview">Job interview</option>
+                      <option value="wedding">Wedding</option>
+                      <option value="gym">Gym / Workout</option>
+                      <option value="night">Night out</option>
+                      <option value="work">Work / Office</option>
+                      <option value="beach">Beach / Vacation</option>
+                    </select>
+                  </div>
+
+                  <div className="form-group">
+                    <label htmlFor="feedback-mode" className="form-label">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" strokeWidth="2"/>
+                      </svg>
+                      Feedback Style
+                    </label>
+                    <select
+                      id="feedback-mode"
+                      value={feedbackMode}
+                      onChange={(e) => setFeedbackMode(e.target.value)}
+                      className="form-select"
+                    >
+                      <option value="helpful">Helpful - Encouraging & constructive</option>
+                      <option value="honest">Honest - Balanced & realistic</option>
+                      {isPremium && <option value="roast">Roast - Brutally honest</option>}
+                    </select>
+                    {!isPremium && feedbackMode === 'roast' && (
+                      <p className="premium-note">Roast mode requires Premium</p>
+                    )}
+                  </div>
+
+                  <button
+                    className="stylist-selector-btn"
+                    onClick={() => setShowStylistSelector(true)}
+                  >
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" strokeWidth="2"/>
+                      <circle cx="12" cy="7" r="4" strokeWidth="2"/>
+                    </svg>
+                    Personal Stylist: {getStylist(currentStylist)?.name || 'Minimalist'}
+                  </button>
+                </div>
+
+                {error && (
+                  <div className="error-message">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                       <circle cx="12" cy="12" r="10" strokeWidth="2"/>
-                      <polyline points="12 6 12 12 16 14" strokeWidth="2"/>
+                      <line x1="12" y1="8" x2="12" y2="12" strokeWidth="2"/>
+                      <line x1="12" y1="16" x2="12.01" y2="16" strokeWidth="2"/>
                     </svg>
-                    Occasion
-                  </label>
-                  <select
-                    id="occasion"
-                    value={occasion}
-                    onChange={(e) => setOccasion(e.target.value)}
-                    className="form-select"
-                  >
-                    <option value="none">General / No specific occasion</option>
-                    <option value="casual">Casual hangout</option>
-                    <option value="date">First date</option>
-                    <option value="interview">Job interview</option>
-                    <option value="wedding">Wedding</option>
-                    <option value="gym">Gym / Workout</option>
-                    <option value="night">Night out</option>
-                    <option value="work">Work / Office</option>
-                    <option value="beach">Beach / Vacation</option>
-                  </select>
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="feedback-mode" className="form-label">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" strokeWidth="2"/>
-                    </svg>
-                    Feedback Style
-                  </label>
-                  <select
-                    id="feedback-mode"
-                    value={feedbackMode}
-                    onChange={(e) => setFeedbackMode(e.target.value)}
-                    className="form-select"
-                  >
-                    <option value="helpful">Helpful - Encouraging & constructive</option>
-                    <option value="honest">Honest - Balanced & realistic</option>
-                    {isPremium && <option value="roast">Roast - Brutally honest</option>}
-                  </select>
-                  {!isPremium && feedbackMode === 'roast' && (
-                    <p className="premium-note">Roast mode requires Premium</p>
-                  )}
-                </div>
+                    <span>{error}</span>
+                  </div>
+                )}
 
                 <button
-                  className="stylist-selector-btn"
-                  onClick={() => setShowStylistSelector(true)}
+                  onClick={rateOutfit}
+                  disabled={!image || loading}
+                  className="btn-primary"
                 >
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" strokeWidth="2"/>
-                    <circle cx="12" cy="7" r="4" strokeWidth="2"/>
-                  </svg>
-                  Personal Stylist: {getStylist(currentStylist)?.name || 'Minimalist'}
-                </button>
-              </div>
-
-              {error && (
-                <div className="error-message">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <circle cx="12" cy="12" r="10" strokeWidth="2"/>
-                    <line x1="12" y1="8" x2="12" y2="12" strokeWidth="2"/>
-                    <line x1="12" y1="16" x2="12.01" y2="16" strokeWidth="2"/>
-                  </svg>
-                  <span>{error}</span>
-                </div>
-              )}
-
-              <button
-                onClick={rateOutfit}
-                disabled={!image || loading}
-                className="btn-primary"
-              >
-                {loading ? (
-                  <>
-                    <span className="btn-spinner"></span>
-                    Analyzing...
-                  </>
-                ) : (
-                  <>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" strokeWidth="2"/>
-                    </svg>
-                    Rate My Outfit
-                  </>
-                )}
-              </button>
-            </>
-          ) : (
-            /* Comparison Mode */
-            <>
-              <div className="comparison-info">
-                <h3 className="comparison-title">Compare Multiple Outfits</h3>
-                <p className="comparison-subtitle">
-                  Upload 2-5 photos to compare side-by-side
-                </p>
-              </div>
-
-              <div className="upload-section">
-                <input
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={handleComparisonImages}
-                  id="comparison-upload"
-                  style={{ display: 'none' }}
-                />
-                <label htmlFor="comparison-upload" className="upload-area comparison">
-                  {comparisonPreviews.length > 0 ? (
-                    <div className="comparison-grid">
-                      {comparisonPreviews.map((preview, index) => (
-                        <div key={index} className="comparison-item">
-                          <img src={preview} alt={`Outfit ${index + 1}`} />
-                          <span className="comparison-label">Outfit {index + 1}</span>
-                        </div>
-                      ))}
-                      <div className="add-more">
-                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                          <line x1="12" y1="5" x2="12" y2="19" strokeWidth="2"/>
-                          <line x1="5" y1="12" x2="19" y2="12" strokeWidth="2"/>
-                        </svg>
-                        <span>Add More</span>
-                      </div>
-                    </div>
+                  {loading ? (
+                    <>
+                      <span className="btn-spinner"></span>
+                      Analyzing...
+                    </>
                   ) : (
-                    <div className="upload-placeholder">
-                      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <rect x="3" y="3" width="7" height="18" rx="1" strokeWidth="2"/>
-                        <rect x="14" y="3" width="7" height="18" rx="1" strokeWidth="2"/>
+                    <>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" strokeWidth="2"/>
                       </svg>
-                      <p className="upload-title">Upload 2-5 Outfits</p>
-                      <p className="upload-subtitle">Select multiple photos at once</p>
-                    </div>
+                      Rate My Outfit
+                    </>
                   )}
-                </label>
-              </div>
+                </button>
+              </>
+            ) : (
+              /* Comparison Mode — also used for wardrobe outfit rating */
+              <>
+                <div className="comparison-info">
+                  <h3 className="comparison-title">
+                    {routeState?.preloadedOutfit ? 'Your Wardrobe Outfit' : 'Compare Multiple Outfits'}
+                  </h3>
+                  <p className="comparison-subtitle">
+                    {routeState?.preloadedOutfit
+                      ? 'Each item from your outfit is shown below — click Compare to get AI feedback'
+                      : 'Upload 2-5 photos to compare side-by-side'
+                    }
+                  </p>
+                </div>
 
-              <div className="options-section">
-                <div className="form-group">
-                  <label htmlFor="occasion-compare" className="form-label">
+                <div className="upload-section">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleComparisonImages}
+                    id="comparison-upload"
+                    style={{ display: 'none' }}
+                  />
+                  <label htmlFor="comparison-upload" className="upload-area comparison">
+                    {comparisonPreviews.length > 0 ? (
+                      <div className="comparison-grid">
+                        {comparisonPreviews.map((preview, index) => (
+                          <div key={index} className="comparison-item">
+                            <img src={preview} alt={`Outfit ${index + 1}`} />
+                            <span className="comparison-label">
+                              {routeState?.preloadedOutfit ? `Item ${index + 1}` : `Outfit ${index + 1}`}
+                            </span>
+                          </div>
+                        ))}
+                        {!routeState?.preloadedOutfit && (
+                          <div className="add-more">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                              <line x1="12" y1="5" x2="12" y2="19" strokeWidth="2"/>
+                              <line x1="5" y1="12" x2="19" y2="12" strokeWidth="2"/>
+                            </svg>
+                            <span>Add More</span>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="upload-placeholder">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                          <rect x="3" y="3" width="7" height="18" rx="1" strokeWidth="2"/>
+                          <rect x="14" y="3" width="7" height="18" rx="1" strokeWidth="2"/>
+                        </svg>
+                        <p className="upload-title">Upload 2-5 Outfits</p>
+                        <p className="upload-subtitle">Select multiple photos at once</p>
+                      </div>
+                    )}
+                  </label>
+                </div>
+
+                <div className="options-section">
+                  <div className="form-group">
+                    <label htmlFor="occasion-compare" className="form-label">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <circle cx="12" cy="12" r="10" strokeWidth="2"/>
+                        <polyline points="12 6 12 12 16 14" strokeWidth="2"/>
+                      </svg>
+                      Occasion
+                    </label>
+                    <select
+                      id="occasion-compare"
+                      value={occasion}
+                      onChange={(e) => setOccasion(e.target.value)}
+                      className="form-select"
+                    >
+                      <option value="none">General / No specific occasion</option>
+                      <option value="casual">Casual hangout</option>
+                      <option value="date">First date</option>
+                      <option value="interview">Job interview</option>
+                      <option value="wedding">Wedding</option>
+                      <option value="gym">Gym / Workout</option>
+                      <option value="night">Night out</option>
+                      <option value="work">Work / Office</option>
+                      <option value="beach">Beach / Vacation</option>
+                    </select>
+                  </div>
+                </div>
+
+                {error && (
+                  <div className="error-message">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                       <circle cx="12" cy="12" r="10" strokeWidth="2"/>
-                      <polyline points="12 6 12 12 16 14" strokeWidth="2"/>
+                      <line x1="12" y1="8" x2="12" y2="12" strokeWidth="2"/>
+                      <line x1="12" y1="16" x2="12.01" y2="16" strokeWidth="2"/>
                     </svg>
-                    Occasion
-                  </label>
-                  <select
-                    id="occasion-compare"
-                    value={occasion}
-                    onChange={(e) => setOccasion(e.target.value)}
-                    className="form-select"
-                  >
-                    <option value="none">General / No specific occasion</option>
-                    <option value="casual">Casual hangout</option>
-                    <option value="date">First date</option>
-                    <option value="interview">Job interview</option>
-                    <option value="wedding">Wedding</option>
-                    <option value="gym">Gym / Workout</option>
-                    <option value="night">Night out</option>
-                    <option value="work">Work / Office</option>
-                    <option value="beach">Beach / Vacation</option>
-                  </select>
-                </div>
-              </div>
-
-              {error && (
-                <div className="error-message">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <circle cx="12" cy="12" r="10" strokeWidth="2"/>
-                    <line x1="12" y1="8" x2="12" y2="12" strokeWidth="2"/>
-                    <line x1="12" y1="16" x2="12.01" y2="16" strokeWidth="2"/>
-                  </svg>
-                  <span>{error}</span>
-                </div>
-              )}
-
-              <button
-                onClick={compareOutfits}
-                disabled={comparisonImages.length < 2 || loading}
-                className="btn-primary"
-              >
-                {loading ? (
-                  <>
-                    <span className="btn-spinner"></span>
-                    Comparing...
-                  </>
-                ) : (
-                  <>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                      <polyline points="9 11 12 14 22 4" strokeWidth="2"/>
-                      <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" strokeWidth="2"/>
-                    </svg>
-                    Compare Outfits
-                  </>
+                    <span>{error}</span>
+                  </div>
                 )}
-              </button>
-            </>
+
+                <button
+                  onClick={compareOutfits}
+                  disabled={comparisonImages.length < 2 || loading}
+                  className="btn-primary"
+                >
+                  {loading ? (
+                    <>
+                      <span className="btn-spinner"></span>
+                      {routeState?.preloadedOutfit ? 'Analyzing Outfit...' : 'Comparing...'}
+                    </>
+                  ) : (
+                    <>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <polyline points="9 11 12 14 22 4" strokeWidth="2"/>
+                        <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" strokeWidth="2"/>
+                      </svg>
+                      {routeState?.preloadedOutfit ? 'Rate This Outfit' : 'Compare Outfits'}
+                    </>
+                  )}
+                </button>
+              </>
+            )}
+          </div>
+
+          {/* Quick Links */}
+          <div className="quick-links">
+            <button onClick={() => navigate('/wardrobe')} className="quick-link">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" strokeWidth="2"/>
+                <line x1="3" y1="6" x2="21" y2="6" strokeWidth="2"/>
+                <path d="M16 10a4 4 0 0 1-8 0" strokeWidth="2"/>
+              </svg>
+              Virtual Wardrobe
+            </button>
+            <button onClick={() => navigate('/history')} className="quick-link">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <circle cx="12" cy="12" r="10" strokeWidth="2"/>
+                <polyline points="12 6 12 12 16 14" strokeWidth="2"/>
+              </svg>
+              Rating History
+            </button>
+            <button onClick={() => navigate('/saved-outfits')} className="quick-link">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" strokeWidth="2"/>
+              </svg>
+              Saved Outfits
+            </button>
+          </div>
+
+          {/* Premium Upsell */}
+          {!isPremium && (
+            <div className="premium-upsell">
+              <div className="upsell-content">
+                <div className="upsell-icon">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" strokeWidth="2"/>
+                  </svg>
+                </div>
+                <div className="upsell-text">
+                  <h3>Upgrade to Premium</h3>
+                  <p>Unlimited ratings, AI chat, and advanced features</p>
+                </div>
+                <SimpleUpgradeButton text="Upgrade Now" />
+              </div>
+            </div>
           )}
         </div>
 
-        {/* Quick Links */}
-        <div className="quick-links">
-          <button onClick={() => navigate('/wardrobe')} className="quick-link">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" strokeWidth="2"/>
-              <line x1="3" y1="6" x2="21" y2="6" strokeWidth="2"/>
-              <path d="M16 10a4 4 0 0 1-8 0" strokeWidth="2"/>
-            </svg>
-            Virtual Wardrobe
-          </button>
-          <button onClick={() => navigate('/history')} className="quick-link">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <circle cx="12" cy="12" r="10" strokeWidth="2"/>
-              <polyline points="12 6 12 12 16 14" strokeWidth="2"/>
-            </svg>
-            Rating History
-          </button>
-          <button onClick={() => navigate('/saved-outfits')} className="quick-link">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" strokeWidth="2"/>
-            </svg>
-            Saved Outfits
-          </button>
-        </div>
+        {/* Modals */}
+        {showLastRatingWarning && (
+          <LastRatingWarning
+            onProceed={() => {
+              setShowLastRatingWarning(false)
+              if (pendingRatingAction) {
+                pendingRatingAction()
+              }
+            }}
+            onCancel={() => setShowLastRatingWarning(false)}
+          />
+        )}
 
-        {/* Premium Upsell */}
-        {!isPremium && (
-          <div className="premium-upsell">
-            <div className="upsell-content">
-              <div className="upsell-icon">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" strokeWidth="2"/>
-                </svg>
-              </div>
-              <div className="upsell-text">
-                <h3>Upgrade to Premium</h3>
-                <p>Unlimited ratings, AI chat, and advanced features</p>
-              </div>
-              <SimpleUpgradeButton text="Upgrade Now" />
-            </div>
-          </div>
+        {showStylistSelector && (
+          <StylistSelector
+            currentStylist={currentStylist}
+            onSelectStylist={handleSelectStylist}
+            onClose={() => setShowStylistSelector(false)}
+          />
         )}
       </div>
-
-      {/* Modals */}
-      {showLastRatingWarning && (
-        <LastRatingWarning
-          onProceed={() => {
-            setShowLastRatingWarning(false)
-            if (pendingRatingAction) {
-              pendingRatingAction()
-            }
-          }}
-          onCancel={() => setShowLastRatingWarning(false)}
-        />
-      )}
-
-      {showStylistSelector && (
-        <StylistSelector
-          currentStylist={currentStylist}
-          onSelectStylist={handleSelectStylist}
-          onClose={() => setShowStylistSelector(false)}
-        />
-      )}
-    </div>
-  )
+    )
+  }
 
   return (
     <Routes>
-      <Route 
-        path="/" 
-        element={<LandingPage />} 
-      />
-      <Route 
-        path="/login" 
-        element={!user ? <Login /> : <Navigate to="/rate" replace />} 
-      />
-      <Route
-       path="/blog" element={<Blog />} />
-      <Route
-       path="/blog/:slug" element={<BlogPost />} />
-      <Route 
-        path="/signup" 
-        element={!user ? <SignUp /> : <Navigate to="/rate" replace />} 
-      />
-      <Route 
-        path="/check-email" 
-        element={<CheckEmail />} 
-      />
-      <Route 
-        path="/rate" 
-        element={user ? <MainAppContent /> : <Navigate to="/login" replace />} 
-      />
-      <Route 
-        path="/result" 
-        element={user ? <RateResult /> : <Navigate to="/login" replace />} 
-      />
-      <Route 
-        path="/compare-result" 
-        element={user ? <CompareResult /> : <Navigate to="/login" replace />} 
-      />
-      <Route 
-        path="/profile" 
-        element={user ? <ProfileSettings /> : <Navigate to="/login" replace />} 
-      />
-      <Route 
-        path="/history" 
-        element={user ? <RatingHistory /> : <Navigate to="/login" replace />} 
-      />
-      <Route 
-        path="/saved-outfits" 
-        element={user ? <SavedOutfits /> : <Navigate to="/login" replace />} 
-      />
-      <Route 
-        path="/premium" 
-        element={user ? <Premium /> : <Navigate to="/login" replace />} 
-      />
-      <Route 
-        path="/fashion-chat" 
-        element={user ? <FashionChatPage /> : <Navigate to="/login" replace />} 
-      />
-      <Route 
-        path="/referrals" 
-        element={user ? <ReferralSystem /> : <Navigate to="/login" replace />} 
-      />
+      <Route path="/" element={<LandingPage />} />
+      <Route path="/login" element={!user ? <Login /> : <Navigate to="/rate" replace />} />
+      <Route path="/blog" element={<Blog />} />
+      <Route path="/blog/:slug" element={<BlogPost />} />
+      <Route path="/signup" element={!user ? <SignUp /> : <Navigate to="/rate" replace />} />
+      <Route path="/check-email" element={<CheckEmail />} />
+      <Route path="/rate" element={user ? <MainAppContent /> : <Navigate to="/login" replace />} />
+      <Route path="/result" element={user ? <RateResult /> : <Navigate to="/login" replace />} />
+      <Route path="/compare-result" element={user ? <CompareResult /> : <Navigate to="/login" replace />} />
+      <Route path="/profile" element={user ? <ProfileSettings /> : <Navigate to="/login" replace />} />
+      <Route path="/history" element={user ? <RatingHistory /> : <Navigate to="/login" replace />} />
+      <Route path="/saved-outfits" element={user ? <SavedOutfits /> : <Navigate to="/login" replace />} />
+      <Route path="/premium" element={user ? <Premium /> : <Navigate to="/login" replace />} />
+      <Route path="/fashion-chat" element={user ? <FashionChatPage /> : <Navigate to="/login" replace />} />
+      <Route path="/referrals" element={user ? <ReferralSystem /> : <Navigate to="/login" replace />} />
       <Route path="/wardrobe" element={<VirtualWardrobe />} />
       <Route path="/style-context" element={<StyleContext />} />
-      <Route 
-        path="/closet-simulator" 
-        element={user ? <AIClosetSimulator /> : <Navigate to="/login" replace />} 
-      />
+      <Route path="/closet-simulator" element={user ? <AIClosetSimulator /> : <Navigate to="/login" replace />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )

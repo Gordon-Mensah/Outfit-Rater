@@ -1177,7 +1177,26 @@ function VirtualWardrobe() {
                         )}
 
                         {/* Action button */}
-                        <button className="btn-rate-outfit" onClick={() => navigate('/rate')}>
+                        <button
+                          className="btn-rate-outfit"
+                          onClick={() => {
+                            const outfitImages = [
+                              outfit.top?.image_data,
+                              outfit.layer2?.image_data,
+                              outfit.bottom?.image_data,
+                              outfit.shoes?.image_data,
+                              outfit.outerwear?.image_data,
+                              outfit.accessory?.image_data
+                            ].filter(Boolean)
+
+                            navigate('/rate', {
+                              state: {
+                                preloadedOutfit: outfitImages,
+                                outfitOccasion: outfit.occasion
+                              }
+                            })
+                          }}
+                        >
                           Rate This Outfit
                           <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor">
                             <path d="M4 10h12m0 0l-4-4m4 4l-4 4" strokeWidth="2" strokeLinecap="round"/>
