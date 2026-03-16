@@ -1756,3 +1756,464 @@ button, a, input, .item-card, .outfit-card, .category-section {
   .wardrobe-content { padding: 0; }
   .category-section, .outfit-card { break-inside: avoid; }
 }
+/* ===================================================================
+   AI STYLIST PANEL
+   Add these styles to the bottom of your VirtualWardrobe.css
+   =================================================================== */
+
+/* Stylist Panel Container */
+.stylist-panel {
+  background: linear-gradient(135deg, rgba(167, 139, 250, 0.08) 0%, rgba(212, 175, 55, 0.08) 100%);
+  border: 1px solid rgba(167, 139, 250, 0.25);
+  border-radius: var(--radius-lg);
+  margin-bottom: 2rem;
+  overflow: hidden;
+  animation: fadeInUp 0.6s ease-out 0.15s both;
+}
+
+.stylist-panel-header {
+  padding: 1.5rem 2rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.stylist-panel-title-group {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.stylist-panel-icon {
+  width: 48px;
+  height: 48px;
+  background: linear-gradient(135deg, rgba(167, 139, 250, 0.2), rgba(212, 175, 55, 0.2));
+  border: 1px solid rgba(167, 139, 250, 0.3);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #a78bfa;
+  flex-shrink: 0;
+}
+
+.stylist-panel-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 0.25rem 0;
+}
+
+.stylist-panel-subtitle {
+  font-size: 0.9rem;
+  color: var(--text-tertiary);
+  margin: 0;
+}
+
+.stylist-panel-body {
+  padding: 1.5rem 2rem;
+}
+
+/* Upload zone */
+.stylist-upload-zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 2.5rem;
+  border: 2px dashed rgba(167, 139, 250, 0.3);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-align: center;
+}
+
+.stylist-upload-zone:hover {
+  border-color: rgba(167, 139, 250, 0.6);
+  background: rgba(167, 139, 250, 0.05);
+}
+
+.stylist-upload-icon {
+  color: #a78bfa;
+  opacity: 0.7;
+}
+
+.stylist-upload-label {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.stylist-upload-hint {
+  font-size: 0.875rem;
+  color: var(--text-tertiary);
+  margin: 0;
+  max-width: 400px;
+}
+
+/* Photo uploaded row */
+.stylist-photo-row {
+  display: flex;
+  gap: 1.5rem;
+  align-items: flex-start;
+}
+
+.stylist-photo-preview-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.stylist-photo-preview {
+  width: 120px;
+  height: 160px;
+  object-fit: cover;
+  border-radius: 12px;
+  border: 2px solid rgba(167, 139, 250, 0.3);
+  display: block;
+}
+
+.stylist-photo-remove {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 24px;
+  height: 24px;
+  background: rgba(239, 68, 68, 0.9);
+  border: none;
+  border-radius: 50%;
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.stylist-photo-remove:hover {
+  background: #dc2626;
+  transform: scale(1.1);
+}
+
+/* Analysis panel */
+.stylist-analysis-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.stylist-cta {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.stylist-cta-text {
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  margin: 0;
+  line-height: 1.6;
+}
+
+.btn-stylist-analyze {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.875rem 1.5rem;
+  background: linear-gradient(135deg, #a78bfa 0%, #d4af37 100%);
+  border: none;
+  border-radius: var(--radius-md);
+  color: #000;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  width: fit-content;
+}
+
+.btn-stylist-analyze:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(167, 139, 250, 0.4);
+}
+
+.stylist-analyzing {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.stylist-analyzing p {
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.stylist-analysis-result {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.stylist-analysis-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #a78bfa;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.stylist-analysis-text {
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  margin: 0;
+  line-height: 1.6;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius-md);
+}
+
+.btn-stylist-generate {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem 1.75rem;
+  background: linear-gradient(135deg, var(--primary-purple), var(--secondary-purple));
+  border: none;
+  border-radius: var(--radius-md);
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  width: fit-content;
+  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3);
+}
+
+.btn-stylist-generate:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 24px rgba(102, 126, 234, 0.4);
+}
+
+.btn-stylist-generate:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* ===================================================================
+   PINTEREST-STYLE OUTFIT BOARDS
+   =================================================================== */
+
+.pinterest-grid {
+  columns: 3;
+  column-gap: 1.5rem;
+}
+
+@media (max-width: 1100px) {
+  .pinterest-grid { columns: 2; }
+}
+
+@media (max-width: 640px) {
+  .pinterest-grid { columns: 1; }
+}
+
+.pinterest-card {
+  break-inside: avoid;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 20px;
+  overflow: hidden;
+  margin-bottom: 1.5rem;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(20px);
+}
+
+.pinterest-card:hover {
+  border-color: rgba(167, 139, 250, 0.3);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+  transform: translateY(-4px);
+}
+
+/* Card header */
+.pinterest-card-header {
+  padding: 1rem 1.25rem 0.75rem;
+}
+
+.pinterest-card-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.pinterest-outfit-num {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.pinterest-occasion-badge {
+  padding: 0.35rem 0.875rem;
+  background: linear-gradient(135deg, rgba(167, 139, 250, 0.15), rgba(212, 175, 55, 0.15));
+  border: 1px solid rgba(167, 139, 250, 0.25);
+  border-radius: 100px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #a78bfa;
+}
+
+/* Mannequin photo */
+.pinterest-mannequin {
+  position: relative;
+  width: 100%;
+  height: 200px;
+  overflow: hidden;
+  margin-bottom: 0;
+}
+
+.mannequin-photo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top center;
+}
+
+.mannequin-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 1rem;
+  background: linear-gradient(transparent, rgba(0,0,0,0.7));
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: rgba(255,255,255,0.8);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+/* Flat lay grid */
+.pinterest-flatlay {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: auto;
+  gap: 6px;
+  padding: 6px;
+}
+
+.flatlay-item {
+  position: relative;
+  border-radius: 10px;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.2);
+  aspect-ratio: 1;
+}
+
+.flatlay-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.4s ease;
+}
+
+.pinterest-card:hover .flatlay-item img {
+  transform: scale(1.05);
+}
+
+/* Top item spans full width */
+.flatlay-item--top {
+  grid-column: 1 / -1;
+  aspect-ratio: 16 / 9;
+}
+
+/* Outerwear also gets more prominence */
+.flatlay-item--outerwear {
+  grid-column: 1 / -1;
+  aspect-ratio: 16 / 9;
+}
+
+.flatlay-label {
+  position: absolute;
+  bottom: 6px;
+  left: 6px;
+  padding: 3px 8px;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(8px);
+  border-radius: 6px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  letter-spacing: 0.2px;
+}
+
+/* Style notes */
+.pinterest-style-notes {
+  padding: 1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.style-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.style-note svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.style-note--color {
+  color: rgba(212, 175, 55, 0.8);
+}
+
+.style-note--layering {
+  color: rgba(103, 232, 249, 0.8);
+}
+
+/* Rate button at bottom of card */
+.pinterest-card .btn-rate-outfit {
+  margin: 0 1.25rem 1.25rem;
+  border-radius: var(--radius-md);
+}
+
+/* ===================================================================
+   RESPONSIVE — Stylist Panel
+   =================================================================== */
+
+@media (max-width: 768px) {
+  .stylist-panel-header { padding: 1.25rem 1.5rem; }
+  .stylist-panel-body { padding: 1.25rem 1.5rem; }
+  .stylist-upload-zone { padding: 2rem 1.5rem; }
+
+  .stylist-photo-row {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .stylist-photo-preview {
+    width: 100px;
+    height: 130px;
+  }
+
+  .btn-stylist-analyze,
+  .btn-stylist-generate {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .pinterest-card .btn-rate-outfit {
+    margin: 0 1rem 1rem;
+  }
+}

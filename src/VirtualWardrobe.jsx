@@ -1,4 +1,4 @@
-// VirtualWardrobe.jsx - Complete with Style Memory System + Full Category Structure
+// VirtualWardrobe.jsx - Complete with Style Memory System + Full Category Structure + AI Stylist Feature
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from './AuthContext'
@@ -82,7 +82,6 @@ export const CATEGORY_STRUCTURE = {
 
 const CATEGORY_KEYS = Object.keys(CATEGORY_STRUCTURE)
 
-
 function buildEmptyWardrobe() {
   return CATEGORY_KEYS.reduce((acc, key) => {
     acc[key] = []
@@ -131,6 +130,13 @@ function VirtualWardrobe() {
   const [twoDayWeather, setTwoDayWeather] = useState(null)
   const [twoDayOutfits, setTwoDayOutfits] = useState(null)
 
+  // ─── AI Stylist State ───────────────────────
+  const [stylistPhoto, setStylistPhoto] = useState(null)       // base64 of user photo
+  const [stylistPhotoPreview, setStylistPhotoPreview] = useState(null)
+  const [stylistAnalysis, setStylistAnalysis] = useState(null) // AI analysis of the person
+  const [analyzingPhoto, setAnalyzingPhoto] = useState(false)
+  const [generatingPersonalized, setGeneratingPersonalized] = useState(false)
+
   // Load wardrobe and weather on mount
   useEffect(() => {
     if (user) {
@@ -170,7 +176,6 @@ function VirtualWardrobe() {
     }
   }
 
-  // Load user's style profile
   const loadStyleProfile = async () => {
     if (!user) return
     
@@ -413,12 +418,9 @@ function VirtualWardrobe() {
 
       if (error) throw error
 
-      // Update local state: remove from old category, add to new
       setWardrobe(prev => {
         const updated = { ...prev }
-        // Remove from old category
         updated[movingItem.currentCategory] = updated[movingItem.currentCategory].filter(i => i.id !== movingItem.id)
-        // Add to new category with updated fields
         const updatedItem = { ...movingItem, category: moveTargetCategory, subcategory: moveTargetSubcategory || null }
         delete updatedItem.currentCategory
         updated[moveTargetCategory] = [updatedItem, ...updated[moveTargetCategory]]
@@ -435,6 +437,124 @@ function VirtualWardrobe() {
     }
   }
 
+  // ─── AI Stylist: Handle photo upload ────────
+  const handleStylistPhotoUpload = (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const reader = new FileReader()
+    reader.onloadend = () => {
+      setStylistPhoto(reader.result)
+      setStylistPhotoPreview(reader.result)
+      setStylistAnalysis(null)
+      setGeneratedOutfits([])
+    }
+    reader.readAsDataURL(file)
+  }
+
+  // ─── AI Stylist: Analyze the person's photo ─
+  const analyzeStylistPhoto = async () => {
+    if (!stylistPhoto) return
+    setAnalyzingPhoto(true)
+
+    try {
+      const response = await fetch('/api/analyze-style-photo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image: stylistPhoto })
+      })
+
+      const data = await response.json()
+      if (data.analysis) {
+        setStylistAnalysis(data.analysis)
+      }
+    } catch (err) {
+      console.error('Error analyzing photo:', err)
+      alert('Failed to analyze photo. Please try again.')
+    } finally {
+      setAnalyzingPhoto(false)
+    }
+  }
+
+  // ─── AI Stylist: Generate personalized outfits ─
+  const generatePersonalizedOutfits = async () => {
+    const totalItems = Object.values(wardrobe).flat().length
+    if (totalItems < 3) {
+      alert('Add at least 3 items to your wardrobe to generate outfits!')
+      return
+    }
+
+    setGeneratingPersonalized(true)
+    setActiveTab('outfits')
+
+    try {
+      // Build wardrobe summary for AI
+      const wardrobeSummary = Object.entries(wardrobe)
+        .filter(([, items]) => items.length > 0)
+        .map(([category, items]) => ({
+          category,
+          items: items.map(item => ({
+            id: item.id,
+            name: item.name,
+            color: item.color,
+            subcategory: item.subcategory,
+            image_data: item.image_data
+          }))
+        }))
+
+      const response = await fetch('/api/generate-styled-outfits', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          wardrobeSummary,
+          stylistAnalysis,
+          weather: weather ? `${weather.temp}°C, ${weather.condition}` : null
+        })
+      })
+
+      const data = await response.json()
+
+      if (data.outfits && Array.isArray(data.outfits)) {
+        // Map AI outfit selections back to actual wardrobe items
+        const resolvedOutfits = data.outfits.map((outfit, index) => {
+          const resolveItem = (itemId) => {
+            if (!itemId) return null
+            for (const items of Object.values(wardrobe)) {
+              const found = items.find(i => i.id === itemId)
+              if (found) return found
+            }
+            return null
+          }
+
+          return {
+            id: `outfit-${index}`,
+            occasion: outfit.occasion || 'Casual',
+            styleNote: outfit.styleNote || '',
+            colorStory: outfit.colorStory || '',
+            layeringNote: outfit.layeringNote || '',
+            top: resolveItem(outfit.topId),
+            bottom: resolveItem(outfit.bottomId),
+            shoes: resolveItem(outfit.shoesId),
+            outerwear: resolveItem(outfit.outerwearId),
+            accessory: resolveItem(outfit.accessoryId),
+            layer2: resolveItem(outfit.layer2Id), // second layer (e.g. hoodie under jacket)
+          }
+        })
+
+        setGeneratedOutfits(resolvedOutfits)
+      } else {
+        // Fallback to basic generation if AI fails
+        generateOutfits()
+      }
+    } catch (err) {
+      console.error('Error generating personalized outfits:', err)
+      generateOutfits() // fallback
+    } finally {
+      setGeneratingPersonalized(false)
+    }
+  }
+
+  // ─── Basic outfit generation (fallback) ─────
   const generateOutfits = async () => {
     const totalItems = Object.values(wardrobe).flat().length
     if (totalItems < 3) {
@@ -457,7 +577,10 @@ function VirtualWardrobe() {
           shoes: shoes[Math.floor(Math.random() * shoes.length)],
           outerwear: outerwear.length > 0 ? outerwear[Math.floor(Math.random() * outerwear.length)] : null,
           accessory: accessories.length > 0 ? accessories[Math.floor(Math.random() * accessories.length)] : null,
-          occasion: ['Casual', 'Work', 'Date Night', 'Night Out'][Math.floor(Math.random() * 4)]
+          occasion: ['Casual', 'Work', 'Date Night', 'Night Out'][Math.floor(Math.random() * 4)],
+          styleNote: null,
+          colorStory: null,
+          layeringNote: null
         }
         outfits.push(outfit)
       }
@@ -471,6 +594,13 @@ function VirtualWardrobe() {
     }
   }
 
+  const removeStylistPhoto = () => {
+    setStylistPhoto(null)
+    setStylistPhotoPreview(null)
+    setStylistAnalysis(null)
+    setGeneratedOutfits([])
+  }
+
   const getTotalItems = () => Object.values(wardrobe).flat().length
 
   const categories = CATEGORY_KEYS.map(id => ({
@@ -478,7 +608,7 @@ function VirtualWardrobe() {
     name: CATEGORY_STRUCTURE[id].name
   }))
 
-  if (loading) {
+  if (loading && !generatingPersonalized) {
     return (
       <div className="wardrobe-page">
         <div className="wardrobe-bg">
@@ -552,6 +682,116 @@ function VirtualWardrobe() {
             </div>
           </div>
         </header>
+
+        {/* ─── AI STYLIST PANEL ─────────────────── */}
+        <div className="stylist-panel">
+          <div className="stylist-panel-header">
+            <div className="stylist-panel-title-group">
+              <div className="stylist-panel-icon">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" strokeWidth="2" strokeLinecap="round"/>
+                  <circle cx="12" cy="7" r="4" strokeWidth="2"/>
+                </svg>
+              </div>
+              <div>
+                <h3 className="stylist-panel-title">AI Personal Stylist</h3>
+                <p className="stylist-panel-subtitle">Upload your photo — AI generates outfits styled specifically for you</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="stylist-panel-body">
+            {!stylistPhotoPreview ? (
+              // Upload prompt
+              <label className="stylist-upload-zone">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleStylistPhotoUpload}
+                  style={{ display: 'none' }}
+                />
+                <div className="stylist-upload-icon">
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </div>
+                <p className="stylist-upload-label">Upload your photo</p>
+                <p className="stylist-upload-hint">AI will analyze your features and style outfits specifically for you</p>
+              </label>
+            ) : (
+              // Photo uploaded — show preview + analysis
+              <div className="stylist-photo-row">
+                {/* Photo preview */}
+                <div className="stylist-photo-preview-wrap">
+                  <img src={stylistPhotoPreview} alt="Your photo" className="stylist-photo-preview" />
+                  <button className="stylist-photo-remove" onClick={removeStylistPhoto} title="Remove photo">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                      <path d="M18 6L6 18M6 6l12 12" strokeWidth="2.5" strokeLinecap="round"/>
+                    </svg>
+                  </button>
+                </div>
+
+                {/* Analysis panel */}
+                <div className="stylist-analysis-panel">
+                  {!stylistAnalysis && !analyzingPhoto && (
+                    <div className="stylist-cta">
+                      <p className="stylist-cta-text">Ready to analyze your features and generate personalized outfit boards.</p>
+                      <button
+                        className="btn-stylist-analyze"
+                        onClick={analyzeStylistPhoto}
+                      >
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                          <circle cx="11" cy="11" r="8" strokeWidth="2"/>
+                          <path d="M21 21l-4.35-4.35" strokeWidth="2" strokeLinecap="round"/>
+                        </svg>
+                        Analyze My Style
+                      </button>
+                    </div>
+                  )}
+
+                  {analyzingPhoto && (
+                    <div className="stylist-analyzing">
+                      <div className="spinner"></div>
+                      <p>Analyzing your features, skin tone, and body proportions...</p>
+                    </div>
+                  )}
+
+                  {stylistAnalysis && !analyzingPhoto && (
+                    <div className="stylist-analysis-result">
+                      <div className="stylist-analysis-header">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#a78bfa">
+                          <polyline points="20 6 9 17 4 12" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                        <span>Style profile ready</span>
+                      </div>
+                      <p className="stylist-analysis-text">{stylistAnalysis}</p>
+                      <button
+                        className="btn-stylist-generate"
+                        onClick={generatePersonalizedOutfits}
+                        disabled={generatingPersonalized}
+                      >
+                        {generatingPersonalized ? (
+                          <>
+                            <div className="button-spinner"></div>
+                            Styling your outfits...
+                          </>
+                        ) : (
+                          <>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                              <circle cx="12" cy="12" r="3" strokeWidth="2"/>
+                              <path d="M12 1v6m0 6v6M4.22 4.22l4.24 4.24m5.08 5.08l4.24 4.24M1 12h6m6 0h6M4.22 19.78l4.24-4.24m5.08-5.08l4.24-4.24" strokeWidth="2" strokeLinecap="round"/>
+                            </svg>
+                            Generate My Outfit Boards
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
 
         {/* Weather Widget */}
         {weather && !loadingWeather && (
@@ -693,7 +933,6 @@ function VirtualWardrobe() {
                         </label>
                       </div>
 
-                      {/* Subcategory breakdown (only shown if items exist) */}
                       {wardrobe[cat.id].length > 0 && (
                         <div className="subcategory-tabs">
                           {CATEGORY_STRUCTURE[cat.id].subcategories
@@ -788,7 +1027,13 @@ function VirtualWardrobe() {
           {/* OUTFITS TAB */}
           {activeTab === 'outfits' && (
             <div className="outfits-view">
-              {generatedOutfits.length === 0 ? (
+              {generatingPersonalized ? (
+                <div className="empty-state">
+                  <div className="spinner" style={{width: '56px', height: '56px', marginBottom: '1.5rem'}}></div>
+                  <h3>Styling your outfits...</h3>
+                  <p>AI is selecting combinations from your wardrobe based on your features and style profile.</p>
+                </div>
+              ) : generatedOutfits.length === 0 ? (
                 <div className="empty-state">
                   <div className="empty-icon">
                     <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -797,7 +1042,7 @@ function VirtualWardrobe() {
                     </svg>
                   </div>
                   <h3>No Outfits Yet</h3>
-                  <p>Generate AI-powered outfit combinations from your wardrobe</p>
+                  <p>Upload your photo above to get AI-styled outfit boards, or generate basic combinations from your wardrobe.</p>
                   <button className="btn-primary" onClick={() => setActiveTab('closet')}>
                     Go to My Closet
                   </button>
@@ -806,10 +1051,17 @@ function VirtualWardrobe() {
                 <>
                   <div className="outfits-header">
                     <div>
-                      <h2 className="outfits-title">AI-Generated Combinations</h2>
-                      <p className="outfits-subtitle">Perfectly matched outfits from your wardrobe</p>
+                      <h2 className="outfits-title">
+                        {stylistAnalysis ? 'Your Personalized Outfit Boards' : 'AI-Generated Combinations'}
+                      </h2>
+                      <p className="outfits-subtitle">
+                        {stylistAnalysis
+                          ? 'Styled specifically for your features, skin tone, and body proportions'
+                          : 'Perfectly matched outfits from your wardrobe'
+                        }
+                      </p>
                     </div>
-                    <button className="btn-refresh" onClick={generateOutfits}>
+                    <button className="btn-refresh" onClick={stylistAnalysis ? generatePersonalizedOutfits : generateOutfits}>
                       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                         <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0118.8-4.3M22 12.5a10 10 0 01-18.8 4.2" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                       </svg>
@@ -817,57 +1069,110 @@ function VirtualWardrobe() {
                     </button>
                   </div>
 
-                  <div className="outfits-grid">
+                  {/* ─── Pinterest-style outfit boards ─── */}
+                  <div className="pinterest-grid">
                     {generatedOutfits.map((outfit, index) => (
-                      <div key={outfit.id} className="outfit-card">
-                        <div className="outfit-header">
-                          <span className="outfit-number">#{index + 1}</span>
-                          <span className="outfit-occasion">{outfit.occasion}</span>
-                        </div>
+                      <div key={outfit.id} className="pinterest-card">
                         
-                        <div className="outfit-items">
+                        {/* Card header */}
+                        <div className="pinterest-card-header">
+                          <div className="pinterest-card-meta">
+                            <span className="pinterest-outfit-num">Look {index + 1}</span>
+                            <span className="pinterest-occasion-badge">{outfit.occasion}</span>
+                          </div>
+                        </div>
+
+                        {/* User photo mannequin (if uploaded) */}
+                        {stylistPhotoPreview && (
+                          <div className="pinterest-mannequin">
+                            <img src={stylistPhotoPreview} alt="You" className="mannequin-photo" />
+                            <div className="mannequin-overlay">
+                              <span>Styled for you</span>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Outfit flat lay grid */}
+                        <div className="pinterest-flatlay">
+                          {/* Main top item — large */}
                           {outfit.top && (
-                            <div className="outfit-item">
-                              <img src={outfit.top.image_data} alt="Top" />
-                              <span className="outfit-item-label">
-                                {outfit.top.subcategory || 'Top'}
-                              </span>
+                            <div className="flatlay-item flatlay-item--top">
+                              <img src={outfit.top.image_data} alt={outfit.top.name} />
+                              <span className="flatlay-label">{outfit.top.subcategory || 'Top'}</span>
                             </div>
                           )}
+
+                          {/* Layer 2 (second layer, e.g. hoodie/cardigan) */}
+                          {outfit.layer2 && (
+                            <div className="flatlay-item flatlay-item--layer2">
+                              <img src={outfit.layer2.image_data} alt={outfit.layer2.name} />
+                              <span className="flatlay-label">{outfit.layer2.subcategory || 'Layer'}</span>
+                            </div>
+                          )}
+
+                          {/* Bottom */}
                           {outfit.bottom && (
-                            <div className="outfit-item">
-                              <img src={outfit.bottom.image_data} alt="Bottom" />
-                              <span className="outfit-item-label">
-                                {outfit.bottom.subcategory || 'Bottom'}
-                              </span>
+                            <div className="flatlay-item flatlay-item--bottom">
+                              <img src={outfit.bottom.image_data} alt={outfit.bottom.name} />
+                              <span className="flatlay-label">{outfit.bottom.subcategory || 'Bottom'}</span>
                             </div>
                           )}
+
+                          {/* Shoes */}
                           {outfit.shoes && (
-                            <div className="outfit-item">
-                              <img src={outfit.shoes.image_data} alt="Shoes" />
-                              <span className="outfit-item-label">
-                                {outfit.shoes.subcategory || 'Shoes'}
-                              </span>
+                            <div className="flatlay-item flatlay-item--shoes">
+                              <img src={outfit.shoes.image_data} alt={outfit.shoes.name} />
+                              <span className="flatlay-label">{outfit.shoes.subcategory || 'Shoes'}</span>
                             </div>
                           )}
+
+                          {/* Outerwear */}
                           {outfit.outerwear && (
-                            <div className="outfit-item">
-                              <img src={outfit.outerwear.image_data} alt="Outerwear" />
-                              <span className="outfit-item-label">
-                                {outfit.outerwear.subcategory || 'Outerwear'}
-                              </span>
+                            <div className="flatlay-item flatlay-item--outerwear">
+                              <img src={outfit.outerwear.image_data} alt={outfit.outerwear.name} />
+                              <span className="flatlay-label">{outfit.outerwear.subcategory || 'Outerwear'}</span>
                             </div>
                           )}
+
+                          {/* Accessory */}
                           {outfit.accessory && (
-                            <div className="outfit-item">
-                              <img src={outfit.accessory.image_data} alt="Accessory" />
-                              <span className="outfit-item-label">
-                                {outfit.accessory.subcategory || 'Accessory'}
-                              </span>
+                            <div className="flatlay-item flatlay-item--accessory">
+                              <img src={outfit.accessory.image_data} alt={outfit.accessory.name} />
+                              <span className="flatlay-label">{outfit.accessory.subcategory || 'Accessory'}</span>
                             </div>
                           )}
                         </div>
 
+                        {/* AI style notes (only when personalized) */}
+                        {outfit.styleNote && (
+                          <div className="pinterest-style-notes">
+                            <div className="style-note">
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a78bfa">
+                                <path d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z" strokeWidth="2" strokeLinecap="round"/>
+                              </svg>
+                              <span>{outfit.styleNote}</span>
+                            </div>
+                            {outfit.colorStory && (
+                              <div className="style-note style-note--color">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#d4af37">
+                                  <circle cx="12" cy="12" r="10" strokeWidth="2"/>
+                                  <path d="M12 8v4l3 3" strokeWidth="2" strokeLinecap="round"/>
+                                </svg>
+                                <span>{outfit.colorStory}</span>
+                              </div>
+                            )}
+                            {outfit.layeringNote && (
+                              <div className="style-note style-note--layering">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#67e8f9">
+                                  <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                </svg>
+                                <span>{outfit.layeringNote}</span>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Action button */}
                         <button className="btn-rate-outfit" onClick={() => navigate('/rate')}>
                           Rate This Outfit
                           <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor">
@@ -890,9 +1195,7 @@ function VirtualWardrobe() {
           <div className="upload-modal" onClick={(e) => e.stopPropagation()}>
             <div className="upload-modal-header">
               <h2>Add {CATEGORY_STRUCTURE[uploadingCategory]?.name}</h2>
-              <button className="modal-close-btn" onClick={() => setShowUploadModal(false)}>
-                ✕
-              </button>
+              <button className="modal-close-btn" onClick={() => setShowUploadModal(false)}>✕</button>
             </div>
 
             <div className="upload-modal-content">
@@ -903,7 +1206,6 @@ function VirtualWardrobe() {
               )}
 
               <div className="upload-form">
-                {/* Subcategory selector */}
                 <div className="form-group">
                   <label>Type *</label>
                   <select
@@ -939,7 +1241,6 @@ function VirtualWardrobe() {
                       className="form-input"
                     />
                   </div>
-
                   <div className="form-group">
                     <label>Brand</label>
                     <input
@@ -954,32 +1255,20 @@ function VirtualWardrobe() {
               </div>
 
               <div className="upload-modal-actions">
-                <button 
-                  className="btn-secondary"
-                  onClick={() => setShowUploadModal(false)}
-                  disabled={!!uploadingFile}
-                >
+                <button className="btn-secondary" onClick={() => setShowUploadModal(false)} disabled={!!uploadingFile}>
                   Cancel
                 </button>
-                <button 
-                  className="btn-primary"
-                  onClick={confirmUpload}
-                  disabled={!itemName.trim() || !!uploadingFile}
-                >
+                <button className="btn-primary" onClick={confirmUpload} disabled={!itemName.trim() || !!uploadingFile}>
                   {uploadingFile ? (
-                    <>
-                      <div className="button-spinner"></div>
-                      Uploading...
-                    </>
-                  ) : (
-                    'Add to Wardrobe'
-                  )}
+                    <><div className="button-spinner"></div>Uploading...</>
+                  ) : 'Add to Wardrobe'}
                 </button>
               </div>
             </div>
           </div>
         </div>
       )}
+
       {/* MOVE ITEM MODAL */}
       {showMoveModal && movingItem && (
         <div className="modal-overlay" onClick={() => setShowMoveModal(false)}>
@@ -989,13 +1278,10 @@ function VirtualWardrobe() {
                 <h2>Move Item</h2>
                 <p className="move-modal-subtitle">{movingItem.name}</p>
               </div>
-              <button className="modal-close-btn" onClick={() => setShowMoveModal(false)}>
-                ✕
-              </button>
+              <button className="modal-close-btn" onClick={() => setShowMoveModal(false)}>✕</button>
             </div>
 
             <div className="upload-modal-content">
-              {/* Preview */}
               <div className="move-preview">
                 <img src={movingItem.image_data} alt={movingItem.name} className="move-preview-image" />
                 <div className="move-preview-info">
@@ -1030,7 +1316,6 @@ function VirtualWardrobe() {
                     ))}
                   </select>
                 </div>
-
                 <div className="form-group">
                   <label>Subcategory</label>
                   <select
@@ -1046,30 +1331,12 @@ function VirtualWardrobe() {
               </div>
 
               <div className="upload-modal-actions">
-                <button
-                  className="btn-secondary"
-                  onClick={() => setShowMoveModal(false)}
-                  disabled={movingSaving}
-                >
-                  Cancel
-                </button>
-                <button
-                  className="btn-primary"
-                  onClick={confirmMove}
-                  disabled={movingSaving}
-                >
+                <button className="btn-secondary" onClick={() => setShowMoveModal(false)} disabled={movingSaving}>Cancel</button>
+                <button className="btn-primary" onClick={confirmMove} disabled={movingSaving}>
                   {movingSaving ? (
-                    <>
-                      <div className="button-spinner"></div>
-                      Moving...
-                    </>
+                    <><div className="button-spinner"></div>Moving...</>
                   ) : (
-                    <>
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path d="M5 12h14M12 5l7 7-7 7" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                      Move Item
-                    </>
+                    <><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 12h14M12 5l7 7-7 7" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>Move Item</>
                   )}
                 </button>
               </div>

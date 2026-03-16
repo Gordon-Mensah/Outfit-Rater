@@ -49,7 +49,6 @@ app.post('/api/stripe-webhook', express.raw({ type: 'application/json' }), async
 
         console.log(`✅ Payment successful for user ${userId}`);
 
-        // Update user's subscription to premium using the user_id column
         const { data, error } = await supabase
           .from('subscriptions')
           .update({ 
@@ -63,7 +62,6 @@ app.post('/api/stripe-webhook', express.raw({ type: 'application/json' }), async
 
         if (error) {
           console.error('❌ Error updating subscription:', error);
-          // If record doesn't exist, insert it
           const { error: insertError } = await supabase
             .from('subscriptions')
             .insert({ 
@@ -91,7 +89,6 @@ app.post('/api/stripe-webhook', express.raw({ type: 'application/json' }), async
 
         console.log(`🔄 Subscription updated: ${subscription.id} - ${status}`);
 
-        // Find user by customer ID stored in metadata
         const customer = await stripe.customers.retrieve(subscription.customer);
         const userId = customer.metadata?.userId;
 
@@ -112,7 +109,6 @@ app.post('/api/stripe-webhook', express.raw({ type: 'application/json' }), async
         
         console.log(`❌ Subscription cancelled: ${subscription.id}`);
 
-        // Find user by customer ID stored in metadata
         const customer = await stripe.customers.retrieve(subscription.customer);
         const userId = customer.metadata?.userId;
 
@@ -131,7 +127,6 @@ app.post('/api/stripe-webhook', express.raw({ type: 'application/json' }), async
       case 'invoice.payment_succeeded': {
         const invoice = event.data.object;
         console.log(`💰 Payment succeeded: ${invoice.id}`);
-        // Subscription is already active, just log
         break;
       }
 
@@ -139,7 +134,6 @@ app.post('/api/stripe-webhook', express.raw({ type: 'application/json' }), async
         const invoice = event.data.object;
         console.log(`⚠️ Payment failed: ${invoice.id}`);
         
-        // Find user and update to past_due
         const customer = await stripe.customers.retrieve(invoice.customer);
         const userId = customer.metadata?.userId;
 
@@ -170,7 +164,7 @@ app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
-// ✅ Content Security Policy - allows weather APIs, Google Maps, and all required services
+// ✅ Content Security Policy
 app.use((req, res, next) => {
   res.setHeader(
     'Content-Security-Policy',
@@ -201,8 +195,6 @@ app.get('/api/ping', (req, res) => {
 });
 
 // 🗺️ Geocoding proxy - uses OpenStreetMap Nominatim (free, no API key needed)
-// The browser calls /api/geocode (same origin, always allowed),
-// and the server calls Nominatim — no CSP issues and no billing required.
 app.get('/api/geocode', async (req, res) => {
   try {
     const { lat, lng } = req.query;
@@ -219,7 +211,6 @@ app.get('/api/geocode', async (req, res) => {
     });
     const data = await response.json();
 
-    // Extract city from Nominatim response
     const city = data.address?.city || data.address?.town || data.address?.village || data.address?.county;
 
     if (!city) {
@@ -229,7 +220,6 @@ app.get('/api/geocode', async (req, res) => {
 
     console.log(`✅ Geocoding result: ${city}`);
 
-    // Format response to match Google Maps structure that StyleContext.jsx expects
     res.json({
       status: 'OK',
       results: [{
@@ -241,6 +231,130 @@ app.get('/api/geocode', async (req, res) => {
   } catch (error) {
     console.error('❌ Geocoding proxy error:', error);
     res.status(500).json({ error: 'Geocoding request failed', details: error.message });
+  }
+});
+
+// 👗 AI Stylist: Analyze user's photo
+// Analyzes the person's features, skin tone, body proportions, and style
+app.post('/api/analyze-style-photo', async (req, res) => {
+  try {
+    const { image } = req.body;
+
+    if (!image) {
+      return res.status(400).json({ error: 'Missing image' });
+    }
+
+    console.log('👗 Analyzing style photo...');
+
+    const completion = await groq.chat.completions.create({
+      messages: [{
+        role: 'user',
+        content: [
+          {
+            type: 'text',
+            text: `You are a professional personal stylist. Analyze this person's photo and provide a concise style profile in 2-3 sentences covering:
+- Their skin tone (warm/cool/neutral undertones)
+- Their body proportions or silhouette type
+- Any visible style preferences or aesthetic you can infer
+
+Keep it positive, constructive, and focused on what clothing styles, colors, and fits would look best on them. Do not mention any personal identifiers. Be specific and actionable.`
+          },
+          {
+            type: 'image_url',
+            image_url: { url: image }
+          }
+        ]
+      }],
+      model: 'meta-llama/llama-4-scout-17b-16e-instruct',
+      temperature: 0.6,
+      max_tokens: 300
+    });
+
+    const analysis = completion.choices[0]?.message?.content || '';
+    console.log('✅ Style photo analyzed');
+
+    res.json({ analysis });
+  } catch (error) {
+    console.error('❌ Style photo analysis error:', error);
+    res.status(500).json({ error: 'Failed to analyze photo', details: error.message });
+  }
+});
+
+// 👔 AI Stylist: Generate personalized outfit combinations
+// Uses the wardrobe items + style analysis to pick the best combinations
+app.post('/api/generate-styled-outfits', async (req, res) => {
+  try {
+    const { wardrobeSummary, stylistAnalysis, weather } = req.body;
+
+    if (!wardrobeSummary || !Array.isArray(wardrobeSummary)) {
+      return res.status(400).json({ error: 'Missing wardrobeSummary' });
+    }
+
+    console.log('✨ Generating personalized outfit combinations...');
+
+    // Build a text summary of available items for the AI
+    const wardrobeText = wardrobeSummary.map(({ category, items }) =>
+      `${category.toUpperCase()}:\n${items.map(i => `  - ID: ${i.id} | Name: ${i.name} | Color: ${i.color || 'unknown'} | Type: ${i.subcategory || 'general'}`).join('\n')}`
+    ).join('\n\n');
+
+    const prompt = `You are a professional stylist. Based on the following wardrobe and style profile, create 5 complete outfit combinations.
+
+PERSON'S STYLE PROFILE:
+${stylistAnalysis || 'No style profile provided — create generally flattering combinations.'}
+
+${weather ? `WEATHER: ${weather}` : ''}
+
+AVAILABLE WARDROBE ITEMS:
+${wardrobeText}
+
+Create 5 outfit combinations. For each outfit, respond ONLY with a JSON array (no markdown, no explanation) in this exact format:
+[
+  {
+    "occasion": "Casual",
+    "topId": "item-id-here",
+    "bottomId": "item-id-here",
+    "shoesId": "item-id-here",
+    "outerwearId": null,
+    "accessoryId": null,
+    "layer2Id": null,
+    "styleNote": "Why this outfit works for this person specifically",
+    "colorStory": "How the colors work together",
+    "layeringNote": "Layering tip if applicable, otherwise null"
+  }
+]
+
+Rules:
+- Only use item IDs that exist in the wardrobe above
+- If a category has no items, set that field to null
+- layer2Id is for a second top layer (e.g. hoodie under jacket, shirt under cardigan) — only use if it genuinely improves the outfit
+- styleNote should reference the person's specific features from their style profile
+- Occasions should vary: mix Casual, Work, Date Night, Night Out, Weekend
+- Respond with ONLY the JSON array, nothing else`;
+
+    const completion = await groq.chat.completions.create({
+      messages: [{ role: 'user', content: prompt }],
+      model: 'meta-llama/llama-4-scout-17b-16e-instruct',
+      temperature: 0.7,
+      max_tokens: 1500
+    });
+
+    const responseText = completion.choices[0]?.message?.content || '[]';
+
+    let outfits = [];
+    try {
+      const cleaned = responseText.replace(/```json|```/g, '').trim();
+      outfits = JSON.parse(cleaned);
+    } catch (parseErr) {
+      console.error('❌ Failed to parse outfit JSON:', parseErr);
+      outfits = [];
+    }
+
+    console.log(`✅ Generated ${outfits.length} personalized outfits`);
+    res.json({ outfits });
+
+  } catch (error) {
+    console.error('❌ Generate styled outfits error:', error);
+    res.status(500).json({ error: 'Failed to generate outfits', details: error.message });
   }
 });
 
@@ -462,7 +576,6 @@ app.post('/api/create-portal-session', async (req, res) => {
       return res.status(400).json({ error: 'Missing userId' });
     }
 
-    // Get user's subscription to find their Stripe customer ID
     const { data: subscription, error } = await supabase
       .from('subscriptions')
       .select('*')
@@ -473,8 +586,6 @@ app.post('/api/create-portal-session', async (req, res) => {
       return res.status(404).json({ error: 'No subscription found' });
     }
 
-    // For now, return error since we don't have customer_id stored
-    // You'll need to store stripe_customer_id to use the portal
     return res.status(400).json({ 
       error: 'Customer portal not available. Please contact support.' 
     });
@@ -507,4 +618,5 @@ app.listen(PORT, () => {
   console.log(`🔔 Webhook endpoint: /api/stripe-webhook`);
   console.log(`🏓 Ping endpoint: /api/ping`);
   console.log(`🗺️ Geocoding proxy: /api/geocode (OpenStreetMap Nominatim - free)`);
+  console.log(`👗 AI Stylist: /api/analyze-style-photo + /api/generate-styled-outfits`);
 });
