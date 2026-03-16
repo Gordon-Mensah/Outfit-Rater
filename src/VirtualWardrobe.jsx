@@ -442,10 +442,13 @@ function VirtualWardrobe() {
     const file = e.target.files?.[0]
     if (!file) return
 
+    console.log('📸 Stylist photo selected:', file.name)
+
     const reader = new FileReader()
-    reader.onloadend = () => {
-      setStylistPhoto(reader.result)
-      setStylistPhotoPreview(reader.result)
+    reader.onload = (event) => {
+      console.log('📸 Photo loaded, setting preview...')
+      setStylistPhoto(event.target.result)
+      setStylistPhotoPreview(event.target.result)
       setStylistAnalysis(null)
       setGeneratedOutfits([])
     }
