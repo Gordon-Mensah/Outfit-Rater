@@ -6,6 +6,8 @@
   right: 30px;
   width: 70px;
   height: 70px;
+  min-width: 48px;
+  min-height: 48px;
   border-radius: 50%;
   border: none;
   cursor: pointer;
@@ -33,6 +35,11 @@
 .floating-chat-bubble:hover {
   transform: scale(1.1);
   box-shadow: 0 6px 30px rgba(0, 0, 0, 0.4);
+}
+
+.floating-chat-bubble:focus {
+  outline: 2px solid #667eea;
+  outline-offset: 2px;
 }
 
 .floating-chat-bubble:active {
@@ -78,14 +85,14 @@
   .floating-chat-bubble {
     width: 60px;
     height: 60px;
+    min-width: 44px;
+    min-height: 44px;
     bottom: 20px;
     right: 20px;
   }
-  
   .chat-icon {
     font-size: 20px;
   }
-  
   .chat-text {
     font-size: 9px;
   }

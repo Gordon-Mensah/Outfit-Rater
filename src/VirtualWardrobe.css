@@ -1293,6 +1293,8 @@
 
 .expand-btn {
   padding: 0.75rem 1.5rem;
+  min-width: 44px;
+  min-height: 44px;
   background: linear-gradient(135deg, #667eea, #764ba2);
   color: white;
   border: none;
@@ -1565,6 +1567,8 @@
 
 .rec-action-btn {
   padding: 0.75rem 1.5rem;
+  min-width: 44px;
+  min-height: 44px;
   background: linear-gradient(135deg, #667eea, #764ba2);
   color: white;
   border: none;

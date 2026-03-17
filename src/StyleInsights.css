@@ -2,6 +2,8 @@
 
 .style-insights-container {
   margin: 2rem 0;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 /* ===== COMPACT VIEW ===== */
@@ -25,12 +27,15 @@
   display: flex;
   align-items: center;
   gap: 1.5rem;
+  flex-wrap: wrap;
 }
 
 .insight-icon {
   font-size: 3rem;
   flex-shrink: 0;
   animation: float 3s ease-in-out infinite;
+  min-width: 44px;
+  min-height: 44px;
 }
 
 @keyframes float {
@@ -58,6 +63,8 @@
 
 .expand-btn {
   padding: 0.75rem 1.5rem;
+  min-width: 44px;
+  min-height: 44px;
   background: linear-gradient(135deg, #667eea, #764ba2);
   color: white;
   border: none;
@@ -134,9 +141,9 @@
 }
 
 .close-btn {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
   color: rgba(255, 255, 255, 0.8);
@@ -200,7 +207,7 @@
 
 .activity-stats {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
   gap: 1rem;
 }
 
@@ -233,8 +240,8 @@
 /* Color Grid */
 .color-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 1.25rem;
 }
 
 .color-group h4 {
@@ -274,8 +281,8 @@
 /* DNA Cards */
 .dna-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.75rem;
 }
 
 .dna-card {
@@ -347,6 +354,8 @@
 
 .rec-action-btn {
   padding: 0.75rem 1.5rem;
+  min-width: 44px;
+  min-height: 44px;
   background: linear-gradient(135deg, #667eea, #764ba2);
   color: white;
   border: none;
@@ -380,7 +389,7 @@
 /* ===== RESPONSIVE ===== */
 @media (max-width: 768px) {
   .style-insights-compact {
-    padding: 1.25rem;
+    padding: 1rem;
   }
 
   .insight-header {
@@ -390,7 +399,7 @@
   }
 
   .insight-icon {
-    font-size: 2.5rem;
+    font-size: 2.2rem;
   }
 
   .expand-btn {
@@ -399,7 +408,7 @@
   }
 
   .style-insights-full {
-    padding: 1.5rem;
+    padding: 1rem;
   }
 
   .insights-header-full {
@@ -412,7 +421,7 @@
   }
 
   .activity-stats {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: 1fr;
   }
 
   .dna-grid {
@@ -422,6 +431,7 @@
   .recommendation-card {
     flex-direction: column;
     align-items: flex-start;
+    width: 100%;
   }
 
   .rec-action-btn {
@@ -431,18 +441,22 @@
 
 @media (max-width: 480px) {
   .insight-content h4 {
-    font-size: 1.1rem;
+    font-size: 1rem;
   }
 
   .insight-content p {
-    font-size: 0.95rem;
+    font-size: 0.9rem;
   }
 
   .insights-header-full h2 {
-    font-size: 1.5rem;
+    font-size: 1.2rem;
   }
 
   .color-grid {
     grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+  .recommendation-card {
+    padding: 0.75rem;
   }
 }
