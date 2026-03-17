@@ -40,18 +40,18 @@ app.post('/api/stripe-webhook', express.raw({ type: 'application/json' }), async
       process.env.STRIPE_WEBHOOK_SECRET
     );
 
-    console.log('🔔 Webhook received:', event.type);
+    console.log('Webhook received:', event.type);
 
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object;
         const userId = session.metadata.userId || session.client_reference_id;
 
-        console.log(`✅ Payment successful for user ${userId}`);
+        console.log(`Payment successful for user ${userId}`);
 
         const { data, error } = await supabase
           .from('subscriptions')
-          .update({ 
+          .update({
             status: 'active',
             plan: 'premium',
             stripe_customer_id: session.customer,
@@ -61,24 +61,24 @@ app.post('/api/stripe-webhook', express.raw({ type: 'application/json' }), async
           .select();
 
         if (error) {
-          console.error('❌ Error updating subscription:', error);
+          console.error('Error updating subscription:', error);
           const { error: insertError } = await supabase
             .from('subscriptions')
-            .insert({ 
+            .insert({
               user_id: userId,
               status: 'active',
               plan: 'premium',
               stripe_customer_id: session.customer,
               stripe_subscription_id: session.subscription
             });
-          
+
           if (insertError) {
-            console.error('❌ Error inserting subscription:', insertError);
+            console.error('Error inserting subscription:', insertError);
           } else {
-            console.log(`🎉 Created new premium subscription for user ${userId}`);
+            console.log(`Created new premium subscription for user ${userId}`);
           }
         } else {
-          console.log(`🎉 User ${userId} upgraded to premium`, data);
+          console.log(`User ${userId} upgraded to premium`, data);
         }
         break;
       }
@@ -87,7 +87,7 @@ app.post('/api/stripe-webhook', express.raw({ type: 'application/json' }), async
         const subscription = event.data.object;
         const status = subscription.status === 'active' ? 'active' : 'inactive';
 
-        console.log(`🔄 Subscription updated: ${subscription.id} - ${status}`);
+        console.log(`Subscription updated: ${subscription.id} - ${status}`);
 
         const customer = await stripe.customers.retrieve(subscription.customer);
         const userId = customer.metadata?.userId;
@@ -95,7 +95,7 @@ app.post('/api/stripe-webhook', express.raw({ type: 'application/json' }), async
         if (userId) {
           await supabase
             .from('subscriptions')
-            .update({ 
+            .update({
               status: status,
               plan: status === 'active' ? 'premium' : 'free'
             })
@@ -106,8 +106,8 @@ app.post('/api/stripe-webhook', express.raw({ type: 'application/json' }), async
 
       case 'customer.subscription.deleted': {
         const subscription = event.data.object;
-        
-        console.log(`❌ Subscription cancelled: ${subscription.id}`);
+
+        console.log(`Subscription cancelled: ${subscription.id}`);
 
         const customer = await stripe.customers.retrieve(subscription.customer);
         const userId = customer.metadata?.userId;
@@ -115,7 +115,7 @@ app.post('/api/stripe-webhook', express.raw({ type: 'application/json' }), async
         if (userId) {
           await supabase
             .from('subscriptions')
-            .update({ 
+            .update({
               status: 'cancelled',
               plan: 'free'
             })
@@ -126,35 +126,33 @@ app.post('/api/stripe-webhook', express.raw({ type: 'application/json' }), async
 
       case 'invoice.payment_succeeded': {
         const invoice = event.data.object;
-        console.log(`💰 Payment succeeded: ${invoice.id}`);
+        console.log(`Payment succeeded: ${invoice.id}`);
         break;
       }
 
       case 'invoice.payment_failed': {
         const invoice = event.data.object;
-        console.log(`⚠️ Payment failed: ${invoice.id}`);
-        
+        console.log(`Payment failed: ${invoice.id}`);
+
         const customer = await stripe.customers.retrieve(invoice.customer);
         const userId = customer.metadata?.userId;
 
         if (userId) {
           await supabase
             .from('subscriptions')
-            .update({ 
-              status: 'past_due'
-            })
+            .update({ status: 'past_due' })
             .eq('user_id', userId);
         }
         break;
       }
 
       default:
-        console.log(`ℹ️ Unhandled event type: ${event.type}`);
+        console.log(`Unhandled event type: ${event.type}`);
     }
 
     res.json({ received: true });
   } catch (err) {
-    console.error('❌ Webhook Error:', err.message);
+    console.error('Webhook Error:', err.message);
     res.status(400).send(`Webhook Error: ${err.message}`);
   }
 });
@@ -165,16 +163,18 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // ✅ Content Security Policy
+// - Google Fonts added to style-src and font-src
+// - Weather APIs added to connect-src
 app.use((req, res, next) => {
   res.setHeader(
     'Content-Security-Policy',
     [
       "default-src 'self'",
       "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://maps.googleapis.com",
-      "style-src 'self' 'unsafe-inline'",
-      "img-src 'self' data: blob: https: https://maps.gstatic.com",
-      "font-src 'self' data:",
-      "connect-src 'self' https://api.anthropic.com https://*.supabase.co wss://*.supabase.co https://js.stripe.com https://r.stripe.com https://api.stripe.com https://outfitrater.xyz https://*.outfitrater.xyz https://api.openweathermap.org https://api.open-meteo.com https://maps.googleapis.com",
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+      "img-src 'self' data: blob: https:",
+      "font-src 'self' data: https://fonts.gstatic.com",
+      "connect-src 'self' https://api.anthropic.com https://*.supabase.co wss://*.supabase.co https://js.stripe.com https://r.stripe.com https://api.stripe.com https://outfitrater.xyz https://*.outfitrater.xyz https://api.openweathermap.org https://api.open-meteo.com https://maps.googleapis.com https://nominatim.openstreetmap.org",
       "frame-src https://js.stripe.com https://hooks.stripe.com",
       "worker-src 'self' blob:"
     ].join('; ')
@@ -184,9 +184,9 @@ app.use((req, res, next) => {
 
 // API Routes
 
-// ⭐ Ping endpoint to keep Render service alive
+// Ping endpoint to keep Render service alive
 app.get('/api/ping', (req, res) => {
-  console.log('🏓 Ping received at:', new Date().toISOString());
+  console.log('Ping received at:', new Date().toISOString());
   res.json({
     status: 'ok',
     timestamp: new Date().toISOString(),
@@ -194,7 +194,7 @@ app.get('/api/ping', (req, res) => {
   });
 });
 
-// 🗺️ Geocoding proxy - uses OpenStreetMap Nominatim (free, no API key needed)
+// Geocoding proxy - uses OpenStreetMap Nominatim (free, no API key needed)
 app.get('/api/geocode', async (req, res) => {
   try {
     const { lat, lng } = req.query;
@@ -203,7 +203,7 @@ app.get('/api/geocode', async (req, res) => {
       return res.status(400).json({ error: 'Missing lat or lng query parameters' });
     }
 
-    console.log(`🗺️ Geocoding request: ${lat}, ${lng}`);
+    console.log(`Geocoding request: ${lat}, ${lng}`);
 
     const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`;
     const response = await fetch(url, {
@@ -211,31 +211,36 @@ app.get('/api/geocode', async (req, res) => {
     });
     const data = await response.json();
 
-    const city = data.address?.city || data.address?.town || data.address?.village || data.address?.county;
+    const city =
+      data.address?.city ||
+      data.address?.town ||
+      data.address?.village ||
+      data.address?.county;
 
     if (!city) {
-      console.log(`⚠️ No city found in geocoding response`);
+      console.log('No city found in geocoding response');
       return res.json({ status: 'ZERO_RESULTS', results: [] });
     }
 
-    console.log(`✅ Geocoding result: ${city}`);
+    console.log(`Geocoding result: ${city}`);
 
     res.json({
       status: 'OK',
-      results: [{
-        address_components: [
-          { long_name: city, types: ['locality'] }
-        ]
-      }]
+      results: [
+        {
+          address_components: [
+            { long_name: city, types: ['locality'] }
+          ]
+        }
+      ]
     });
   } catch (error) {
-    console.error('❌ Geocoding proxy error:', error);
+    console.error('Geocoding proxy error:', error);
     res.status(500).json({ error: 'Geocoding request failed', details: error.message });
   }
 });
 
-// 👗 AI Stylist: Analyze user's photo
-// Analyzes the person's features, skin tone, body proportions, and style
+// AI Stylist: Analyze user's photo
 app.post('/api/analyze-style-photo', async (req, res) => {
   try {
     const { image } = req.body;
@@ -244,7 +249,7 @@ app.post('/api/analyze-style-photo', async (req, res) => {
       return res.status(400).json({ error: 'Missing image' });
     }
 
-    console.log('👗 Analyzing style photo...');
+    console.log('Analyzing style photo...');
 
     const completion = await groq.chat.completions.create({
       messages: [{
@@ -271,17 +276,16 @@ Keep it positive, constructive, and focused on what clothing styles, colors, and
     });
 
     const analysis = completion.choices[0]?.message?.content || '';
-    console.log('✅ Style photo analyzed');
+    console.log('Style photo analyzed');
 
     res.json({ analysis });
   } catch (error) {
-    console.error('❌ Style photo analysis error:', error);
+    console.error('Style photo analysis error:', error);
     res.status(500).json({ error: 'Failed to analyze photo', details: error.message });
   }
 });
 
-// 👔 AI Stylist: Generate personalized outfit combinations
-// Uses the wardrobe items + style analysis to pick the best combinations
+// AI Stylist: Generate personalized outfit combinations
 app.post('/api/generate-styled-outfits', async (req, res) => {
   try {
     const { wardrobeSummary, stylistAnalysis, weather } = req.body;
@@ -290,12 +294,18 @@ app.post('/api/generate-styled-outfits', async (req, res) => {
       return res.status(400).json({ error: 'Missing wardrobeSummary' });
     }
 
-    console.log('✨ Generating personalized outfit combinations...');
+    console.log('Generating personalized outfit combinations...');
 
-    // Build a text summary of available items for the AI
-    const wardrobeText = wardrobeSummary.map(({ category, items }) =>
-      `${category.toUpperCase()}:\n${items.map(i => `  - ID: ${i.id} | Name: ${i.name} | Color: ${i.color || 'unknown'} | Type: ${i.subcategory || 'general'}`).join('\n')}`
-    ).join('\n\n');
+    const wardrobeText = wardrobeSummary
+      .map(({ category, items }) =>
+        `${category.toUpperCase()}:\n${items
+          .map(
+            i =>
+              `  - ID: ${i.id} | Name: ${i.name} | Color: ${i.color || 'unknown'} | Type: ${i.subcategory || 'general'}`
+          )
+          .join('\n')}`
+      )
+      .join('\n\n');
 
     const prompt = `You are a professional stylist. Based on the following wardrobe and style profile, create 5 complete outfit combinations.
 
@@ -345,15 +355,14 @@ Rules:
       const cleaned = responseText.replace(/```json|```/g, '').trim();
       outfits = JSON.parse(cleaned);
     } catch (parseErr) {
-      console.error('❌ Failed to parse outfit JSON:', parseErr);
+      console.error('Failed to parse outfit JSON:', parseErr);
       outfits = [];
     }
 
-    console.log(`✅ Generated ${outfits.length} personalized outfits`);
+    console.log(`Generated ${outfits.length} personalized outfits`);
     res.json({ outfits });
-
   } catch (error) {
-    console.error('❌ Generate styled outfits error:', error);
+    console.error('Generate styled outfits error:', error);
     res.status(500).json({ error: 'Failed to generate outfits', details: error.message });
   }
 });
@@ -367,7 +376,7 @@ app.post('/api/rate-outfit', async (req, res) => {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    console.log(`🤖 Rating outfit for user ${userId} - ${occasion} - ${mode} mode`);
+    console.log(`Rating outfit for user ${userId} - ${occasion} - ${mode} mode`);
 
     const prompts = {
       helpful: `You are a supportive fashion advisor. Analyze this outfit for a ${occasion} occasion. Give a rating from 1-10 and provide encouraging, constructive feedback focusing on what works well and gentle suggestions for improvement.`,
@@ -390,16 +399,18 @@ app.post('/api/rate-outfit', async (req, res) => {
 
     const response = completion.choices[0]?.message?.content || '';
     const ratingMatch = response.match(/(\d+)\/10|rating[:\s]+(\d+)|score[:\s]+(\d+)/i);
-    const rating = ratingMatch ? parseInt(ratingMatch[1] || ratingMatch[2] || ratingMatch[3]) : 7;
+    const rating = ratingMatch
+      ? parseInt(ratingMatch[1] || ratingMatch[2] || ratingMatch[3])
+      : 7;
 
-    console.log(`✅ Rating complete: ${rating}/10`);
+    console.log(`Rating complete: ${rating}/10`);
 
     res.json({
       rating: Math.min(Math.max(rating, 1), 10),
       feedback: response
     });
   } catch (error) {
-    console.error('❌ Rate Outfit Error:', error);
+    console.error('Rate Outfit Error:', error);
     res.status(500).json({ error: 'Failed to analyze outfit', details: error.message });
   }
 });
@@ -413,7 +424,7 @@ app.post('/api/compare-outfits', async (req, res) => {
       return res.status(400).json({ error: 'Need at least 2 images to compare' });
     }
 
-    console.log(`🔄 Comparing ${images.length} outfits for user ${userId} - ${occasion}`);
+    console.log(`Comparing ${images.length} outfits for user ${userId} - ${occasion}`);
 
     const content = [
       {
@@ -433,40 +444,48 @@ app.post('/api/compare-outfits', async (req, res) => {
     const response = completion.choices[0]?.message?.content || '';
     const ratingMatches = response.match(/\d+\/10/g) || [];
     const ratings = ratingMatches.map(match => parseInt(match)).slice(0, images.length);
-    
+
     while (ratings.length < images.length) {
       ratings.push(7);
     }
 
     const bestIndex = ratings.indexOf(Math.max(...ratings));
 
-    console.log(`✅ Comparison complete. Best: Outfit ${bestIndex + 1} (${ratings[bestIndex]}/10)`);
+    console.log(`Comparison complete. Best: Outfit ${bestIndex + 1} (${ratings[bestIndex]}/10)`);
 
     res.json({
       ratings,
       bestIndex,
       analysis: response,
-      mixSuggestion: response.includes('mix') ? response : 'Try combining elements from your top-rated outfits!'
+      mixSuggestion: response.includes('mix')
+        ? response
+        : 'Try combining elements from your top-rated outfits!'
     });
   } catch (error) {
-    console.error('❌ Compare Outfits Error:', error);
+    console.error('Compare Outfits Error:', error);
     res.status(500).json({ error: 'Failed to compare outfits', details: error.message });
   }
 });
 
-// 2.5 Analyze Product Endpoint
+// 3. Analyze Product Endpoint
+// ✅ FIXED: Accepts both 'image' and 'productImage' field names
+// Title is optional — AI will infer from the image if not provided
 app.post('/api/analyze-product', async (req, res) => {
   try {
-    const { image, title, description } = req.body;
+    const { image, productImage, title, description } = req.body;
 
-    if (!image || !title) {
-      return res.status(400).json({ error: 'Missing required fields: image or title' });
+    // Accept either field name for the image
+    const imageData = image || productImage;
+
+    if (!imageData) {
+      return res.status(400).json({ error: 'Missing required field: image' });
     }
 
-    console.log(`🛍️ Analyzing product: ${title}`);
+    const productTitle = title || 'Unknown product';
+    console.log(`Analyzing product: ${productTitle}`);
 
     const prompt = `
-You are a professional product analyst and e‑commerce conversion expert.
+You are a professional product analyst and e-commerce conversion expert.
 Analyze the product based on the image and the provided details.
 
 Provide:
@@ -475,8 +494,8 @@ Provide:
 3. Strengths of the product.
 4. Weaknesses or concerns.
 5. Suggested improvements.
-6. A conversion‑optimized product description (SEO friendly).
-7. A rating from 1–10 for:
+6. A conversion-optimized product description (SEO friendly).
+7. A rating from 1-10 for:
   - Marketability
   - Aesthetic appeal
   - Perceived quality
@@ -486,39 +505,38 @@ Provide:
     const completion = await groq.chat.completions.create({
       messages: [
         {
-          role: "user",
+          role: 'user',
           content: [
-            { type: "text", text: prompt },
-            { type: "text", text: `Product Title: ${title}` },
-            { type: "text", text: `Product Description: ${description || "No description provided"}` },
-            { type: "image_url", image_url: { url: image } }
+            { type: 'text', text: prompt },
+            { type: 'text', text: `Product Title: ${productTitle}` },
+            { type: 'text', text: `Product Description: ${description || 'No description provided'}` },
+            { type: 'image_url', image_url: { url: imageData } }
           ]
         }
       ],
-      model: "meta-llama/llama-4-scout-17b-16e-instruct",
+      model: 'meta-llama/llama-4-scout-17b-16e-instruct',
       temperature: 0.7,
       max_tokens: 800
     });
 
-    const aiResponse = completion.choices?.[0]?.message?.content || "No response generated";
+    const aiResponse = completion.choices?.[0]?.message?.content || 'No response generated';
 
     res.json({
       success: true,
       analysis: aiResponse
     });
-
   } catch (error) {
-    console.error("❌ Product analysis error:", error);
-    res.status(500).json({ error: "Failed to analyze product" });
+    console.error('Product analysis error:', error);
+    res.status(500).json({ error: 'Failed to analyze product' });
   }
 });
 
-// 3. Create Checkout Session
+// 4. Create Checkout Session
 app.post('/api/create-checkout-session', async (req, res) => {
   try {
     const { userId, userEmail, plan, billingCycle } = req.body;
 
-    console.log('📝 Creating checkout session for:', { userId, userEmail, plan, billingCycle });
+    console.log('Creating checkout session for:', { userId, userEmail, plan, billingCycle });
 
     if (!userId || !plan || !billingCycle) {
       return res.status(400).json({ error: 'Missing required fields' });
@@ -553,21 +571,21 @@ app.post('/api/create-checkout-session', async (req, res) => {
       metadata: { userId, plan, billingCycle },
       allow_promotion_codes: true,
       billing_address_collection: 'auto',
-      subscription_data: { 
-        metadata: { userId, plan, billingCycle } 
+      subscription_data: {
+        metadata: { userId, plan, billingCycle }
       }
     });
 
-    console.log(`💳 Checkout session created: ${session.id} for user ${userId}`);
+    console.log(`Checkout session created: ${session.id} for user ${userId}`);
 
     res.json({ sessionId: session.id });
   } catch (error) {
-    console.error('❌ Stripe Checkout error:', error.message);
+    console.error('Stripe Checkout error:', error.message);
     res.status(500).json({ error: error.message || 'Internal server error' });
   }
 });
 
-// 4. Create Portal Session
+// 5. Create Portal Session
 app.post('/api/create-portal-session', async (req, res) => {
   try {
     const { userId } = req.body;
@@ -586,12 +604,11 @@ app.post('/api/create-portal-session', async (req, res) => {
       return res.status(404).json({ error: 'No subscription found' });
     }
 
-    return res.status(400).json({ 
-      error: 'Customer portal not available. Please contact support.' 
+    return res.status(400).json({
+      error: 'Customer portal not available. Please contact support.'
     });
-
   } catch (error) {
-    console.error('❌ Portal session error:', error);
+    console.error('Portal session error:', error);
     res.status(500).json({ error: error.message || 'Internal server error' });
   }
 });
@@ -604,7 +621,7 @@ app.get('/api/health', (req, res) => {
 // Serve React app in production
 if (process.env.NODE_ENV === 'production') {
   app.use(express.static(path.join(__dirname, 'dist')));
-  
+
   app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'dist', 'index.html'));
   });
@@ -612,11 +629,11 @@ if (process.env.NODE_ENV === 'production') {
 
 // Start server
 app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT} - CSP v2`);
-  console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`🔗 API available at: http://localhost:${PORT}/api`);
-  console.log(`🔔 Webhook endpoint: /api/stripe-webhook`);
-  console.log(`🏓 Ping endpoint: /api/ping`);
-  console.log(`🗺️ Geocoding proxy: /api/geocode (OpenStreetMap Nominatim - free)`);
-  console.log(`👗 AI Stylist: /api/analyze-style-photo + /api/generate-styled-outfits`);
+  console.log(`Server running on port ${PORT}`);
+  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`API available at: http://localhost:${PORT}/api`);
+  console.log(`Webhook endpoint: /api/stripe-webhook`);
+  console.log(`Ping endpoint: /api/ping`);
+  console.log(`Geocoding proxy: /api/geocode`);
+  console.log(`AI Stylist: /api/analyze-style-photo + /api/generate-styled-outfits`);
 });
