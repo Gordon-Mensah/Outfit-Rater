@@ -8,7 +8,6 @@ import './StyleContext.css'
 
 // ─────────────────────────────────────────────
 // Reverse geocode coords → city name via our own server proxy
-// The server calls Google Maps, so no CSP issues in the browser
 // ─────────────────────────────────────────────
 async function reverseGeocode(latitude, longitude) {
   const res = await fetch(`/api/geocode?lat=${latitude}&lng=${longitude}`)
@@ -19,7 +18,6 @@ async function reverseGeocode(latitude, longitude) {
     throw new Error('No results from geocoding')
   }
 
-  // Extract city name from address components
   for (const result of data.results) {
     for (const component of result.address_components) {
       if (component.types.includes('locality') || component.types.includes('postal_town')) {
@@ -28,7 +26,6 @@ async function reverseGeocode(latitude, longitude) {
     }
   }
 
-  // Fallback: use administrative_area_level_1
   for (const result of data.results) {
     for (const component of result.address_components) {
       if (component.types.includes('administrative_area_level_1')) {
@@ -42,28 +39,42 @@ async function reverseGeocode(latitude, longitude) {
 
 // ─────────────────────────────────────────────
 // Fuzzy match detected city name against cities array
-// Returns the best matching city value or null
+// Normalizes accented characters for comparison
 // ─────────────────────────────────────────────
 function matchCity(detectedName, citiesArray) {
   if (!detectedName) return null
-  const normalized = detectedName.toLowerCase().trim()
 
-  // 1. Exact match on label or value
+  const normalize = (str) =>
+    str
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .trim()
+
+  const normalized = normalize(detectedName)
+
+  // 1. Exact match on normalized label or value
   const exact = citiesArray.find(
-    c => c.label.toLowerCase() === normalized || c.value.toLowerCase() === normalized
+    c => normalize(c.label) === normalized || normalize(c.value) === normalized
   )
   if (exact) return exact
 
-  // 2. Label starts with detected name (e.g. "London" matches "London, UK")
-  const startsWith = citiesArray.find(c => c.label.toLowerCase().startsWith(normalized))
+  // 2. Label starts with detected name
+  const startsWith = citiesArray.find(c =>
+    normalize(c.label).startsWith(normalized)
+  )
   if (startsWith) return startsWith
 
-  // 3. Detected name contains city label word (e.g. "Greater Manchester" matches "Manchester")
-  const contains = citiesArray.find(c => normalized.includes(c.label.toLowerCase().split(',')[0].trim()))
+  // 3. Detected name contains city name
+  const contains = citiesArray.find(c =>
+    normalized.includes(normalize(c.label.split(',')[0].trim()))
+  )
   if (contains) return contains
 
   // 4. City label contains detected name
-  const reverse = citiesArray.find(c => c.label.toLowerCase().includes(normalized))
+  const reverse = citiesArray.find(c =>
+    normalize(c.label).includes(normalized)
+  )
   if (reverse) return reverse
 
   return null
@@ -130,18 +141,18 @@ function StyleContext() {
       const matched = matchCity(cityName, cities)
 
       if (matched) {
+        // Found in our predefined list — use the structured entry
         setContext(prev => ({ ...prev, city: matched.value }))
         setDetectedCityLabel(matched.label)
       } else {
-        // City detected but not in our list — show name so user can pick manually
+        // Not in our list — save the raw detected name directly
+        // No error shown, just confirm it was detected and saved
+        setContext(prev => ({ ...prev, city: cityName }))
         setDetectedCityLabel(cityName)
-        setDetectError(`We detected "${cityName}" but it's not in our city list yet. Please select the closest city manually.`)
       }
     } catch (err) {
       if (err.code === 1) {
         setDetectError('Location access denied. Please allow location access or select your city manually.')
-      } else if (err.message?.includes('API key')) {
-        setDetectError('Auto-detect is not configured. Please select your city manually.')
       } else {
         setDetectError('Could not detect your city. Please select manually.')
       }
@@ -186,6 +197,9 @@ function StyleContext() {
     )
   }
 
+  // Check if the current city value is a custom detected city (not in our list)
+  const isCustomCity = context.city && !cities.find(c => c.value === context.city)
+
   return (
     <div className="context-page">
       <div className="context-bg">
@@ -212,6 +226,7 @@ function StyleContext() {
           </div>
 
           <div className="context-form">
+
             {/* City Selection */}
             <div className="form-group">
               <div className="form-group-label-row">
@@ -253,7 +268,7 @@ function StyleContext() {
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                     <polyline points="20 6 9 17 4 12" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
-                  Detected: <strong>{detectedCityLabel}</strong>
+                  Detected and saved: <strong>{detectedCityLabel}</strong>
                 </div>
               )}
               {detectError && (
@@ -273,10 +288,17 @@ function StyleContext() {
                 onChange={(e) => {
                   setContext({ ...context, city: e.target.value })
                   setDetectError('')
+                  setDetectedCityLabel('')
                 }}
                 className="context-select"
               >
                 <option value="">Select your city...</option>
+                {/* If auto-detected city is not in our list, show it as a selectable option at the top */}
+                {isCustomCity && (
+                  <option value={context.city}>
+                    {detectedCityLabel || context.city} (detected)
+                  </option>
+                )}
                 {cities.map(city => (
                   <option key={city.value} value={city.value}>{city.label}</option>
                 ))}
@@ -292,7 +314,7 @@ function StyleContext() {
                   <line x1="9" y1="9" x2="15" y2="9" strokeWidth="2"/>
                   <line x1="9" y1="15" x2="15" y2="15" strokeWidth="2"/>
                 </svg>
-                Your Workplace/Lifestyle
+                Your Workplace / Lifestyle
               </label>
               <select
                 id="workplace"
@@ -339,7 +361,7 @@ function StyleContext() {
                   <circle cx="12" cy="12" r="10" strokeWidth="2"/>
                   <polyline points="12 6 12 12 16 14" strokeWidth="2"/>
                 </svg>
-                Age Group (Optional)
+                Age Group <span style={{ fontSize: '0.8rem', fontWeight: 400, opacity: 0.5 }}>(optional)</span>
               </label>
               <select
                 id="ageGroup"
