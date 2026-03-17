@@ -29,7 +29,6 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // CRITICAL: Webhook route MUST come BEFORE express.json() middleware
-// Stripe webhooks need raw body for signature verification
 app.post('/api/stripe-webhook', express.raw({ type: 'application/json' }), async (req, res) => {
   const sig = req.headers['stripe-signature'];
 
@@ -46,7 +45,6 @@ app.post('/api/stripe-webhook', express.raw({ type: 'application/json' }), async
       case 'checkout.session.completed': {
         const session = event.data.object;
         const userId = session.metadata.userId || session.client_reference_id;
-
         console.log(`Payment successful for user ${userId}`);
 
         const { data, error } = await supabase
@@ -71,7 +69,6 @@ app.post('/api/stripe-webhook', express.raw({ type: 'application/json' }), async
               stripe_customer_id: session.customer,
               stripe_subscription_id: session.subscription
             });
-
           if (insertError) {
             console.error('Error inserting subscription:', insertError);
           } else {
@@ -86,19 +83,13 @@ app.post('/api/stripe-webhook', express.raw({ type: 'application/json' }), async
       case 'customer.subscription.updated': {
         const subscription = event.data.object;
         const status = subscription.status === 'active' ? 'active' : 'inactive';
-
         console.log(`Subscription updated: ${subscription.id} - ${status}`);
-
         const customer = await stripe.customers.retrieve(subscription.customer);
         const userId = customer.metadata?.userId;
-
         if (userId) {
           await supabase
             .from('subscriptions')
-            .update({
-              status: status,
-              plan: status === 'active' ? 'premium' : 'free'
-            })
+            .update({ status, plan: status === 'active' ? 'premium' : 'free' })
             .eq('user_id', userId);
         }
         break;
@@ -106,19 +97,13 @@ app.post('/api/stripe-webhook', express.raw({ type: 'application/json' }), async
 
       case 'customer.subscription.deleted': {
         const subscription = event.data.object;
-
         console.log(`Subscription cancelled: ${subscription.id}`);
-
         const customer = await stripe.customers.retrieve(subscription.customer);
         const userId = customer.metadata?.userId;
-
         if (userId) {
           await supabase
             .from('subscriptions')
-            .update({
-              status: 'cancelled',
-              plan: 'free'
-            })
+            .update({ status: 'cancelled', plan: 'free' })
             .eq('user_id', userId);
         }
         break;
@@ -133,10 +118,8 @@ app.post('/api/stripe-webhook', express.raw({ type: 'application/json' }), async
       case 'invoice.payment_failed': {
         const invoice = event.data.object;
         console.log(`Payment failed: ${invoice.id}`);
-
         const customer = await stripe.customers.retrieve(invoice.customer);
         const userId = customer.metadata?.userId;
-
         if (userId) {
           await supabase
             .from('subscriptions')
@@ -163,8 +146,6 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Content Security Policy
-// - Google Fonts allowed in style-src and font-src
-// - Weather APIs and Nominatim allowed in connect-src
 app.use((req, res, next) => {
   res.setHeader(
     'Content-Security-Policy',
@@ -186,55 +167,32 @@ app.use((req, res, next) => {
 // API Routes
 // ─────────────────────────────────────────────
 
-// Ping endpoint to keep Render service alive
 app.get('/api/ping', (req, res) => {
   console.log('Ping received at:', new Date().toISOString());
-  res.json({
-    status: 'ok',
-    timestamp: new Date().toISOString(),
-    message: 'Server is alive'
-  });
+  res.json({ status: 'ok', timestamp: new Date().toISOString(), message: 'Server is alive' });
 });
 
-// Geocoding proxy — OpenStreetMap Nominatim (free, no API key needed)
 app.get('/api/geocode', async (req, res) => {
   try {
     const { lat, lng } = req.query;
-
     if (!lat || !lng) {
       return res.status(400).json({ error: 'Missing lat or lng query parameters' });
     }
-
     console.log(`Geocoding request: ${lat}, ${lng}`);
-
     const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`;
     const response = await fetch(url, {
       headers: { 'User-Agent': 'OutfitRater/1.0 (outfitrater.xyz)' }
     });
     const data = await response.json();
-
-    const city =
-      data.address?.city ||
-      data.address?.town ||
-      data.address?.village ||
-      data.address?.county;
-
+    const city = data.address?.city || data.address?.town || data.address?.village || data.address?.county;
     if (!city) {
       console.log('No city found in geocoding response');
       return res.json({ status: 'ZERO_RESULTS', results: [] });
     }
-
     console.log(`Geocoding result: ${city}`);
-
     res.json({
       status: 'OK',
-      results: [
-        {
-          address_components: [
-            { long_name: city, types: ['locality'] }
-          ]
-        }
-      ]
+      results: [{ address_components: [{ long_name: city, types: ['locality'] }] }]
     });
   } catch (error) {
     console.error('Geocoding proxy error:', error);
@@ -242,17 +200,12 @@ app.get('/api/geocode', async (req, res) => {
   }
 });
 
-// AI Stylist: Analyze user's photo
 app.post('/api/analyze-style-photo', async (req, res) => {
   try {
     const { image } = req.body;
-
-    if (!image) {
-      return res.status(400).json({ error: 'Missing image' });
-    }
+    if (!image) return res.status(400).json({ error: 'Missing image' });
 
     console.log('Analyzing style photo...');
-
     const completion = await groq.chat.completions.create({
       messages: [{
         role: 'user',
@@ -263,13 +216,9 @@ app.post('/api/analyze-style-photo', async (req, res) => {
 - Their skin tone (warm/cool/neutral undertones)
 - Their body proportions or silhouette type
 - Any visible style preferences or aesthetic you can infer
-
 Keep it positive, constructive, and focused on what clothing styles, colors, and fits would look best on them. Do not mention any personal identifiers. Be specific and actionable.`
           },
-          {
-            type: 'image_url',
-            image_url: { url: image }
-          }
+          { type: 'image_url', image_url: { url: image } }
         ]
       }],
       model: 'meta-llama/llama-4-scout-17b-16e-instruct',
@@ -279,7 +228,6 @@ Keep it positive, constructive, and focused on what clothing styles, colors, and
 
     const analysis = completion.choices[0]?.message?.content || '';
     console.log('Style photo analyzed');
-
     res.json({ analysis });
   } catch (error) {
     console.error('Style photo analysis error:', error);
@@ -287,11 +235,9 @@ Keep it positive, constructive, and focused on what clothing styles, colors, and
   }
 });
 
-// AI Stylist: Generate personalized outfit combinations
 app.post('/api/generate-styled-outfits', async (req, res) => {
   try {
     const { wardrobeSummary, stylistAnalysis, weather } = req.body;
-
     if (!wardrobeSummary || !Array.isArray(wardrobeSummary)) {
       return res.status(400).json({ error: 'Missing wardrobeSummary' });
     }
@@ -301,9 +247,7 @@ app.post('/api/generate-styled-outfits', async (req, res) => {
     const wardrobeText = wardrobeSummary
       .map(({ category, items }) =>
         `${category.toUpperCase()}:\n${items
-          .map(i =>
-            `  - ID: ${i.id} | Name: ${i.name} | Color: ${i.color || 'unknown'} | Type: ${i.subcategory || 'general'}`
-          )
+          .map(i => `  - ID: ${i.id} | Name: ${i.name} | Color: ${i.color || 'unknown'} | Type: ${i.subcategory || 'general'}`)
           .join('\n')}`
       )
       .join('\n\n');
@@ -318,7 +262,7 @@ ${weather ? `WEATHER: ${weather}` : ''}
 AVAILABLE WARDROBE ITEMS:
 ${wardrobeText}
 
-Create 5 outfit combinations. For each outfit, respond ONLY with a JSON array (no markdown, no explanation) in this exact format:
+Create 5 outfit combinations. Respond ONLY with a JSON array (no markdown, no explanation):
 [
   {
     "occasion": "Casual",
@@ -337,8 +281,6 @@ Create 5 outfit combinations. For each outfit, respond ONLY with a JSON array (n
 Rules:
 - Only use item IDs that exist in the wardrobe above
 - If a category has no items, set that field to null
-- layer2Id is for a second top layer (e.g. hoodie under jacket, shirt under cardigan) — only use if it genuinely improves the outfit
-- styleNote should reference the person's specific features from their style profile
 - Occasions should vary: mix Casual, Work, Date Night, Night Out, Weekend
 - Respond with ONLY the JSON array, nothing else`;
 
@@ -350,7 +292,6 @@ Rules:
     });
 
     const responseText = completion.choices[0]?.message?.content || '[]';
-
     let outfits = [];
     try {
       const cleaned = responseText.replace(/```json|```/g, '').trim();
@@ -368,15 +309,13 @@ Rules:
   }
 });
 
-// 1. Rate Outfit Endpoint
+// 1. Rate Outfit
 app.post('/api/rate-outfit', async (req, res) => {
   try {
     const { image, occasion, mode, userId } = req.body;
-
     if (!image || !occasion || !mode) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
-
     console.log(`Rating outfit for user ${userId} - ${occasion} - ${mode} mode`);
 
     const prompts = {
@@ -400,31 +339,23 @@ app.post('/api/rate-outfit', async (req, res) => {
 
     const response = completion.choices[0]?.message?.content || '';
     const ratingMatch = response.match(/(\d+)\/10|rating[:\s]+(\d+)|score[:\s]+(\d+)/i);
-    const rating = ratingMatch
-      ? parseInt(ratingMatch[1] || ratingMatch[2] || ratingMatch[3])
-      : 7;
+    const rating = ratingMatch ? parseInt(ratingMatch[1] || ratingMatch[2] || ratingMatch[3]) : 7;
 
     console.log(`Rating complete: ${rating}/10`);
-
-    res.json({
-      rating: Math.min(Math.max(rating, 1), 10),
-      feedback: response
-    });
+    res.json({ rating: Math.min(Math.max(rating, 1), 10), feedback: response });
   } catch (error) {
     console.error('Rate Outfit Error:', error);
     res.status(500).json({ error: 'Failed to analyze outfit', details: error.message });
   }
 });
 
-// 2. Compare Outfits Endpoint
+// 2. Compare Outfits
 app.post('/api/compare-outfits', async (req, res) => {
   try {
     const { images, occasion, userId } = req.body;
-
     if (!images || !Array.isArray(images) || images.length < 2) {
       return res.status(400).json({ error: 'Need at least 2 images to compare' });
     }
-
     console.log(`Comparing ${images.length} outfits for user ${userId} - ${occasion}`);
 
     const content = [
@@ -445,22 +376,16 @@ app.post('/api/compare-outfits', async (req, res) => {
     const response = completion.choices[0]?.message?.content || '';
     const ratingMatches = response.match(/\d+\/10/g) || [];
     const ratings = ratingMatches.map(match => parseInt(match)).slice(0, images.length);
-
-    while (ratings.length < images.length) {
-      ratings.push(7);
-    }
+    while (ratings.length < images.length) ratings.push(7);
 
     const bestIndex = ratings.indexOf(Math.max(...ratings));
-
     console.log(`Comparison complete. Best: Outfit ${bestIndex + 1} (${ratings[bestIndex]}/10)`);
 
     res.json({
       ratings,
       bestIndex,
       analysis: response,
-      mixSuggestion: response.includes('mix')
-        ? response
-        : 'Try combining elements from your top-rated outfits!'
+      mixSuggestion: response.includes('mix') ? response : 'Try combining elements from your top-rated outfits!'
     });
   } catch (error) {
     console.error('Compare Outfits Error:', error);
@@ -468,16 +393,12 @@ app.post('/api/compare-outfits', async (req, res) => {
   }
 });
 
-// 3. Analyze Product Endpoint
-// Accepts both 'image' and 'productImage' field names
-// Title is optional — AI infers from image if not provided
-// Wardrobe items are used to suggest matches and outfit combinations
+// 3. Analyze Product — returns structured JSON so the frontend can show wardrobe item images
 app.post('/api/analyze-product', async (req, res) => {
   try {
     const { image, productImage, title, description, wardrobeItems } = req.body;
 
     const imageData = image || productImage;
-
     if (!imageData) {
       return res.status(400).json({ error: 'Missing required field: image' });
     }
@@ -485,41 +406,56 @@ app.post('/api/analyze-product', async (req, res) => {
     const productTitle = title || 'Unknown product';
     console.log(`Analyzing product: ${productTitle} — wardrobe items: ${wardrobeItems?.length || 0}`);
 
-    // Build wardrobe context string for the AI
-    const wardrobeContext = wardrobeItems && wardrobeItems.length > 0
-      ? `The person already owns these items in their wardrobe:\n${wardrobeItems
+    // Build wardrobe list for AI — include IDs so we can match back to images
+    const wardrobeList = wardrobeItems && wardrobeItems.length > 0
+      ? wardrobeItems
           .map(item =>
-            `- ${item.name}${item.color && item.color !== 'unspecified' ? ` (${item.color})` : ''}${item.category ? ` [${item.category}]` : ''}`
+            `ID:${item.id} | ${item.name}${item.color && item.color !== 'unspecified' ? ` (${item.color})` : ''} [${item.category || 'general'}]`
           )
-          .join('\n')}`
-      : 'The person has no items in their wardrobe yet.'
+          .join('\n')
+      : null;
 
-    const prompt = `You are a professional personal stylist and fashion analyst.
+    const prompt = `You are a professional personal stylist analyzing a clothing item.
 
-Analyze this clothing item and provide a detailed, personal assessment.
-
-Product: ${productTitle}
+Item being analyzed: ${productTitle}
 ${description ? `Description: ${description}` : ''}
 
-${wardrobeContext}
+${wardrobeList
+  ? `The person's existing wardrobe:\n${wardrobeList}`
+  : 'The person has no wardrobe items yet.'}
 
-Structure your response exactly as follows:
+Respond ONLY with a valid JSON object. No markdown, no explanation, no text outside the JSON.
 
-**WARDROBE MATCHES**
-List 3-5 specific items from their wardrobe that would pair well with this item. For each match, explain in 1-2 sentences exactly why it works — mention colors, contrast, style compatibility, or occasion suitability. If they have no wardrobe items yet, suggest 3-5 types of items that would complement it and why.
+{
+  "itemType": "Brief description of what this item is (e.g. Red crew-neck T-shirt)",
+  "wardrobeMatches": [
+    {
+      "itemId": "exact ID from the wardrobe list above, e.g. abc123",
+      "itemName": "exact name from the wardrobe list",
+      "reason": "One sentence explaining why this pairs well — mention color, style, occasion"
+    }
+  ],
+  "outfitIdeas": [
+    {
+      "occasion": "e.g. Casual Weekend",
+      "itemIds": ["id1", "id2", "id3"],
+      "itemNames": ["name1", "name2", "name3"],
+      "description": "One sentence describing the outfit and why it works"
+    }
+  ],
+  "strengths": ["strength 1", "strength 2", "strength 3"],
+  "concerns": ["concern 1", "concern 2"],
+  "wardrobeFitScore": 8,
+  "verdict": "Buy",
+  "verdictReason": "One clear sentence explaining the buy/maybe/skip verdict"
+}
 
-**OUTFIT IDEAS**
-Give 2-3 complete outfit combinations using this item alongside their existing wardrobe pieces. For each outfit, name the specific items and describe what occasion it is best suited for and why the combination works visually and stylistically.
-
-**OVERALL ASSESSMENT**
-Briefly cover:
-- What type of item this is and who it suits best
-- Its main strengths (versatility, color impact, style)
-- Any concerns (fit, occasion limitations, gaps it does not fill)
-- Wardrobe fit score: X/10 — how well it integrates with what they already own
-- Verdict: Buy / Maybe / Skip — with one clear sentence explaining why
-
-Keep the tone direct, specific, and personal. Always reference the person's actual wardrobe items by name wherever possible.`
+Rules:
+- wardrobeMatches: pick the 3-5 best matching items from the wardrobe. Use the EXACT itemId and itemName from the list. If no wardrobe, return empty array.
+- outfitIdeas: give 2-3 outfit combinations. Use EXACT IDs and names from the wardrobe. If no wardrobe, return empty array.
+- wardrobeFitScore: integer 1-10
+- verdict: must be exactly "Buy", "Maybe", or "Skip"
+- Respond with ONLY the JSON object, nothing else`
 
     const completion = await groq.chat.completions.create({
       messages: [
@@ -532,16 +468,48 @@ Keep the tone direct, specific, and personal. Always reference the person's actu
         }
       ],
       model: 'meta-llama/llama-4-scout-17b-16e-instruct',
-      temperature: 0.7,
+      temperature: 0.5,
       max_tokens: 1200
     });
 
-    const aiResponse = completion.choices?.[0]?.message?.content || 'No response generated';
+    const rawResponse = completion.choices?.[0]?.message?.content || '';
 
-    res.json({
-      success: true,
-      analysis: aiResponse
-    });
+    // Parse JSON — strip any accidental markdown fences
+    let structured = null;
+    try {
+      const cleaned = rawResponse.replace(/```json|```/g, '').trim();
+      structured = JSON.parse(cleaned);
+    } catch (parseErr) {
+      console.error('Failed to parse structured JSON, falling back to raw text:', parseErr);
+      // Fallback: return raw text so the UI can still show something
+      return res.json({ success: true, analysis: rawResponse, structured: null });
+    }
+
+    // Enrich wardrobeMatches and outfitIdeas with image_data from the original wardrobeItems
+    if (structured && wardrobeItems && wardrobeItems.length > 0) {
+      const itemMap = {};
+      wardrobeItems.forEach(item => { itemMap[item.id] = item; });
+
+      if (structured.wardrobeMatches) {
+        structured.wardrobeMatches = structured.wardrobeMatches.map(match => ({
+          ...match,
+          image_data: itemMap[match.itemId]?.image_data || null,
+          category: itemMap[match.itemId]?.category || null,
+          color: itemMap[match.itemId]?.color || null
+        }));
+      }
+
+      if (structured.outfitIdeas) {
+        structured.outfitIdeas = structured.outfitIdeas.map(outfit => ({
+          ...outfit,
+          items: (outfit.itemIds || []).map(id => itemMap[id] || null).filter(Boolean)
+        }));
+      }
+    }
+
+    console.log(`Product analysis complete — ${structured?.wardrobeMatches?.length || 0} wardrobe matches found`);
+
+    res.json({ success: true, structured });
   } catch (error) {
     console.error('Product analysis error:', error);
     res.status(500).json({ error: 'Failed to analyze product' });
@@ -552,7 +520,6 @@ Keep the tone direct, specific, and personal. Always reference the person's actu
 app.post('/api/create-checkout-session', async (req, res) => {
   try {
     const { userId, userEmail, plan, billingCycle } = req.body;
-
     console.log('Creating checkout session for:', { userId, userEmail, plan, billingCycle });
 
     if (!userId || !plan || !billingCycle) {
@@ -571,9 +538,7 @@ app.post('/api/create-checkout-session', async (req, res) => {
     let email = userEmail;
     if (!email) {
       const { data: { user }, error: userError } = await supabase.auth.admin.getUserById(userId);
-      if (userError || !user) {
-        return res.status(404).json({ error: 'User not found' });
-      }
+      if (userError || !user) return res.status(404).json({ error: 'User not found' });
       email = user.email;
     }
 
@@ -588,13 +553,10 @@ app.post('/api/create-checkout-session', async (req, res) => {
       metadata: { userId, plan, billingCycle },
       allow_promotion_codes: true,
       billing_address_collection: 'auto',
-      subscription_data: {
-        metadata: { userId, plan, billingCycle }
-      }
+      subscription_data: { metadata: { userId, plan, billingCycle } }
     });
 
     console.log(`Checkout session created: ${session.id} for user ${userId}`);
-
     res.json({ sessionId: session.id });
   } catch (error) {
     console.error('Stripe Checkout error:', error.message);
@@ -606,10 +568,7 @@ app.post('/api/create-checkout-session', async (req, res) => {
 app.post('/api/create-portal-session', async (req, res) => {
   try {
     const { userId } = req.body;
-
-    if (!userId) {
-      return res.status(400).json({ error: 'Missing userId' });
-    }
+    if (!userId) return res.status(400).json({ error: 'Missing userId' });
 
     const { data: subscription, error } = await supabase
       .from('subscriptions')
@@ -621,16 +580,14 @@ app.post('/api/create-portal-session', async (req, res) => {
       return res.status(404).json({ error: 'No subscription found' });
     }
 
-    return res.status(400).json({
-      error: 'Customer portal not available. Please contact support.'
-    });
+    return res.status(400).json({ error: 'Customer portal not available. Please contact support.' });
   } catch (error) {
     console.error('Portal session error:', error);
     res.status(500).json({ error: error.message || 'Internal server error' });
   }
 });
 
-// Health check endpoint
+// Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Server is running' });
 });
@@ -638,13 +595,11 @@ app.get('/api/health', (req, res) => {
 // Serve React app in production
 if (process.env.NODE_ENV === 'production') {
   app.use(express.static(path.join(__dirname, 'dist')));
-
   app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'dist', 'index.html'));
   });
 }
 
-// Start server
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
@@ -653,5 +608,5 @@ app.listen(PORT, () => {
   console.log(`Ping: /api/ping`);
   console.log(`Geocoding: /api/geocode`);
   console.log(`AI Stylist: /api/analyze-style-photo + /api/generate-styled-outfits`);
-  console.log(`Product Analysis: /api/analyze-product (with wardrobe matching)`);
+  console.log(`Product Analysis: /api/analyze-product (structured JSON + image matching)`);
 });

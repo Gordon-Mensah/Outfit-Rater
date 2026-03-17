@@ -1,4 +1,4 @@
-// AIClosetSimulator.jsx - Redesigned
+// AIClosetSimulator.jsx - With image-based wardrobe matching
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from './AuthContext'
@@ -17,7 +17,7 @@ function AIClosetSimulator() {
   const [productPreview, setProductPreview] = useState(null)
   const [productTitle, setProductTitle] = useState('')
   const [analyzing, setAnalyzing] = useState(false)
-  const [analysis, setAnalysis] = useState(null)
+  const [result, setResult] = useState(null)
   const [error, setError] = useState(null)
   const [dragOver, setDragOver] = useState(false)
 
@@ -28,7 +28,7 @@ function AIClosetSimulator() {
     reader.onloadend = () => setProductPreview(reader.result)
     reader.readAsDataURL(file)
     setError(null)
-    setAnalysis(null)
+    setResult(null)
   }
 
   const handleFileInput = (e) => handleImageUpload(e.target.files?.[0])
@@ -71,7 +71,7 @@ function AIClosetSimulator() {
 
       const data = await response.json()
       if (!response.ok) throw new Error(data.error || 'Analysis failed')
-      setAnalysis(data)
+      setResult(data)
     } catch (err) {
       setError(err.message || 'Failed to analyze product')
     } finally {
@@ -82,10 +82,18 @@ function AIClosetSimulator() {
   const reset = () => {
     setProductImage(null)
     setProductPreview(null)
-    setAnalysis(null)
+    setResult(null)
     setError(null)
     setProductTitle('')
   }
+
+  const s = result?.structured
+
+  const verdictColor = s?.verdict === 'Buy'
+    ? '#4ade80'
+    : s?.verdict === 'Maybe'
+    ? '#facc15'
+    : '#f87171'
 
   return (
     <div className="sim-page">
@@ -127,7 +135,7 @@ function AIClosetSimulator() {
             <span className="sim-h1-line sim-h1-accent">Simulator</span>
           </h1>
           <p className="sim-lead">
-            Drop any item. Know instantly if it belongs in your wardrobe.
+            Drop any item. See exactly how it fits into your wardrobe.
           </p>
         </header>
 
@@ -143,32 +151,29 @@ function AIClosetSimulator() {
               </div>
               <h2 className="sim-gate-title">Premium Feature</h2>
               <p className="sim-gate-desc">
-                Get AI-powered wardrobe analysis, outfit compatibility, and purchase intelligence.
+                Get AI-powered wardrobe analysis with visual item matching, outfit combinations, and purchase intelligence.
               </p>
               <ul className="sim-gate-list">
-                <li>Wardrobe compatibility scoring</li>
-                <li>Outfit creation potential</li>
+                <li>Visual wardrobe item matching</li>
+                <li>Outfit combinations with your actual clothes</li>
                 <li>Color palette analysis</li>
                 <li>Predicted wear frequency</li>
                 <li>Buy / Skip recommendation</li>
-                <li>Style DNA matching</li>
               </ul>
               <div className="sim-gate-actions">
                 <SimpleUpgradeButton text="Unlock Premium" />
-                <button className="sim-gate-back" onClick={() => navigate('/rate')}>
-                  Go back
-                </button>
+                <button className="sim-gate-back" onClick={() => navigate('/rate')}>Go back</button>
               </div>
             </div>
           </div>
         )}
 
-        {/* Main content */}
+        {/* Main */}
         <div className={`sim-main ${!isPremium ? 'sim-blur' : ''}`}>
-          {!analysis ? (
+          {!result ? (
             <div className="sim-layout">
 
-              {/* Left — Upload */}
+              {/* Upload col */}
               <div className="sim-col-upload">
                 <div className="sim-col-label">Upload</div>
 
@@ -189,9 +194,7 @@ function AIClosetSimulator() {
                   {productPreview ? (
                     <div className="sim-filled">
                       <img src={productPreview} alt="Product" className="sim-filled-img" />
-                      <label htmlFor="sim-upload" className="sim-filled-change">
-                        Change image
-                      </label>
+                      <label htmlFor="sim-upload" className="sim-filled-change">Change image</label>
                     </div>
                   ) : (
                     <label htmlFor="sim-upload" className="sim-drop-idle">
@@ -239,26 +242,23 @@ function AIClosetSimulator() {
                   disabled={!productImage || analyzing || !isPremium}
                 >
                   {analyzing ? (
-                    <>
-                      <span className="sim-spin"></span>
-                      Analyzing...
-                    </>
+                    <><span className="sim-spin"></span>Analyzing...</>
                   ) : (
                     'Analyze Item'
                   )}
                 </button>
               </div>
 
-              {/* Right — What you get */}
+              {/* Info col */}
               <div className="sim-col-info">
                 <div className="sim-col-label">What you get</div>
                 <div className="sim-info-items">
                   {[
-                    { n: '01', title: 'Wardrobe Fit', desc: 'See how this item works with everything you already own.' },
-                    { n: '02', title: 'Outfit Potential', desc: 'Discover exactly how many new combinations it unlocks.' },
-                    { n: '03', title: 'Wear Prediction', desc: 'AI estimates how often you\'ll actually reach for it.' },
-                    { n: '04', title: 'Color Analysis', desc: 'Understand the palette impact on your wardrobe.' },
-                    { n: '05', title: 'Buy or Skip', desc: 'A clear verdict — no second guessing.' },
+                    { n: '01', title: 'Visual Matches', desc: 'See exactly which items from your wardrobe pair with this piece.' },
+                    { n: '02', title: 'Outfit Combinations', desc: 'Full outfit suggestions built from your actual clothes.' },
+                    { n: '03', title: 'Wear Prediction', desc: 'How often you will actually reach for it.' },
+                    { n: '04', title: 'Color Analysis', desc: 'How it affects your wardrobe palette.' },
+                    { n: '05', title: 'Buy or Skip', desc: 'A clear verdict with a reason.' },
                   ].map(({ n, title, desc }) => (
                     <div key={n} className="sim-info-row">
                       <span className="sim-info-n">{n}</span>
@@ -271,200 +271,171 @@ function AIClosetSimulator() {
                 </div>
               </div>
             </div>
+
           ) : (
             /* ── Results ── */
             <div className="sim-results">
               <div className="sim-results-header">
                 <div>
                   <div className="sim-col-label">Analysis complete</div>
-                  <h2 className="sim-results-title">
-                    {productTitle || 'Your item'}
-                  </h2>
+                  <h2 className="sim-results-title">{productTitle || 'Your item'}</h2>
                 </div>
-                <button className="sim-btn-ghost" onClick={reset}>
-                  Try another
-                </button>
+                <button className="sim-btn-ghost" onClick={reset}>Try another</button>
               </div>
 
-              <div className="sim-results-body">
-
-                {/* Left — image + score */}
-                <div className="sim-res-left">
-                  {productPreview && (
-                    <div className="sim-res-img-wrap">
-                      <img src={productPreview} alt="Item" className="sim-res-img" />
-                    </div>
-                  )}
-
-                  {analysis.overallScore !== undefined && (
-                    <div className="sim-score">
-                      <div
-                        className="sim-score-circle"
-                        style={{
-                          '--c': analysis.overallScore >= 80 ? '#4ade80'
-                               : analysis.overallScore >= 60 ? '#facc15' : '#f87171'
-                        }}
-                      >
-                        <span className="sim-score-n">{analysis.overallScore}</span>
-                        <span className="sim-score-100">/100</span>
-                      </div>
-                      <span className="sim-score-lbl">Match Score</span>
-                    </div>
-                  )}
-
-                  {(analysis.verdict || analysis.verdictReason) && (
-                    <div className="sim-verdict">
-                      {analysis.verdict && <div className="sim-verdict-title">{analysis.verdict}</div>}
-                      {analysis.verdictReason && <p className="sim-verdict-body">{analysis.verdictReason}</p>}
-                    </div>
-                  )}
-                </div>
-
-                {/* Right — metrics */}
-                <div className="sim-res-right">
-
-                  {analysis.wardrobeCompatibility !== undefined && (
-                    <div className="sim-res-metric">
-                      <div className="sim-res-metric-head">
-                        <span className="sim-res-metric-lbl">Wardrobe Compatibility</span>
-                        <span className="sim-res-metric-val">{analysis.wardrobeCompatibility}%</span>
-                      </div>
-                      <div className="sim-bar">
-                        <div className="sim-bar-fill" style={{
-                          width: `${analysis.wardrobeCompatibility}%`,
-                          background: analysis.wardrobeCompatibility >= 70 ? '#4ade80' : '#facc15'
-                        }}></div>
-                      </div>
-                      {analysis.compatibilityReason && (
-                        <p className="sim-res-metric-desc">{analysis.compatibilityReason}</p>
+              {s ? (
+                <>
+                  {/* Top row — image + score + verdict */}
+                  <div className="sim-top-row">
+                    <div className="sim-top-image">
+                      {productPreview && (
+                        <img src={productPreview} alt="Item" className="sim-res-img" />
                       )}
                     </div>
-                  )}
 
-                  {analysis.newOutfitsCount !== undefined && (
-                    <div className="sim-res-metric">
-                      <div className="sim-res-metric-head">
-                        <span className="sim-res-metric-lbl">New Outfits Unlocked</span>
-                        <span className="sim-res-metric-val">{analysis.newOutfitsCount}</span>
-                      </div>
-                      <p className="sim-res-metric-desc">
-                        {analysis.newOutfitsCount} new combinations added to your wardrobe
-                      </p>
-                    </div>
-                  )}
-
-                  {analysis.predictedWears !== undefined && (
-                    <div className="sim-res-metric">
-                      <div className="sim-res-metric-head">
-                        <span className="sim-res-metric-lbl">Predicted Monthly Wears</span>
-                        <span className="sim-res-metric-val">{analysis.predictedWears}×</span>
-                      </div>
-                      {analysis.wearFrequencyReason && (
-                        <p className="sim-res-metric-desc">{analysis.wearFrequencyReason}</p>
+                    <div className="sim-top-info">
+                      {s.itemType && (
+                        <p className="sim-item-type">{s.itemType}</p>
                       )}
-                    </div>
-                  )}
 
-                  {analysis.colorImpact && (
-                    <div className="sim-res-metric">
-                      <div className="sim-res-metric-head">
-                        <span className="sim-res-metric-lbl">Color Palette Impact</span>
-                        <span className="sim-res-metric-val">{analysis.colorImpact}</span>
+                      <div className="sim-score-row">
+                        <div className="sim-score-block">
+                          <span className="sim-score-num" style={{ color: '#e8e4dc' }}>
+                            {s.wardrobeFitScore}
+                          </span>
+                          <span className="sim-score-denom">/10</span>
+                        </div>
+                        <span className="sim-score-lbl">Wardrobe fit</span>
                       </div>
-                      {analysis.colorImpactReason && (
-                        <p className="sim-res-metric-desc">{analysis.colorImpactReason}</p>
+
+                      {s.verdict && (
+                        <div className="sim-verdict-pill" style={{ borderColor: verdictColor, color: verdictColor }}>
+                          {s.verdict}
+                        </div>
                       )}
-                    </div>
-                  )}
-
-                  {/* Fallback: raw analysis text */}
-                  {analysis.analysis && !analysis.overallScore && (
-                    <div className="sim-res-metric">
-                      <div className="sim-res-metric-head">
-                        <span className="sim-res-metric-lbl">AI Analysis</span>
-                      </div>
-                      <p className="sim-res-metric-desc sim-raw-analysis">{analysis.analysis}</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Outfit Suggestions */}
-              {analysis.outfitSuggestions?.length > 0 && (
-                <div className="sim-section">
-                  <div className="sim-section-hd">
-                    <span className="sim-col-label">Outfit Combinations</span>
-                  </div>
-                  <div className="sim-outfits">
-                    {analysis.outfitSuggestions.map((outfit, i) => (
-                      <div key={i} className="sim-outfit">
-                        <div className="sim-outfit-n">0{i + 1}</div>
-                        <div className="sim-outfit-occasion">{outfit.occasion}</div>
-                        <p className="sim-outfit-desc">{outfit.description}</p>
-                        {outfit.items && (
-                          <div className="sim-tags">
-                            {outfit.items.map((item, j) => (
-                              <span key={j} className="sim-tag">{item}</span>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Style DNA */}
-              {analysis.styleDNAMatch !== undefined && (
-                <div className="sim-section">
-                  <div className="sim-section-hd">
-                    <span className="sim-col-label">Style DNA Match</span>
-                  </div>
-                  <div className="sim-dna">
-                    <div className="sim-dna-score">{analysis.styleDNAMatch}%</div>
-                    <div className="sim-dna-right">
-                      {analysis.styleDNAReason && (
-                        <p className="sim-dna-desc">{analysis.styleDNAReason}</p>
+                      {s.verdictReason && (
+                        <p className="sim-verdict-reason">{s.verdictReason}</p>
                       )}
-                      {analysis.styleKeywords && (
-                        <div className="sim-tags">
-                          {analysis.styleKeywords.map((kw, i) => (
-                            <span key={i} className="sim-tag">{kw}</span>
+
+                      {s.strengths?.length > 0 && (
+                        <div className="sim-quick-facts">
+                          {s.strengths.map((str, i) => (
+                            <span key={i} className="sim-fact sim-fact-good">{str}</span>
+                          ))}
+                          {s.concerns?.map((con, i) => (
+                            <span key={i} className="sim-fact sim-fact-warn">{con}</span>
                           ))}
                         </div>
                       )}
                     </div>
                   </div>
-                </div>
-              )}
 
-              {/* Recommendation */}
-              {analysis.recommendation && (
+                  {/* Wardrobe Matches — IMAGE CARDS */}
+                  {s.wardrobeMatches?.length > 0 && (
+                    <div className="sim-section">
+                      <div className="sim-section-hd">
+                        <span className="sim-col-label">Wardrobe matches</span>
+                        <span className="sim-section-count">{s.wardrobeMatches.length} items</span>
+                      </div>
+                      <div className="sim-match-grid">
+                        {s.wardrobeMatches.map((match, i) => (
+                          <div key={i} className="sim-match-card">
+                            <div className="sim-match-img-wrap">
+                              {match.image_data ? (
+                                <img
+                                  src={match.image_data}
+                                  alt={match.itemName}
+                                  className="sim-match-img"
+                                />
+                              ) : (
+                                <div className="sim-match-img-placeholder">
+                                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1">
+                                    <rect x="3" y="3" width="18" height="18" rx="2"/>
+                                    <circle cx="8.5" cy="8.5" r="1.5" fill="currentColor"/>
+                                    <path d="M21 15l-5-5L5 21" strokeWidth="1.5"/>
+                                  </svg>
+                                </div>
+                              )}
+                            </div>
+                            <div className="sim-match-info">
+                              <div className="sim-match-name">{match.itemName}</div>
+                              {match.color && match.color !== 'unspecified' && (
+                                <div className="sim-match-color">{match.color}</div>
+                              )}
+                              <p className="sim-match-reason">{match.reason}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* No wardrobe message */}
+                  {(!s.wardrobeMatches || s.wardrobeMatches.length === 0) && (
+                    <div className="sim-section">
+                      <div className="sim-section-hd">
+                        <span className="sim-col-label">Wardrobe matches</span>
+                      </div>
+                      <div className="sim-empty-wardrobe">
+                        <p>Your wardrobe is empty. Add items to your virtual wardrobe to see how this piece matches your existing clothes.</p>
+                        <button className="sim-btn-ghost" onClick={() => navigate('/wardrobe')}>
+                          Go to wardrobe
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Outfit Ideas — IMAGE STRIPS */}
+                  {s.outfitIdeas?.length > 0 && (
+                    <div className="sim-section">
+                      <div className="sim-section-hd">
+                        <span className="sim-col-label">Outfit combinations</span>
+                      </div>
+                      <div className="sim-outfits">
+                        {s.outfitIdeas.map((outfit, i) => (
+                          <div key={i} className="sim-outfit">
+                            <div className="sim-outfit-meta">
+                              <span className="sim-outfit-n">0{i + 1}</span>
+                              <span className="sim-outfit-occasion">{outfit.occasion}</span>
+                            </div>
+
+                            {/* New item + wardrobe items as image strip */}
+                            <div className="sim-outfit-strip">
+                              {/* The item being analyzed always first */}
+                              <div className="sim-strip-item sim-strip-item-new">
+                                <img src={productPreview} alt="New item" className="sim-strip-img" />
+                                <span className="sim-strip-label">New</span>
+                              </div>
+
+                              {outfit.items?.map((item, j) => (
+                                <div key={j} className="sim-strip-item">
+                                  {item.image_data ? (
+                                    <img src={item.image_data} alt={item.name} className="sim-strip-img" />
+                                  ) : (
+                                    <div className="sim-strip-placeholder">
+                                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1">
+                                        <rect x="3" y="3" width="18" height="18" rx="2"/>
+                                        <path d="M21 15l-5-5L5 21" strokeWidth="1.5"/>
+                                      </svg>
+                                    </div>
+                                  )}
+                                  <span className="sim-strip-label">{item.name}</span>
+                                </div>
+                              ))}
+                            </div>
+
+                            <p className="sim-outfit-desc">{outfit.description}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                /* Fallback: raw text if JSON parsing failed */
                 <div className="sim-section">
-                  <div className="sim-section-hd">
-                    <span className="sim-col-label">Verdict</span>
-                  </div>
-                  <div className={`sim-rec sim-rec-${analysis.recommendation}`}>
-                    <div className="sim-rec-pill">
-                      {analysis.recommendation === 'buy' && 'Buy It'}
-                      {analysis.recommendation === 'maybe' && 'Think Twice'}
-                      {analysis.recommendation === 'skip' && 'Skip It'}
-                    </div>
-                    <div className="sim-rec-body">
-                      {analysis.recommendationReason && (
-                        <p className="sim-rec-reason">{analysis.recommendationReason}</p>
-                      )}
-                      {analysis.alternatives?.length > 0 && (
-                        <div className="sim-alts">
-                          <div className="sim-alts-lbl">Consider instead:</div>
-                          <ul className="sim-alts-list">
-                            {analysis.alternatives.map((alt, i) => (
-                              <li key={i}>{alt}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-                    </div>
+                  <div className="sim-res-metric">
+                    <p className="sim-res-metric-desc sim-raw-analysis">{result.analysis}</p>
                   </div>
                 </div>
               )}
