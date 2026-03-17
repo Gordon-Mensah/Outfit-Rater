@@ -162,9 +162,9 @@ app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
-// ✅ Content Security Policy
-// - Google Fonts added to style-src and font-src
-// - Weather APIs added to connect-src
+// Content Security Policy
+// - Google Fonts allowed in style-src and font-src
+// - Weather APIs and Nominatim allowed in connect-src
 app.use((req, res, next) => {
   res.setHeader(
     'Content-Security-Policy',
@@ -182,7 +182,9 @@ app.use((req, res, next) => {
   next();
 });
 
+// ─────────────────────────────────────────────
 // API Routes
+// ─────────────────────────────────────────────
 
 // Ping endpoint to keep Render service alive
 app.get('/api/ping', (req, res) => {
@@ -194,7 +196,7 @@ app.get('/api/ping', (req, res) => {
   });
 });
 
-// Geocoding proxy - uses OpenStreetMap Nominatim (free, no API key needed)
+// Geocoding proxy — OpenStreetMap Nominatim (free, no API key needed)
 app.get('/api/geocode', async (req, res) => {
   try {
     const { lat, lng } = req.query;
@@ -299,9 +301,8 @@ app.post('/api/generate-styled-outfits', async (req, res) => {
     const wardrobeText = wardrobeSummary
       .map(({ category, items }) =>
         `${category.toUpperCase()}:\n${items
-          .map(
-            i =>
-              `  - ID: ${i.id} | Name: ${i.name} | Color: ${i.color || 'unknown'} | Type: ${i.subcategory || 'general'}`
+          .map(i =>
+            `  - ID: ${i.id} | Name: ${i.name} | Color: ${i.color || 'unknown'} | Type: ${i.subcategory || 'general'}`
           )
           .join('\n')}`
       )
@@ -468,13 +469,13 @@ app.post('/api/compare-outfits', async (req, res) => {
 });
 
 // 3. Analyze Product Endpoint
-// ✅ FIXED: Accepts both 'image' and 'productImage' field names
-// Title is optional — AI will infer from the image if not provided
+// Accepts both 'image' and 'productImage' field names
+// Title is optional — AI infers from image if not provided
+// Wardrobe items are used to suggest matches and outfit combinations
 app.post('/api/analyze-product', async (req, res) => {
   try {
-    const { image, productImage, title, description } = req.body;
+    const { image, productImage, title, description, wardrobeItems } = req.body;
 
-    // Accept either field name for the image
     const imageData = image || productImage;
 
     if (!imageData) {
@@ -482,25 +483,43 @@ app.post('/api/analyze-product', async (req, res) => {
     }
 
     const productTitle = title || 'Unknown product';
-    console.log(`Analyzing product: ${productTitle}`);
+    console.log(`Analyzing product: ${productTitle} — wardrobe items: ${wardrobeItems?.length || 0}`);
 
-    const prompt = `
-You are a professional product analyst and e-commerce conversion expert.
-Analyze the product based on the image and the provided details.
+    // Build wardrobe context string for the AI
+    const wardrobeContext = wardrobeItems && wardrobeItems.length > 0
+      ? `The person already owns these items in their wardrobe:\n${wardrobeItems
+          .map(item =>
+            `- ${item.name}${item.color && item.color !== 'unspecified' ? ` (${item.color})` : ''}${item.category ? ` [${item.category}]` : ''}`
+          )
+          .join('\n')}`
+      : 'The person has no items in their wardrobe yet.'
 
-Provide:
-1. A clear summary of what the product is.
-2. The target audience.
-3. Strengths of the product.
-4. Weaknesses or concerns.
-5. Suggested improvements.
-6. A conversion-optimized product description (SEO friendly).
-7. A rating from 1-10 for:
-  - Marketability
-  - Aesthetic appeal
-  - Perceived quality
-  - Viral potential
-    `;
+    const prompt = `You are a professional personal stylist and fashion analyst.
+
+Analyze this clothing item and provide a detailed, personal assessment.
+
+Product: ${productTitle}
+${description ? `Description: ${description}` : ''}
+
+${wardrobeContext}
+
+Structure your response exactly as follows:
+
+**WARDROBE MATCHES**
+List 3-5 specific items from their wardrobe that would pair well with this item. For each match, explain in 1-2 sentences exactly why it works — mention colors, contrast, style compatibility, or occasion suitability. If they have no wardrobe items yet, suggest 3-5 types of items that would complement it and why.
+
+**OUTFIT IDEAS**
+Give 2-3 complete outfit combinations using this item alongside their existing wardrobe pieces. For each outfit, name the specific items and describe what occasion it is best suited for and why the combination works visually and stylistically.
+
+**OVERALL ASSESSMENT**
+Briefly cover:
+- What type of item this is and who it suits best
+- Its main strengths (versatility, color impact, style)
+- Any concerns (fit, occasion limitations, gaps it does not fill)
+- Wardrobe fit score: X/10 — how well it integrates with what they already own
+- Verdict: Buy / Maybe / Skip — with one clear sentence explaining why
+
+Keep the tone direct, specific, and personal. Always reference the person's actual wardrobe items by name wherever possible.`
 
     const completion = await groq.chat.completions.create({
       messages: [
@@ -508,15 +527,13 @@ Provide:
           role: 'user',
           content: [
             { type: 'text', text: prompt },
-            { type: 'text', text: `Product Title: ${productTitle}` },
-            { type: 'text', text: `Product Description: ${description || 'No description provided'}` },
             { type: 'image_url', image_url: { url: imageData } }
           ]
         }
       ],
       model: 'meta-llama/llama-4-scout-17b-16e-instruct',
       temperature: 0.7,
-      max_tokens: 800
+      max_tokens: 1200
     });
 
     const aiResponse = completion.choices?.[0]?.message?.content || 'No response generated';
@@ -631,9 +648,10 @@ if (process.env.NODE_ENV === 'production') {
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`API available at: http://localhost:${PORT}/api`);
-  console.log(`Webhook endpoint: /api/stripe-webhook`);
-  console.log(`Ping endpoint: /api/ping`);
-  console.log(`Geocoding proxy: /api/geocode`);
+  console.log(`API: http://localhost:${PORT}/api`);
+  console.log(`Webhook: /api/stripe-webhook`);
+  console.log(`Ping: /api/ping`);
+  console.log(`Geocoding: /api/geocode`);
   console.log(`AI Stylist: /api/analyze-style-photo + /api/generate-styled-outfits`);
+  console.log(`Product Analysis: /api/analyze-product (with wardrobe matching)`);
 });
